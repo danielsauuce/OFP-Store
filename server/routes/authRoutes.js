@@ -6,6 +6,7 @@ import {
   checkAuth,
   logoutUser,
 } from '../controllers/authController.js';
+import { authenticate } from '../middleware/checkAuthMiddleware.js';
 
 const router = express.Router();
 
@@ -17,6 +18,6 @@ router.post('/reset-password', changePassword);
 
 router.get('/logout', logoutUser);
 
-router.get('/check-auth', checkAuth);
+router.get('/check-auth', authenticate, checkAuth);
 
 export default router;

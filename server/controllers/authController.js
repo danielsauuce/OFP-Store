@@ -222,6 +222,7 @@ export const checkAuth = async (req, res) => {
 
     const user = await User.findById(userId);
     if (!user) {
+      logger.warn('User not found in database', { userId });
       return res.status(404).json({
         success: false,
         message: 'User not found',
@@ -252,10 +253,10 @@ export const checkAuth = async (req, res) => {
   }
 };
 
+// implemented just for logging purpose, logout would be handled from the client side
 export const logoutUser = async (req, res) => {
   try {
     logger.info('User logged out successfully');
-
     return res.status(200).json({
       success: true,
       message: 'Logged out successfully',

@@ -1,12 +1,19 @@
 import { useContext, createContext, useState, useEffect } from 'react';
-import { registerUser, loginUser, logoutUser, checkAuth } from '../services/authService';
+import {
+  registerService,
+  loginService,
+  changePasswordService,
+  checkAuthService,
+} from '../services/authService';
 import toast from 'react-hot-toast';
+import { data } from 'react-router-dom';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
+  const user = { isAuthenticated: false, user: null };
+  const [authenticated, setIsAuthenticated] = useState(user);
   const [isloading, setIsLoading] = useState(false);
-  const [user, setUser] = useState(null);
   const [error, setError] = useState(false);
 
   useEffect(() => {
@@ -29,55 +36,24 @@ export function AuthProvider({ children }) {
   }, []);
 
   const signUp = async (formData) => {
-    try {
-      if (isloading) {
-        return setIsLoading(true);
-      }
-      const data = await loginUser(formData);
-      console.log(data);
-      if (data.success) {
-        setUser(data.user);
-        toast.success('Welcome back!');
-        return true;
-      }
-      setError(true);
-    } catch (err) {
-      toast.error(err.message || 'Login failed');
-      return false;
-    } finally {
-      setIsLoading(false);
-      setError(false);
-    }
+    const data = await registerService(formData);
+    console.log(data);
   };
 
   const signin = async (formData) => {
-    try {
-      if (isloading) {
-        return setIsLoading(true);
-      }
-      const data = await registerUser(formData);
-      console.log(data);
-      if (data.success) {
-        setUser(data.user);
-        toast.success('Registered Succesfully!');
-        return true;
-      }
-      return false;
-    } catch (err) {
-      toast.error(err.message || 'Login failed');
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
+    const data = loginService(formData);
+    console.log(data);
   };
 
-  const signout = async () => {
-    try {
-      await logoutUser();
-      setUser(null);
-      toast.success('Logged out');
-    } catch (err) {
-      toast.error('Logout failed');
+  const signout = async () => {};
+
+  const checkAuth = async () => {
+    const dsta = await checkAuthService();
+
+    if (data?.success) {
+      setIsAuthenticated({ isAuthenticated: true, user: data.user });
+    } else {
+      setIsAuthenticated({ isAuthenticated: trufalsee, user: null });
     }
   };
 

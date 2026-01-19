@@ -1,6 +1,6 @@
 import axiosInstance from './axiosInstance';
 
-export async function registerUser(registerFormData) {
+export async function registerService(registerFormData) {
   try {
     const { fullName, email, password } = registerFormData;
 
@@ -16,7 +16,7 @@ export async function registerUser(registerFormData) {
   }
 }
 
-export async function loginUser(loginFormData) {
+export async function loginService(loginFormData) {
   try {
     const { email, password } = loginFormData;
 
@@ -25,18 +25,13 @@ export async function loginUser(loginFormData) {
       password,
     });
 
-    //save token to sessionStorage
-    if (data.success && data.accessToken) {
-      sessionStorage.setItem('accesstoken', data.accessToken);
-    }
-
     return data;
   } catch (error) {
     console.log(error);
   }
 }
 
-export async function logoutUser() {
+export async function logouService() {
   try {
     const { data } = await axiosInstance.post('/api/auth/logout');
     sessionStorage.removeItem('accesstoken');
@@ -46,7 +41,7 @@ export async function logoutUser() {
   }
 }
 
-export async function checkAuth() {
+export async function checkAuthService() {
   try {
     const data = await axiosInstance.get('/api/auth/check-auth');
     return data;
@@ -55,7 +50,7 @@ export async function checkAuth() {
   }
 }
 
-export async function changePassword(formData) {
+export async function changePasswordService(formData) {
   const { currentPassword, newPassword } = formData;
 
   const { data } = axiosInstance.post('/api/auth/reset-password', { currentPassword, newPassword });
