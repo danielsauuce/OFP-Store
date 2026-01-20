@@ -13,7 +13,7 @@ const axiosInstance = axios.create({
 
 axiosInstance.interceptors.request.use(
   (config) => {
-    const accessToken = sessionStorage.getItem('accesstoken');
+    const accessToken = JSON.parse(sessionStorage.getItem('accessToken')) || '';
 
     if (accessToken) {
       config.headers.Authorization = `Bearer ${accessToken}`;
@@ -21,7 +21,7 @@ axiosInstance.interceptors.request.use(
 
     return config;
   },
-  (error) => Promise.reject(error),
+  (err) => Promise.reject(err),
 );
 
 export default axiosInstance;

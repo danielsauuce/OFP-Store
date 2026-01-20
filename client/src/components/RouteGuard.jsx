@@ -1,25 +1,19 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { Fragment } from 'react';
 
-function RouteGuard({ authenticated, user, element }) {
+function RouteGuard({ authenticated, user, element, requireAuth = false, requireAdmin = false }) {
   const location = useLocation();
 
-  console.log(authenticated, user, 'useruser');
-
-  if (!authenticated && !location.pathname.includes('/admin')) {
-    return <Navigate to="/auth" />;
+  if (requireAuth && !authenticated) {
+    return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 
-  if (
-    authenticated &&
-    user?.role !== 'admin' &&
-    (location.pathname.includes('admin') || location.pathname.includes('/auth'))
-  ) {
-    return <Navigate to="/" />;
+  if (requireAdmin && (!authenticated || user?.role !== 'admin')) {
+    return <Navigate to="/" replace />;
   }
 
-  if (authenticated && user.role === 'admin' && !location.pathname.includes('admin')) {
-    return <Navigate to="/admin" />;
+  if (authenticated && location.pathname === '/auth') {
+    return <Navigate to={user?.role === 'admin' ? '/admin' : '/'} replace />;
   }
 
   return <Fragment>{element}</Fragment>;

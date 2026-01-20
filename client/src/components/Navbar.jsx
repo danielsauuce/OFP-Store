@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ShoppingCart, Users, Menu, X, Sun, Moon } from 'lucide-react';
+import { ShoppingCart, Users, Menu, X, Sun, Moon, LogOut } from 'lucide-react';
 import useDarkMode from '../hooks/useDarkMode';
+import { useAuth } from '../context/authContext';
+import { useNavigate } from 'react-router-dom';
 
 const navItems = [
   { label: 'Home', path: '/' },
@@ -10,14 +12,20 @@ const navItems = [
   { label: 'Contact', path: '/contact' },
 ];
 
-const navIcons = [
-  { icon: <ShoppingCart size={18} />, path: '/cart' },
-  { icon: <Users size={18} />, path: '/auth' },
-];
-
 function Navbar() {
   const [open, setOpen] = useState(false);
   const [theme, setTheme] = useDarkMode();
+  const { auth, signOut } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    const data = await signOut();
+
+    if (data?.success) {
+      navigate('/');
+      setOpen(false);
+    }
+  };
 
   return (
     <nav className="bg-card/95 w-full p-4 sticky top-0 z-50 shadow backdrop-blur supports-[backdrop-filter]:bg-card/60">
@@ -35,11 +43,25 @@ function Navbar() {
             </Link>
           ))}
 
-          {navIcons.map((item, i) => (
-            <Link key={i} to={item.path}>
-              {item.icon}
+          {/* Cart Icon */}
+          <Link to="/cart">
+            <ShoppingCart size={18} />
+          </Link>
+
+          {/* Auth/Profile Icon or Logout */}
+          {auth.authenticated ? (
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 hover:text-red-600 transition-colors"
+              title="Logout"
+            >
+              <LogOut size={18} />
+            </button>
+          ) : (
+            <Link to="/auth">
+              <Users size={18} />
             </Link>
-          ))}
+          )}
 
           {/* Dark Mode Toggle */}
           <button onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}>
@@ -47,7 +69,7 @@ function Navbar() {
           </button>
         </div>
 
-        {/* Mobile Hamburger + Cart) */}
+        {/* Mobile Hamburger + Cart */}
         <div className="flex md:hidden items-center space-x-8 text-[#815331]">
           {/* Cart Icon */}
           <Link to="/cart">
@@ -70,16 +92,31 @@ function Navbar() {
             </Link>
           ))}
 
-          <div className="flex flex-col space-y-3 pt-2">
-            {navIcons.map((item, i) => (
-              <Link key={i} to={item.path} onClick={() => setOpen(false)}>
-                {item.icon}
+          <div className="flex flex-col space-y-3 pt-2 border-t border-border">
+            {/* Logout in Mobile */}
+            {auth.authenticate ? (
+              <>
+                <div className="text-sm text-muted-foreground">
+                  Logged in as: <span className="font-medium">{auth.user?.fullName}</span>
+                </div>
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-2 hover:text-red-600 transition-colors"
+                >
+                  <LogOut size={18} />
+                  <span>Logout</span>
+                </button>
+              </>
+            ) : (
+              <Link to="/auth" onClick={() => setOpen(false)} className="flex items-center gap-2">
+                <Users size={18} />
+                <span>Login / Sign Up</span>
               </Link>
-            ))}
+            )}
           </div>
 
           <button
-            className="pt-2 flex items-center"
+            className="pt-2 flex items-center border-t border-border"
             onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
           >
             {theme === 'dark' ? (

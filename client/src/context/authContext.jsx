@@ -7,7 +7,6 @@ import {
   logoutService,
 } from '../services/authService';
 import toast from 'react-hot-toast';
-import { authenticate } from '../../../server/middleware/checkAuthMiddleware';
 
 const AuthContext = createContext(null);
 
