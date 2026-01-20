@@ -7,13 +7,14 @@ import {
   logoutService,
 } from '../services/authService';
 import toast from 'react-hot-toast';
+import { authenticate } from '../../../server/middleware/checkAuthMiddleware';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [isLoading, setIsLoading] = useState(true);
   const [auth, setAuth] = useState({
-    authenticate: false,
+    authenticated: false,
     user: null,
   });
 
@@ -58,7 +59,7 @@ export function AuthProvider({ children }) {
         sessionStorage.setItem('refreshToken', data.refreshToken);
 
         setAuth({
-          authenticate: true,
+          authenticated: true,
           user: data.user,
         });
 
@@ -90,7 +91,7 @@ export function AuthProvider({ children }) {
       sessionStorage.removeItem('refreshToken');
 
       setAuth({
-        authenticate: false,
+        authenticated: false,
         user: null,
       });
 
@@ -103,7 +104,7 @@ export function AuthProvider({ children }) {
       sessionStorage.removeItem('refreshToken');
 
       setAuth({
-        authenticate: false,
+        authenticated: false,
         user: null,
       });
       return { success: true };
@@ -119,7 +120,7 @@ export function AuthProvider({ children }) {
       const token = sessionStorage.getItem('accessToken');
 
       if (!token) {
-        setAuth({ authenticate: false, user: null });
+        setAuth({ authenticated: false, user: null });
         return;
       }
 
@@ -127,7 +128,7 @@ export function AuthProvider({ children }) {
 
       if (data?.success && data?.user) {
         setAuth({
-          authenticate: true,
+          authenticated: true,
           user: data.user,
         });
       } else {
@@ -135,7 +136,7 @@ export function AuthProvider({ children }) {
         sessionStorage.removeItem('accessToken');
         sessionStorage.removeItem('refreshToken');
 
-        setAuth({ authenticate: false, user: null });
+        setAuth({ authenticated: false, user: null });
       }
     } catch (error) {
       console.error('Check auth error:', error);
@@ -143,7 +144,7 @@ export function AuthProvider({ children }) {
       sessionStorage.removeItem('accessToken');
       sessionStorage.removeItem('refreshToken');
 
-      setAuth({ authenticate: false, user: null });
+      setAuth({ authenticated: false, user: null });
     } finally {
       setIsLoading(false);
     }
