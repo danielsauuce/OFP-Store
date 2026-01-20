@@ -7,7 +7,7 @@ import errorHandler from './middleware/errorHandler.js';
 import helmet from 'helmet';
 import cors from 'cors';
 import corsOptions from './config/corsOptions.mjs';
-import authRoutes from './routes/auth-route.js';
+import authRoutes from './routes/authRoutes.js';
 import rateLimiterMiddleware from './middleware/rateLimiter.js';
 
 const app = express();
@@ -33,7 +33,7 @@ app.use((req, res, next) => {
 app.use(rateLimiterMiddleware);
 
 // Routes
-app.use('/auth/', authRoutes);
+app.use('/api/auth/', authRoutes);
 
 app.listen(PORT, () => {
   logger.info(`Server is running on PORT ${PORT}`);

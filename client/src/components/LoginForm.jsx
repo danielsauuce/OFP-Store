@@ -1,5 +1,5 @@
 import { ArrowRight, Lock, Mail } from 'lucide-react';
-import React from 'react';
+import { useState } from 'react';
 
 const LoginInputFields = [
   {
@@ -20,9 +20,22 @@ const LoginInputFields = [
   },
 ];
 
-const LoginForm = () => {
+const LoginForm = ({ handleLogin }) => {
+  const loginFormData = { email: '', password: '' };
+  const [signin, setSignin] = useState(loginFormData);
+
+  const onSubmit = (e) => {
+    e.preventDefault();
+    handleLogin(signin);
+  };
+
+  // to disable button when field is empty
+  const checkIfSignInFormIsValid = () => {
+    return signin && signin.email !== '' && signin.password !== '';
+  };
+
   return (
-    <form className="space-y-7 w-full mt-4 p-3">
+    <form className="space-y-7 w-full mt-4 p-3" onSubmit={onSubmit}>
       {LoginInputFields.map((field) => {
         const Icon = field.icon;
 
@@ -42,6 +55,8 @@ const LoginForm = () => {
                 placeholder={field.placeholder}
                 required
                 className="w-full h-12 pl-12 pr-4 rounded-md bg-muted/50 border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:bg-card transition-colors"
+                value={signin[field.name]}
+                onChange={(e) => setSignin({ ...signin, [e.target.name]: e.target.value })}
               />
             </div>
           </div>
@@ -59,7 +74,13 @@ const LoginForm = () => {
 
       <button
         type="submit"
-        className="w-full h-13 text-amber-50 font-medium bg-primary hover:bg-primary-dark transition-all duration-300 group justify-center flex"
+        disabled={!checkIfSignInFormIsValid()}
+        className={`w-full h-13 font-medium transition-all duration-300 group justify-center flex
+        ${
+          checkIfSignInFormIsValid()
+            ? 'bg-primary hover:bg-primary-dark text-amber-50'
+            : 'bg-muted text-muted-foreground cursor-not-allowed border'
+        }`}
       >
         <span className="flex items-center gap-2">
           Login

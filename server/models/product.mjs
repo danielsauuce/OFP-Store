@@ -16,69 +16,35 @@ const productSchema = new mongoose.Schema(
       required: true,
       min: 0,
     },
-    compareAtPrice: {
-      type: Number,
-      min: 0,
-    },
-    category: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Category',
+    image: {
+      type: String,
       required: true,
     },
     images: [
       {
-        url: {
-          type: String,
-          required: true,
-        },
-        alt: {
-          type: String,
-        },
-        isPrimary: {
-          type: Boolean,
-          default: false,
-        },
+        type: String,
       },
     ],
-    stock: {
-      type: Number,
-      required: true,
-      min: 0,
-      default: 0,
-    },
-    sku: {
+    category: {
       type: String,
-      unique: true,
-      sparse: true,
+      required: true,
+      enum: ['Sofas', 'Tables', 'Chairs', 'Beds', 'Storage', 'Lighting', 'Decor'],
+    },
+    material: {
+      type: String,
     },
     dimensions: {
-      length: Number,
-      width: Number,
-      height: Number,
-      unit: {
-        type: String,
-        enum: ['cm', 'in', 'm'],
-        default: 'cm',
-      },
+      type: String,
     },
-    weight: {
-      value: Number,
-      unit: {
-        type: String,
-        enum: ['kg', 'lb'],
-        default: 'kg',
-      },
+    inStock: {
+      type: Boolean,
+      default: true,
     },
-    materials: [
-      {
-        type: String,
-      },
-    ],
-    colors: [
-      {
-        type: String,
-      },
-    ],
+    stockQuantity: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
     isFeatured: {
       type: Boolean,
       default: false,
@@ -87,11 +53,6 @@ const productSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
-    tags: [
-      {
-        type: String,
-      },
-    ],
     averageRating: {
       type: Number,
       min: 0,
@@ -108,10 +69,17 @@ const productSchema = new mongoose.Schema(
   },
 );
 
-// Indexes for faster queries
+// Indexes
 productSchema.index({ category: 1 });
 productSchema.index({ price: 1 });
 productSchema.index({ isFeatured: 1 });
+productSchema.index({ inStock: 1 });
 productSchema.index({ name: 'text', description: 'text' });
+
+// Pre-save hook to update inStock based on stockQuantity
+productSchema.pre('save', function (next) {
+  this.inStock = this.stockQuantity > 0;
+  next();
+});
 
 export default mongoose.model('Product', productSchema);

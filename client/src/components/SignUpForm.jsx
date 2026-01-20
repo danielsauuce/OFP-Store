@@ -1,4 +1,4 @@
-import React from 'react';
+import { useState } from 'react';
 import { User, Mail, Lock, ArrowRight } from 'lucide-react';
 
 const signupFields = [
@@ -7,7 +7,7 @@ const signupFields = [
     name: 'fullName',
     label: 'Full Name',
     type: 'text',
-    placeholder: 'John Doe',
+    placeholder: 'Bryan Thebold',
     icon: User,
   },
   {
@@ -28,9 +28,24 @@ const signupFields = [
   },
 ];
 
-const SignUpForm = () => {
+const SignUpForm = ({ handleSignUp }) => {
+  const signUpFormData = { fullName: '', email: '', password: '' };
+  const [signup, setSignup] = useState(signUpFormData);
+
+  // to disable button when field is empty
+  const checkIfSignUpFormIsValid = () => {
+    return (
+      signup.fullName.trim() !== '' && signup.email.trim() !== '' && signup.password.trim() !== ''
+    );
+  };
+
+  const onSubmit = (e) => {
+    e.preventDefault();
+    handleSignUp(signup);
+  };
+
   return (
-    <form className="space-y-5">
+    <form className="space-y-5" onSubmit={onSubmit}>
       {signupFields.map((field) => {
         const Icon = field.icon;
 
@@ -46,9 +61,17 @@ const SignUpForm = () => {
               <input
                 id={field.id}
                 type={field.type}
+                name={field.name}
                 placeholder={field.placeholder}
                 required
-                className=" w-full h-12 pl-12 pr-4 rounded-md bg-muted/50 border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:bg-card transition-colors"
+                className="w-full h-12 pl-12 pr-4 rounded-md bg-muted/50 border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:bg-card transition-colors"
+                value={signup[field.name] || ''}
+                onChange={(e) => {
+                  setSignup((prev) => ({
+                    ...prev,
+                    [e.target.name]: e.target.value,
+                  }));
+                }}
               />
             </div>
           </div>
@@ -57,7 +80,13 @@ const SignUpForm = () => {
 
       <button
         type="submit"
-        className="w-full h-13 text-amber-50 font-medium bg-primary hover:bg-primary-dark transition-all duration-300 group justify-center flex"
+        disabled={!checkIfSignUpFormIsValid()}
+        className={`w-full h-13 font-medium transition-all duration-300 group justify-center flex
+        ${
+          checkIfSignUpFormIsValid()
+            ? 'bg-primary hover:bg-primary-dark text-amber-50'
+            : 'bg-muted text-muted-foreground cursor-not-allowed border'
+        }`}
       >
         <span className="flex items-center gap-2">
           Create Account

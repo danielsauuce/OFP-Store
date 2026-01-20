@@ -7,6 +7,7 @@ const categorySchema = new mongoose.Schema(
       required: true,
       unique: true,
       trim: true,
+      enum: ['All', 'Sofas', 'Tables', 'Chairs', 'Beds', 'Storage', 'Lighting', 'Decor'],
     },
     slug: {
       type: String,
@@ -19,11 +20,6 @@ const categorySchema = new mongoose.Schema(
     },
     image: {
       type: String,
-    },
-    parent: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Category',
-      default: null,
     },
     isActive: {
       type: Boolean,
@@ -39,8 +35,19 @@ const categorySchema = new mongoose.Schema(
   },
 );
 
-// Index for faster queries
+// Index
 categorySchema.index({ slug: 1 });
-categorySchema.index({ parent: 1 });
+
+// Pre-save hook to auto-generate slug from name
+categorySchema.pre('save', function (next) {
+  if (!this.slug && this.name) {
+    this.slug = this.name
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  }
+  next();
+});
 
 export default mongoose.model('Category', categorySchema);

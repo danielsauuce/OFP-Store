@@ -3,40 +3,59 @@ import argon2 from 'argon2';
 
 const userSchema = new mongoose.Schema(
   {
-    fullname: {
-      type: String,
-      required: [true, 'Full name is required'],
-      trim: true,
-      minlength: [2, 'Full name must be at least 2 characters'],
-      maxlength: [50, 'Full name cannot exceed 50 characters'],
-    },
     email: {
       type: String,
-      required: [true, 'Email is required'],
+      required: true,
       unique: true,
       lowercase: true,
       trim: true,
-      match: [
-        /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/,
-        'Please provide a valid email address',
-      ],
+      maxlength: 255,
     },
     password: {
       type: String,
-      required: [true, 'Password is required'],
-      minlength: [8, 'Password must be at least 8 characters'],
+      required: true,
       select: false,
+    },
+    fullName: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 100,
+    },
+    phone: {
+      type: String,
+      trim: true,
+      maxlength: 20,
+    },
+    profilePicture: {
+      type: String,
+    },
+    address: {
+      street: String,
+      city: String,
+      state: String,
+      postalCode: String,
+      country: String,
+    },
+    isActive: {
+      type: Boolean,
+      default: true,
     },
     role: {
       type: String,
-      enum: ['customer', 'admin'],
-      default: 'customer',
+      enum: ['user', 'admin'],
+      default: 'user',
+    },
+    lastLogin: {
+      type: Date,
     },
   },
   {
     timestamps: true,
   },
 );
+
+userSchema.index({ email: 1 });
 
 userSchema.pre('save', async function (next) {
   if (this.isModified('password')) {

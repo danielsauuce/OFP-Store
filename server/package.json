@@ -18,6 +18,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@arcjet/inspect": "^1.0.0-beta.17",
+    "@arcjet/node": "^1.0.0-beta.17",
     "argon2": "^0.44.0",
     "bcrypt": "^6.0.0",
     "cloudinary": "^2.7.0",

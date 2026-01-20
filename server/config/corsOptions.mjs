@@ -1,7 +1,6 @@
 const corsOptions = {
   origin: (origin, callback) => {
-    // const allowedOrigins = ['http://localhost:5173', process.env.CLIENT_URL].filter(Boolean);
-    const allowedOrigins = ['http://localhost:5173'];
+    const allowedOrigins = process.env.CLIENT_URL.split(',');
 
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
@@ -13,7 +12,7 @@ const corsOptions = {
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   exposedHeaders: ['Set-Cookie'],
-  maxAge: 86400, // 24 hours
+  maxAge: 86400,
 };
 
 export default corsOptions;

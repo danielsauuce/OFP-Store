@@ -1,10 +1,31 @@
 import { Sparkles } from 'lucide-react';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import SignUpForm from './SignUpForm';
 import LoginForm from './LoginForm';
+import { useAuth } from '../context/authContext';
+import { useNavigate } from 'react-router-dom';
 
-const RightPanelAuthPage = () => {
-  const [isLogin, SetIsLogin] = useState(true);
+const RightPanelAuthPage = ({ checkIfSignUpFormIsValid, checkIfSignInFormIsValid }) => {
+  const [isLogin, setIsLogin] = useState(true);
+  const { signUp, signIn, isLoading } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSignUp = async (signupData) => {
+    const result = await signUp(signupData);
+
+    if (result?.success) {
+      setIsLogin(true);
+    }
+  };
+
+  const handleLogin = async (loginData) => {
+    const result = await signIn(loginData);
+
+    if (result?.success) {
+      navigate('/');
+    }
+  };
+
   return (
     <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 bg-background">
       <div className="w-full max-w-md space-y-8">
@@ -34,7 +55,8 @@ const RightPanelAuthPage = () => {
         <div className="flex bg-muted p-1 rounded-xl mt-5">
           <button
             type="button"
-            onClick={() => SetIsLogin(true)}
+            onClick={() => setIsLogin(true)}
+            disabled={isLoading}
             className={`flex-1 py-3 px-4 rounded-lg text-sm font-medium transition-all duration-300 ${
               isLogin
                 ? 'bg-card text-foreground shadow-md'
@@ -45,7 +67,8 @@ const RightPanelAuthPage = () => {
           </button>
           <button
             type="button"
-            onClick={() => SetIsLogin(false)}
+            onClick={() => setIsLogin(false)}
+            disabled={isLoading}
             className={`flex-1 py-3 px-4 rounded-lg text-sm font-medium transition-all duration-300 ${
               !isLogin
                 ? 'bg-card text-foreground shadow-md'
@@ -56,7 +79,11 @@ const RightPanelAuthPage = () => {
           </button>
         </div>
 
-        {isLogin ? <LoginForm /> : <SignUpForm />}
+        {isLogin ? (
+          <LoginForm handleLogin={handleLogin} />
+        ) : (
+          <SignUpForm handleSignUp={handleSignUp} />
+        )}
       </div>
     </div>
   );

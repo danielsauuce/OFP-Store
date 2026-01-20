@@ -1,117 +1,142 @@
 import mongoose from 'mongoose';
 
-const productSchema = new mongoose.Schema(
+const orderItemSchema = new mongoose.Schema(
   {
-    name: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    description: {
-      type: String,
-      required: true,
-    },
-    price: {
-      type: Number,
-      required: true,
-      min: 0,
-    },
-    compareAtPrice: {
-      type: Number,
-      min: 0,
-    },
-    category: {
+    productId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Category',
+      ref: 'Product',
       required: true,
     },
-    images: [
+    productSnapshot: {
+      name: {
+        type: String,
+        required: true,
+      },
+      price: {
+        type: Number,
+        required: true,
+        min: 0,
+      },
+      image: {
+        type: String,
+        required: true,
+      },
+    },
+    quantity: {
+      type: Number,
+      required: true,
+      min: 1,
+    },
+  },
+  {
+    _id: false,
+  },
+);
+
+const orderSchema = new mongoose.Schema(
+  {
+    orderNumber: {
+      type: String,
+      required: true,
+      unique: true,
+    },
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+    },
+    items: [orderItemSchema],
+    shippingAddress: {
+      fullName: {
+        type: String,
+        required: true,
+      },
+      email: {
+        type: String,
+        required: true,
+      },
+      phone: {
+        type: String,
+        required: true,
+      },
+      address: {
+        type: String,
+        required: true,
+      },
+      city: {
+        type: String,
+        required: true,
+      },
+      state: String,
+      postalCode: {
+        type: String,
+        required: true,
+      },
+      country: {
+        type: String,
+      },
+    },
+    subtotal: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+    shippingCost: {
+      type: Number,
+      required: true,
+      min: 0,
+      default: 0,
+    },
+    total: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+    paymentMethod: {
+      type: String,
+      enum: ['card', 'delivery', 'pay_on_delivery'],
+      required: true,
+    },
+    paymentStatus: {
+      type: String,
+      enum: ['pending', 'paid', 'failed', 'refunded'],
+      default: 'pending',
+    },
+    orderStatus: {
+      type: String,
+      enum: ['pending', 'processing', 'shipped', 'delivered', 'cancelled'],
+      default: 'pending',
+    },
+    trackingNumber: {
+      type: String,
+    },
+    notes: {
+      type: String,
+    },
+    statusHistory: [
       {
-        url: {
+        status: {
           type: String,
           required: true,
         },
-        alt: {
-          type: String,
+        timestamp: {
+          type: Date,
+          default: Date.now,
         },
-        isPrimary: {
-          type: Boolean,
-          default: false,
-        },
+        note: String,
       },
     ],
-    stock: {
-      type: Number,
-      required: true,
-      min: 0,
-      default: 0,
-    },
-    sku: {
-      type: String,
-      unique: true,
-      sparse: true,
-    },
-    dimensions: {
-      length: Number,
-      width: Number,
-      height: Number,
-      unit: {
-        type: String,
-        enum: ['cm', 'in', 'm'],
-        default: 'cm',
-      },
-    },
-    weight: {
-      value: Number,
-      unit: {
-        type: String,
-        enum: ['kg', 'lb'],
-        default: 'kg',
-      },
-    },
-    materials: [
-      {
-        type: String,
-      },
-    ],
-    colors: [
-      {
-        type: String,
-      },
-    ],
-    isFeatured: {
-      type: Boolean,
-      default: false,
-    },
-    isActive: {
-      type: Boolean,
-      default: true,
-    },
-    tags: [
-      {
-        type: String,
-      },
-    ],
-    averageRating: {
-      type: Number,
-      min: 0,
-      max: 5,
-      default: 0,
-    },
-    reviewCount: {
-      type: Number,
-      default: 0,
-    },
   },
   {
     timestamps: true,
   },
 );
 
-// Indexes for faster queries
-productSchema.index({ category: 1 });
-productSchema.index({ price: 1 });
-productSchema.index({ isFeatured: 1 });
-productSchema.index({ name: 'text', description: 'text' });
+// Indexes
+orderSchema.index({ orderNumber: 1 });
+orderSchema.index({ user: 1 });
+orderSchema.index({ orderStatus: 1 });
+orderSchema.index({ paymentStatus: 1 });
+orderSchema.index({ createdAt: -1 });
 
-export default mongoose.model('Product', productSchema);
+export default mongoose.model('Order', orderSchema);
