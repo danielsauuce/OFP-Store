@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { User, Mail, Lock, ArrowRight } from 'lucide-react';
+import { useAuth } from '../context/authContext';
 
 const signupFields = [
   {
@@ -28,18 +29,15 @@ const signupFields = [
   },
 ];
 
-const SignUpForm = ({ handleSignUp }) => {
+const SignUpForm = () => {
   const signUpFormData = { fullName: '', email: '', password: '' };
   const [signup, setSignup] = useState(signUpFormData);
+  const { signUp } = useAuth();
+
+  // const handleSignUp = async () => {};
 
   return (
-    <form
-      className="space-y-5"
-      onSubmit={(e) => {
-        e.preventDefault();
-        handleSignUp(signup);
-      }}
-    >
+    <form className="space-y-5" onSubmit={signUp()}>
       {signupFields.map((field) => {
         const Icon = field.icon;
 

@@ -4,61 +4,164 @@ import {
   loginService,
   changePasswordService,
   checkAuthService,
+  logoutService,
 } from '../services/authService';
 import toast from 'react-hot-toast';
-import { data } from 'react-router-dom';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const user = { isAuthenticated: false, user: null };
-  const [authenticated, setIsAuthenticated] = useState(user);
-  const [isloading, setIsLoading] = useState(false);
-  const [error, setError] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [auth, setAuth] = useState({
+    authenticate: false,
+    user: null,
+  });
 
+  // check authentication on mount
   useEffect(() => {
-    const verifyUser = async () => {
-      try {
-        const data = await checkAuth();
-        if (data.success) {
-          setUser(data.user);
-        }
-      } catch (err) {
-        console.log(err);
-
-        setUser(null);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    verifyUser();
+    checkAuth();
   }, []);
 
-  const signUp = async (formData) => {
-    const data = await registerService(formData);
-    console.log(data);
-  };
+  const signUp = async (registerFormData) => {
+    setIsLoading(true);
 
-  const signin = async (formData) => {
-    const data = loginService(formData);
-    console.log(data);
-  };
+    try {
+      const data = await registerService(registerFormData);
 
-  const signout = async () => {};
+      if (data?.success) {
+        toast.success('Registration successful! Please login.');
+        return { success: true, data };
+      } else {
+        toast.error('Registration failed');
 
-  const checkAuth = async () => {
-    const dsta = await checkAuthService();
-
-    if (data?.success) {
-      setIsAuthenticated({ isAuthenticated: true, user: data.user });
-    } else {
-      setIsAuthenticated({ isAuthenticated: trufalsee, user: null });
+        return { success: false, error: errorMsg };
+      }
+    } catch (error) {
+      toast.error('Registration failed');
+      console.error('SignUp error:', error);
+      return { success: false, error: errorMsg };
+    } finally {
+      setIsLoading(false);
     }
   };
 
+  const signIn = async (loginFormData) => {
+    setIsLoading(true);
+
+    try {
+      const data = await loginService(loginFormData);
+
+      if (data?.success && data?.accessToken) {
+        sessionStorage.setItem('accessToken', data.accessToken);
+        sessionStorage.setItem('refreshToken', data.refreshToken);
+
+        setAuth({
+          authenticate: true,
+          user: data.user,
+        });
+
+        toast.success('Login successful!');
+        return { success: true, data };
+      } else {
+        toast.error('Login failed');
+        return { success: false };
+      }
+    } catch (error) {
+      toast.error('Login failed');
+      console.error('SignIn error:', error);
+      return { success: false };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const signOut = async () => {
+    setIsLoading(true);
+
+    try {
+      await logoutService();
+
+      // Clear tokens
+      sessionStorage.removeItem('accessToken');
+      sessionStorage.removeItem('refreshToken');
+
+      setAuth({
+        authenticate: false,
+        user: null,
+      });
+
+      toast.success('Logged out successfully');
+      return { success: true };
+    } catch (error) {
+      console.error('Logout error:', error);
+      // session still clears if API call fails
+      sessionStorage.removeItem('accessToken');
+      sessionStorage.removeItem('refreshToken');
+
+      setAuth({
+        authenticate: false,
+        user: null,
+      });
+      return { success: true };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const checkAuth = async () => {
+    setIsLoading(true);
+
+    try {
+      const token = sessionStorage.getItem('accessToken');
+
+      if (!token) {
+        setAuth({ authenticate: false, user: null });
+        return;
+      }
+
+      const data = await checkAuthService();
+
+      if (data?.success && data?.user) {
+        setAuth({
+          authenticate: true,
+          user: data.user,
+        });
+      } else {
+        // Invalid token, clear storage
+        sessionStorage.removeItem('accessToken');
+        sessionStorage.removeItem('refreshToken');
+
+        setAuth({ authenticate: false, user: null });
+      }
+    } catch (error) {
+      console.error('Check auth error:', error);
+
+      sessionStorage.removeItem('accessToken');
+      sessionStorage.removeItem('refreshToken');
+
+      setAuth({ authenticate: false, user: null });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // change password
+
   return (
-    <AuthContext.Provider value={{ signin, signout, signUp }}>{children}</AuthContext.Provider>
+    <AuthContext.Provider
+      value={{
+        auth,
+        isLoading,
+        signUp,
+        signIn,
+        signOut,
+        checkAuth,
+        setAuth,
+        setIsLoading,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
   );
 }
 

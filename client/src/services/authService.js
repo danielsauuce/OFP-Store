@@ -31,10 +31,10 @@ export async function loginService(loginFormData) {
   }
 }
 
-export async function logouService() {
+export async function logoutService() {
   try {
     const { data } = await axiosInstance.post('/api/auth/logout');
-    sessionStorage.removeItem('accesstoken');
+
     return data;
   } catch (error) {
     console.log(error);
@@ -43,7 +43,7 @@ export async function logouService() {
 
 export async function checkAuthService() {
   try {
-    const data = await axiosInstance.get('/api/auth/check-auth');
+    const { data } = await axiosInstance.get('/api/auth/check-auth');
     return data;
   } catch (error) {
     console.log(error);

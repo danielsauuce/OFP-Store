@@ -2,38 +2,12 @@ import { Sparkles } from 'lucide-react';
 import { useState } from 'react';
 import SignUpForm from './SignUpForm';
 import LoginForm from './LoginForm';
-import { registerUser, loginUser } from '../services/authService';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/authContext';
 import { useNavigate } from 'react-router-dom';
 
-const RightPanelAuthPage = () => {
+const RightPanelAuthPage = ({ signUp }) => {
   const [isLogin, SetIsLogin] = useState(true);
-  const [isloading, SetiaLoading] = useState(false);
-  const { signin, signUp } = useAuth();
-
-  const navigate = useNavigate();
-
-  const handleLogin = (loginFormData) => {
-    try {
-      const result = signin(loginFormData);
-      console.log('register User', result);
-
-      navigate('/');
-    } catch (error) {
-      console.log('Erro', error);
-    }
-  };
-
-  const handleSignUp = async (registerFormData) => {
-    try {
-      const result = signUp(registerFormData);
-      console.log('register User', result);
-      navigate('/auth');
-    } catch (error) {
-      console.log('Erro', error);
-    }
-  };
 
   return (
     <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 bg-background">
@@ -86,11 +60,7 @@ const RightPanelAuthPage = () => {
           </button>
         </div>
 
-        {isLogin ? (
-          <LoginForm handleLogin={handleLogin} />
-        ) : (
-          <SignUpForm handleSignUp={handleSignUp} />
-        )}
+        {isLogin ? <LoginForm /> : <SignUpForm handleLogin={signUp} />}
       </div>
     </div>
   );
