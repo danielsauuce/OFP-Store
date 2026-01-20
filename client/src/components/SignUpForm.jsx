@@ -32,6 +32,13 @@ const SignUpForm = ({ handleSignUp }) => {
   const signUpFormData = { fullName: '', email: '', password: '' };
   const [signup, setSignup] = useState(signUpFormData);
 
+  // to disable button when field is empty
+  const checkIfSignUpFormIsValid = () => {
+    return (
+      signup.fullName.trim() !== '' && signup.email.trim() !== '' && signup.password.trim() !== ''
+    );
+  };
+
   const onSubmit = (e) => {
     e.preventDefault();
     handleSignUp(signup);
@@ -73,7 +80,13 @@ const SignUpForm = ({ handleSignUp }) => {
 
       <button
         type="submit"
-        className="w-full h-13 text-amber-50 font-medium bg-primary hover:bg-primary-dark transition-all duration-300 group justify-center flex"
+        disabled={!checkIfSignUpFormIsValid()}
+        className={`w-full h-13 font-medium transition-all duration-300 group justify-center flex
+        ${
+          checkIfSignUpFormIsValid()
+            ? 'bg-primary hover:bg-primary-dark text-amber-50'
+            : 'bg-muted text-muted-foreground cursor-not-allowed border'
+        }`}
       >
         <span className="flex items-center gap-2">
           Create Account

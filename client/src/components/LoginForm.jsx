@@ -29,6 +29,11 @@ const LoginForm = ({ handleLogin }) => {
     handleLogin(signin);
   };
 
+  // to disable button when field is empty
+  const checkIfSignInFormIsValid = () => {
+    return signin && signin.email !== '' && signin.password !== '';
+  };
+
   return (
     <form className="space-y-7 w-full mt-4 p-3" onSubmit={onSubmit}>
       {LoginInputFields.map((field) => {
@@ -69,7 +74,13 @@ const LoginForm = ({ handleLogin }) => {
 
       <button
         type="submit"
-        className="w-full h-13 text-amber-50 font-medium bg-primary hover:bg-primary-dark transition-all duration-300 group justify-center flex"
+        disabled={!checkIfSignInFormIsValid()}
+        className={`w-full h-13 font-medium transition-all duration-300 group justify-center flex
+        ${
+          checkIfSignInFormIsValid()
+            ? 'bg-primary hover:bg-primary-dark text-amber-50'
+            : 'bg-muted text-muted-foreground cursor-not-allowed border'
+        }`}
       >
         <span className="flex items-center gap-2">
           Login
