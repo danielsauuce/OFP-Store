@@ -27,6 +27,7 @@ export function AuthProvider({ children }) {
 
     try {
       const data = await registerService(registerFormData);
+      console.log(data);
 
       if (data?.success) {
         toast.success('Registration successful! Please login.');
@@ -34,12 +35,12 @@ export function AuthProvider({ children }) {
       } else {
         toast.error('Registration failed');
 
-        return { success: false, error: errorMsg };
+        return { success: false };
       }
     } catch (error) {
       toast.error('Registration failed');
       console.error('SignUp error:', error);
-      return { success: false, error: errorMsg };
+      return { success: false };
     } finally {
       setIsLoading(false);
     }
@@ -50,6 +51,7 @@ export function AuthProvider({ children }) {
 
     try {
       const data = await loginService(loginFormData);
+      console.log(data);
 
       if (data?.success && data?.accessToken) {
         sessionStorage.setItem('accessToken', data.accessToken);
@@ -60,7 +62,9 @@ export function AuthProvider({ children }) {
           user: data.user,
         });
 
-        toast.success('Login successful!');
+        const succesmsg = data?.user.fullName;
+
+        toast.success(`Welcome Back ${succesmsg} 👏`);
         return { success: true, data };
       } else {
         toast.error('Login failed');

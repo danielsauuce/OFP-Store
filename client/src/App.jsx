@@ -24,7 +24,7 @@ const MainLayout = () => (
 function App() {
   return (
     <>
-      <Toaster position="top-right" />
+      <Toaster position="top-center" reverseOrder={false} />
       <Routes>
         {/* Routes without Navbar/Footer */}
         <Route path="/auth" element={<AuthPage />} />

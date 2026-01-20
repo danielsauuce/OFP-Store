@@ -22,16 +22,15 @@ const LoginInputFields = [
 
 const LoginForm = ({ handleLogin }) => {
   const loginFormData = { email: '', password: '' };
-  const [signin, SetSignin] = useState(loginFormData);
+  const [signin, setSignin] = useState(loginFormData);
+
+  const onSubmit = (e) => {
+    e.preventDefault();
+    handleLogin(signin);
+  };
 
   return (
-    <form
-      className="space-y-7 w-full mt-4 p-3"
-      onSubmit={(e) => {
-        e.preventDefault();
-        handleLogin(signin);
-      }}
-    >
+    <form className="space-y-7 w-full mt-4 p-3" onSubmit={onSubmit}>
       {LoginInputFields.map((field) => {
         const Icon = field.icon;
 
@@ -52,7 +51,7 @@ const LoginForm = ({ handleLogin }) => {
                 required
                 className="w-full h-12 pl-12 pr-4 rounded-md bg-muted/50 border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:bg-card transition-colors"
                 value={signin[field.name]}
-                onChange={(e) => SetSignin({ ...signin, [e.target.name]: e.target.value })}
+                onChange={(e) => setSignin({ ...signin, [e.target.name]: e.target.value })}
               />
             </div>
           </div>
