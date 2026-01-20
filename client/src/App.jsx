@@ -25,6 +25,7 @@ const MainLayout = () => (
 
 function App() {
   const { auth, isLoading } = useAuth();
+  console.log('🔍 Auth state in App:', auth);
 
   // Show loading spinner while checking auth
   if (isLoading) {
@@ -43,11 +44,7 @@ function App() {
         <Route
           path="/auth"
           element={
-            <RouteGuard
-              authenticated={auth.authenticated}
-              user={auth.user}
-              element={<AuthPage />}
-            />
+            <RouteGuard authenticated={auth.authenticate} user={auth.user} element={<AuthPage />} />
           }
         />
 
@@ -56,7 +53,7 @@ function App() {
           path="/admin/*"
           element={
             <RouteGuard
-              authenticated={auth.authenticated}
+              authenticated={auth.authenticate}
               user={auth.user}
               element={<AdminLayout />}
               requireAuth={true}

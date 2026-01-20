@@ -49,7 +49,7 @@ function Navbar() {
           </Link>
 
           {/* Auth/Profile Icon or Logout */}
-          {auth.authenticated ? (
+          {auth.authenticate ? (
             <button
               onClick={handleLogout}
               className="flex items-center gap-2 hover:text-red-600 transition-colors"

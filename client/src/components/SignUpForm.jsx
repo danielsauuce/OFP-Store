@@ -7,7 +7,7 @@ const signupFields = [
     name: 'fullName',
     label: 'Full Name',
     type: 'text',
-    placeholder: 'John Doe',
+    placeholder: 'Bryan Thebold',
     icon: User,
   },
   {

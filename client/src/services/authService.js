@@ -46,7 +46,8 @@ export async function checkAuthService() {
     const { data } = await axiosInstance.get('/api/auth/check-auth');
     return data;
   } catch (error) {
-    console.log(error);
+    console.error('checkAuthService error:', error);
+    throw error;
   }
 }
 

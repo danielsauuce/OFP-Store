@@ -13,7 +13,7 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const [isLoading, setIsLoading] = useState(true);
   const [auth, setAuth] = useState({
-    authenticated: false,
+    authenticate: false,
     user: null,
   });
 
@@ -33,12 +33,12 @@ export function AuthProvider({ children }) {
         toast.success('Registration successful! Please login.');
         return { success: true, data };
       } else {
-        toast.error('Registration failed');
+        toast.error('User already exists. Please use a different email.');
 
         return { success: false };
       }
     } catch (error) {
-      toast.error('Registration failed');
+      toast.error('Something went wrong!');
       console.error('SignUp error:', error);
       return { success: false };
     } finally {
@@ -58,7 +58,7 @@ export function AuthProvider({ children }) {
         sessionStorage.setItem('refreshToken', data.refreshToken);
 
         setAuth({
-          authenticated: true,
+          authenticate: true,
           user: data.user,
         });
 
@@ -67,12 +67,13 @@ export function AuthProvider({ children }) {
         toast.success(`Welcome Back ${succesmsg} 👏`);
         return { success: true, data };
       } else {
-        toast.error('Login failed');
+        toast.error('Invalid Email or Password!');
         return { success: false };
       }
     } catch (error) {
-      toast.error('Login failed');
-      console.error('SignIn error:', error);
+      toast.error('Something went wrong!');
+      console.log('Something went wrong', error);
+
       return { success: false };
     } finally {
       setIsLoading(false);
@@ -90,7 +91,7 @@ export function AuthProvider({ children }) {
       sessionStorage.removeItem('refreshToken');
 
       setAuth({
-        authenticated: false,
+        authenticate: false,
         user: null,
       });
 
@@ -102,8 +103,10 @@ export function AuthProvider({ children }) {
       sessionStorage.removeItem('accessToken');
       sessionStorage.removeItem('refreshToken');
 
+      toast.error('Something went wrong!');
+
       setAuth({
-        authenticated: false,
+        authenticate: false,
         user: null,
       });
       return { success: true };
@@ -117,33 +120,37 @@ export function AuthProvider({ children }) {
 
     try {
       const token = sessionStorage.getItem('accessToken');
+      console.log(' Token', !!token);
 
       if (!token) {
-        setAuth({ authenticated: false, user: null });
+        setAuth({ authenticate: false, user: null });
+        setIsLoading(false);
         return;
       }
 
       const data = await checkAuthService();
 
       if (data?.success && data?.user) {
+        console.log('User authenticated');
         setAuth({
-          authenticated: true,
+          authenticate: true,
           user: data.user,
         });
-      } else {
-        // Invalid token, clear storage
+      } else if (data?.success === false) {
         sessionStorage.removeItem('accessToken');
         sessionStorage.removeItem('refreshToken');
 
-        setAuth({ authenticated: false, user: null });
+        setAuth({ authenticate: false, user: null });
       }
     } catch (error) {
       console.error('Check auth error:', error);
 
-      sessionStorage.removeItem('accessToken');
-      sessionStorage.removeItem('refreshToken');
-
-      setAuth({ authenticated: false, user: null });
+      // tokens clear if it's a an unauthorized error
+      if (error.response?.status === 401) {
+        sessionStorage.removeItem('accessToken');
+        sessionStorage.removeItem('refreshToken');
+        setAuth({ authenticate: false, user: null });
+      }
     } finally {
       setIsLoading(false);
     }
