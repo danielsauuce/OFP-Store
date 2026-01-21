@@ -1,6 +1,5 @@
 import arcjet, { shield, tokenBucket, detectBot } from '@arcjet/node';
 
-// Initialize Arcjet
 const aj = arcjet({
   key: process.env.ARCJET_KEY,
   characteristics: ['ip'],

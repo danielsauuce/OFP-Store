@@ -2,12 +2,12 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 import express from 'express';
-import dbConnection from './config/db.mjs';
+import dbConnection from './config/db.js';
 import logger from './utils/logger.js';
 import errorHandler from './middleware/errorHandler.js';
 import helmet from 'helmet';
 import cors from 'cors';
-import corsOptions from './config/corsOptions.mjs';
+import corsOptions from './config/corsOptions.js';
 import authRoutes from './routes/authRoutes.js';
 import rateLimiterMiddleware from './middleware/rateLimiter.js';
 import productRoutes from './routes/productRoutes.js';
@@ -37,7 +37,7 @@ app.use(rateLimiterMiddleware);
 
 // Routes
 app.use('/api/auth/', authRoutes);
-app.use('/product', productRoutes);
+app.use('/api/product', productRoutes);
 
 app.use(errorHandler);
 

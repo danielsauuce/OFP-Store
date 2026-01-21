@@ -1,4 +1,4 @@
-import User from '../models/user.mjs';
+import User from '../models/user.js';
 import generateTokens from '../utils/generateToken.js';
 import logger from '../utils/logger.js';
 import {

@@ -1,4 +1,4 @@
-import Product from '../models/Product.js';
+import Product from '../models/product.js';
 import logger from '../utils/logger.js';
 import { invalidateCache } from '../middleware/cacheMiddleware.js';
 import {
@@ -8,6 +8,8 @@ import {
 } from '../utils/productValidation.js';
 
 export const getAllProducts = async (req, res) => {
+  logger.info('Get all product endpoint hit');
+
   try {
     const {
       category,
@@ -74,6 +76,8 @@ export const getAllProducts = async (req, res) => {
 };
 
 export const getProductById = async (req, res) => {
+  logger.info('Get product by ID endpoint hit');
+
   try {
     const { error } = productIdValidation.validate({ id: req.params.id });
     if (error) {
@@ -112,6 +116,8 @@ export const getProductById = async (req, res) => {
 };
 
 export const createProduct = async (req, res) => {
+  logger.info('Create product endpoint hit');
+
   try {
     const { error } = createProductValidation.validate(req.body, {
       abortEarly: false,
@@ -162,6 +168,8 @@ export const createProduct = async (req, res) => {
 };
 
 export const updateProduct = async (req, res) => {
+  logger.info('Update all product endpoint hit');
+
   try {
     const { error: idError } = productIdValidation.validate({ id: req.params.id });
     if (idError) {
@@ -226,6 +234,7 @@ export const updateProduct = async (req, res) => {
 };
 
 export const deleteProduct = async (req, res) => {
+  logger.info('Delete product endpoint hit');
   try {
     const { error } = productIdValidation.validate({ id: req.params.id });
     if (error) {
