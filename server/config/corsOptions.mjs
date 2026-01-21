@@ -5,7 +5,8 @@ const corsOptions = {
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      callback(new Error(`CORS blocked: ${origin}`));
+      const safeOrigin = String(origin ?? 'unknown').replace(/[\r\n]/g, '');
+      callback(new Error(`CORS blocked: ${safeOrigin}`));
     }
   },
   credentials: true,

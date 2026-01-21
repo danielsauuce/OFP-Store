@@ -31,7 +31,7 @@ function App() {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center flex-col">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primar mb-3y"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mb-3"></div>
         <div className="font-medium text-primary text-xl mt-2 ">Loading.....</div>
       </div>
     );

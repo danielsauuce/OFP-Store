@@ -54,6 +54,9 @@ export async function checkAuthService() {
 export async function changePasswordService(formData) {
   const { currentPassword, newPassword } = formData;
 
-  const { data } = axiosInstance.post('/api/auth/reset-password', { currentPassword, newPassword });
+  const { data } = await axiosInstance.post('/api/auth/reset-password', {
+    currentPassword,
+    newPassword,
+  });
   return data;
 }
