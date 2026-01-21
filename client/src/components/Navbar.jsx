@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, NavLink } from 'react-router-dom';
 import { ShoppingCart, Users, Menu, X, Sun, Moon, LogOut } from 'lucide-react';
 import useDarkMode from '../hooks/useDarkMode';
 import { useAuth } from '../context/authContext';
@@ -38,9 +38,23 @@ function Navbar() {
         {/* Desktop Nav */}
         <div className="hidden md:flex flex-row space-x-10 text-[#815331] items-center">
           {navItems.map((item) => (
-            <Link key={item.label} to={item.path}>
-              {item.label}
-            </Link>
+            <NavLink
+              key={item.label}
+              to={item.path}
+              className={({ isActive }) =>
+                `relative transition-colors duration-200 hover:text-primary ${isActive ? 'text-primary font-semibold' : ''}`
+              }
+            >
+              {({ isActive }) => (
+                <>
+                  {' '}
+                  {item.label}{' '}
+                  <span
+                    className={`absolute left-0 -bottom-1 h-[2px] w-full bg-primary transition-transform duration-300 ${isActive ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'}`}
+                  />
+                </>
+              )}
+            </NavLink>
           ))}
 
           {/* Cart Icon */}
@@ -87,9 +101,16 @@ function Navbar() {
       {open && (
         <div className="md:hidden mt-4 flex flex-col space-y-4 text-[#815331] dark:text-[#e8d9c3] bg-[#faf8f5] dark:bg-[#1a1a1a] p-4 rounded-lg shadow">
           {navItems.map((item) => (
-            <Link key={item.label} to={item.path} onClick={() => setOpen(false)}>
+            <NavLink
+              key={item.label}
+              to={item.path}
+              onClick={() => setOpen(false)}
+              className={({ isActive }) =>
+                `transition-colors ${isActive ? 'text-primary font-semibold' : ''}`
+              }
+            >
               {item.label}
-            </Link>
+            </NavLink>
           ))}
 
           <div className="flex flex-col space-y-3 pt-2 border-t border-border">

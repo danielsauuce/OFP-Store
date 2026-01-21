@@ -1,17 +1,31 @@
 import React from 'react';
 import { Sparkles } from 'lucide-react';
 
+const stats = [
+  {
+    value: '500+',
+    label: 'Unique Pieces',
+  },
+  {
+    value: '15+',
+    label: 'Years Experience',
+  },
+  {
+    value: '10k+',
+    label: 'Happy Customers',
+  },
+];
+
 const LeftPanelAuthPage = () => {
   const imgUrl = 'https://i.pinimg.com/1200x/de/8e/6c/de8e6cee6fb469054b917257e5149662.jpg';
   return (
     <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-cover bg-center ">
-      <img
-        src={imgUrl}
-        alt="Luxury furniture showroom"
+      <div
         className="absolute inset-0 bg-cover bg-center"
+        style={{ backgroundImage: `url(${imgUrl})` }}
       />
 
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/60 via bg-primary/30 to bg-primary-dark/30 " />
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/40 via primary/30 to bg-primary-dark/20 " />
 
       {/* Decorative circle at the top */}
       <div className="absolute top-0 left-0 w-full h-full">
@@ -44,18 +58,12 @@ const LeftPanelAuthPage = () => {
 
           {/* Features */}
           <div className="flex gap-8 pt-6">
-            <div className="text-center">
-              <p className="text-3xl font-bold text-gold">500+</p>
-              <p className="text-sm text-primary-foreground/70">Unique Pieces</p>
-            </div>
-            <div className="text-center">
-              <p className="text-3xl font-bold text-gold">15+</p>
-              <p className="text-sm text-primary-foreground/70">Years Experience</p>
-            </div>
-            <div className="text-center">
-              <p className="text-3xl font-bold text-gold">10k+</p>
-              <p className="text-sm text-primary-foreground/70">Happy Customers</p>
-            </div>
+            {stats.map((stat, index) => (
+              <div key={index} className="text-center">
+                <p className="text-3xl font-bold text-gold">{stat.value}</p>
+                <p className="text-sm text-primary-foreground/70">{stat.label}</p>
+              </div>
+            ))}
           </div>
         </div>
       </div>
