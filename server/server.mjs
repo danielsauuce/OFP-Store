@@ -1,7 +1,6 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
-
 import express from 'express';
 import dbConnection from './config/db.mjs';
 import logger from './utils/logger.js';
@@ -24,7 +23,6 @@ app.use(cors(corsOptions));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
 
 // logging middleware
 app.use((req, res, next) => {
