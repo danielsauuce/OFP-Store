@@ -64,7 +64,6 @@ export function AuthProvider({ children }) {
         toast.success(`Welcome Back ${userName} 👏`);
         return { success: true, data };
       } else {
-
         toast.error(data?.message || 'Login failed');
         return { success: false, error: data?.message };
       }
