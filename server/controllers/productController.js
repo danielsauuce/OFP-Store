@@ -1,6 +1,10 @@
 import Product from '../models/product.mjs';
 import logger from '../utils/logger.js';
-import { createProductValidation } from '../utils/productValidation.js';
+import {
+  createProductValidation,
+  updateProductValidation,
+  productIdValidation,
+} from '../utils/productValidation.js';
 
 export const createProduct = async (req, res) => {
   logger.info('Create Product endpoint hit');
