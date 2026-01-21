@@ -18,7 +18,7 @@ router.get('/:id', cacheMiddleware(3600), getProductById);
 
 // Admin only routes
 router.post('/create', authenticate, isAdmin, createProduct);
-router.put('/update/:id', authenticate, isAdmin, deleteProduct);
+router.put('/update/:id', authenticate, isAdmin, updateProduct);
 router.delete('/delete/:id', authenticate, isAdmin, deleteProduct);
 
 export default router;
