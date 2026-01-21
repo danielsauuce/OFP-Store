@@ -1,13 +1,13 @@
 import Product from '../models/product.mjs';
 import logger from '../utils/logger.js';
-import { createProductSchema, updateProductSchema } from '../utils/productValidation.js';
+import { createProductValidation } from '../utils/productValidation.js';
 
 export const createProduct = async (req, res) => {
   logger.info('Create Product endpoint hit');
 
   try {
     // 1. Validate request body
-    const { error, value } = createProductSchema.validate(req.body);
+    const { error, value } = createProductValidation.validate(req.body);
 
     if (error) {
       logger.warn('Product validation error', error.details[0].message);
