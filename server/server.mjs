@@ -10,6 +10,7 @@ import cors from 'cors';
 import corsOptions from './config/corsOptions.mjs';
 import authRoutes from './routes/authRoutes.js';
 import rateLimiterMiddleware from './middleware/rateLimiter.js';
+import productRoutes from './routes/productRoutes.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -36,6 +37,7 @@ app.use(rateLimiterMiddleware);
 
 // Routes
 app.use('/api/auth/', authRoutes);
+app.use('/product', productRoutes);
 
 app.use(errorHandler);
 
