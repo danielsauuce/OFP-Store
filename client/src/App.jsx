@@ -30,15 +30,42 @@ function App() {
   // Show loading spinner while checking auth
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      <div className="min-h-screen flex items-center justify-center flex-col">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mb-3"></div>
+        <div className="font-medium text-primary text-xl mt-2 ">Loading.....</div>
       </div>
     );
   }
 
   return (
     <>
-      <Toaster position="top-center" reverseOrder={false} />
+      <Toaster
+        position="top-center"
+        reverseOrder={false}
+        toastOptions={{
+          // Default options
+          duration: 4000,
+          style: {
+            background: '#B87C4C',
+            color: '#fff',
+          },
+          // styles for success message
+          success: {
+            duration: 3000,
+            style: {
+              background: '#10b981',
+            },
+          },
+          // styles for error message
+          error: {
+            duration: 5000,
+            style: {
+              background: '#ef4444',
+            },
+          },
+        }}
+      />
+
       <Routes>
         {/* Auth Route - Redirects if already authenticatedd */}
         <Route

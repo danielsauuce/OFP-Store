@@ -27,20 +27,19 @@ export function AuthProvider({ children }) {
 
     try {
       const data = await registerService(registerFormData);
-      console.log(data);
 
       if (data?.success) {
-        toast.success('Registration successful! Please login.');
+        toast.success(data?.message || 'User registered successfully');
         return { success: true, data };
       } else {
-        toast.error('User already exists. Please use a different email.');
-
-        return { success: false };
+        toast.error(data?.message || 'Registration failed');
+        return { success: false, error: data?.message };
       }
     } catch (error) {
-      toast.error('Something went wrong!');
-      console.error('SignUp error:', error);
-      return { success: false };
+      const errorMessage =
+        error?.response?.data?.message || error?.message || 'Registration failed';
+      toast.error(errorMessage);
+      return { success: false, error: errorMessage };
     } finally {
       setIsLoading(false);
     }
@@ -51,7 +50,6 @@ export function AuthProvider({ children }) {
 
     try {
       const data = await loginService(loginFormData);
-      console.log(data);
 
       if (data?.success && data?.accessToken) {
         sessionStorage.setItem('accessToken', data.accessToken);
@@ -62,19 +60,18 @@ export function AuthProvider({ children }) {
           user: data.user,
         });
 
-        const succesmsg = data?.user.fullName;
-
-        toast.success(`Welcome Back ${succesmsg} 👏`);
+        const userName = data?.user?.fullName || 'User';
+        toast.success(`Welcome Back ${userName} 👏`);
         return { success: true, data };
       } else {
-        toast.error('Invalid Email or Password!');
-        return { success: false };
+        toast.error(data?.message || 'Login failed');
+        return { success: false, error: data?.message };
       }
     } catch (error) {
-      toast.error('Something went wrong!');
-      console.log('Something went wrong', error);
-
-      return { success: false };
+      const errorMessage =
+        error?.response?.data?.message || error?.message || 'Something went wrong';
+      toast.error(errorMessage);
+      return { success: false, error: errorMessage };
     } finally {
       setIsLoading(false);
     }
@@ -84,7 +81,7 @@ export function AuthProvider({ children }) {
     setIsLoading(true);
 
     try {
-      await logoutService();
+      const data = await logoutService();
 
       // Clear tokens
       sessionStorage.removeItem('accessToken');
@@ -95,20 +92,23 @@ export function AuthProvider({ children }) {
         user: null,
       });
 
-      toast.success('Logged out successfully');
+      toast.success(data?.message || 'Logged out successfully');
       return { success: true };
     } catch (error) {
       console.error('Logout error:', error);
-      // session still clears if API call fails
+
+      // Still clear session even if API call fails
       sessionStorage.removeItem('accessToken');
       sessionStorage.removeItem('refreshToken');
-
-      toast.error('Something went wrong!');
 
       setAuth({
         authenticate: false,
         user: null,
       });
+
+      const errorMessage = error?.response?.data?.message || 'Logout completed (with errors)';
+      toast.error(errorMessage);
+
       return { success: true };
     } finally {
       setIsLoading(false);
@@ -120,7 +120,6 @@ export function AuthProvider({ children }) {
 
     try {
       const token = sessionStorage.getItem('accessToken');
-      console.log(' Token', !!token);
 
       if (!token) {
         setAuth({ authenticate: false, user: null });
@@ -131,22 +130,25 @@ export function AuthProvider({ children }) {
       const data = await checkAuthService();
 
       if (data?.success && data?.user) {
-        console.log('User authenticated');
         setAuth({
           authenticate: true,
           user: data.user,
         });
       } else if (data?.success === false) {
+        toast.error(data?.message || 'Session expired');
+
         sessionStorage.removeItem('accessToken');
         sessionStorage.removeItem('refreshToken');
-
         setAuth({ authenticate: false, user: null });
       }
     } catch (error) {
       console.error('Check auth error:', error);
 
-      // tokens clear if it's a an unauthorized error
       if (error.response?.status === 401) {
+        const errorMessage = error?.response?.data?.message || 'Session expired';
+
+        toast.error(errorMessage);
+
         sessionStorage.removeItem('accessToken');
         sessionStorage.removeItem('refreshToken');
         setAuth({ authenticate: false, user: null });
@@ -156,7 +158,28 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // change password
+  const changePassword = async (formData) => {
+    setIsLoading(true);
+
+    try {
+      const data = await changePasswordService(formData);
+
+      if (data?.success) {
+        toast.success(data?.message || 'Password changed successfully');
+        return { success: true, data };
+      } else {
+        toast.error(data?.message || 'Password change failed');
+        return { success: false, error: data?.message };
+      }
+    } catch (error) {
+      const errorMessage =
+        error?.response?.data?.message || error?.message || 'Password change failed';
+      toast.error(errorMessage);
+      return { success: false, error: errorMessage };
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <AuthContext.Provider
@@ -167,6 +190,7 @@ export function AuthProvider({ children }) {
         signIn,
         signOut,
         checkAuth,
+        changePassword,
         setAuth,
         setIsLoading,
       }}
