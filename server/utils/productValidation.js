@@ -1,45 +1,24 @@
 import Joi from 'joi';
 
+const objectIdPattern = /^[0-9a-fA-F]{24}$/;
+
 export const createProductValidation = Joi.object({
-  name: Joi.string().min(3).max(200).required().trim().messages({
-    'string.empty': 'Product name is required',
-    'string.min': 'Product name must be at least 3 characters',
-    'string.max': 'Product name cannot exceed 200 characters',
-    'any.required': 'Product name is required',
-  }),
-  description: Joi.string().min(10).max(2000).required().trim().messages({
-    'string.empty': 'Description is required',
-    'string.min': 'Description must be at least 10 characters',
-    'string.max': 'Description cannot exceed 2000 characters',
-    'any.required': 'Description is required',
-  }),
-  price: Joi.number().positive().precision(2).required().messages({
-    'number.base': 'Price must be a number',
-    'number.positive': 'Price must be greater than 0',
-    'any.required': 'Price is required',
-  }),
-  image: Joi.string().uri().required().messages({
-    'string.uri': 'Image must be a valid URL',
-    'any.required': 'Product image is required',
-  }),
-  images: Joi.array().items(Joi.string().uri()).messages({
-    'string.uri': 'Each image must be a valid URL',
-  }),
+  name: Joi.string().min(3).max(200).required().trim(),
+  description: Joi.string().min(10).max(2000).required().trim(),
+  price: Joi.number().positive().precision(2).required(),
+  imageMediaId: Joi.string()
+    .pattern(objectIdPattern)
+    .required()
+    .messages({ 'string.pattern.base': 'Invalid main image ID' }),
+  imagesMediaIds: Joi.array()
+    .items(Joi.string().pattern(objectIdPattern))
+    .messages({ 'string.pattern.base': 'Invalid media ID in images array' }),
   category: Joi.string()
     .valid('Sofas', 'Tables', 'Chairs', 'Beds', 'Storage', 'Lighting', 'Decor')
-    .required()
-    .messages({
-      'any.only': 'Category must be one of: Sofas, Tables, Chairs, Beds, Storage, Lighting, Decor',
-      'any.required': 'Category is required',
-    }),
+    .required(),
   material: Joi.string().trim(),
   dimensions: Joi.string().trim(),
-  stockQuantity: Joi.number().integer().min(0).required().messages({
-    'number.base': 'Stock quantity must be a number',
-    'number.integer': 'Stock quantity must be a whole number',
-    'number.min': 'Stock quantity cannot be negative',
-    'any.required': 'Stock quantity is required',
-  }),
+  stockQuantity: Joi.number().integer().min(0).required(),
   isFeatured: Joi.boolean(),
   isActive: Joi.boolean(),
 });

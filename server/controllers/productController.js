@@ -6,6 +6,7 @@ import {
   updateProductValidation,
   productIdValidation,
 } from '../utils/productValidation.js';
+import Media from '../models/media.js';
 
 export const getAllProducts = async (req, res) => {
   logger.info('Get all product endpoint hit');
@@ -74,101 +75,59 @@ export const getAllProducts = async (req, res) => {
     });
   }
 };
+
 export const createProduct = async (req, res) => {
-  logger.info('Create product endpoint hit');
-
   try {
-    const { error } = createProductValidation.validate(req.body, {
-      abortEarly: false,
-    });
-
+    const { error } = createProductValidation.validate(req.body, { abortEarly: false });
     if (error) {
-      const errorMessages = error.details.map((detail) => detail.message);
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errorMessages,
-      });
+      const errors = error.details.map((d) => d.message);
+      return res.status(400).json({ success: false, message: 'Validation failed', errors });
     }
 
-    const { imageMediaId, imagesMediaIds } = req.body;
+    const { imageMediaId, imagesMediaIds = [], ...rest } = req.body;
 
     // Verify main image exists
     const mainImage = await Media.findById(imageMediaId);
     if (!mainImage) {
-      return res.status(400).json({
-        success: false,
-        message: 'Main image not found',
-      });
+      return res.status(400).json({ success: false, message: 'Main image not found' });
     }
 
     // Verify additional images exist
-    if (imagesMediaIds && imagesMediaIds.length > 0) {
-      const imagesCount = await Media.countDocuments({
-        _id: { $in: imagesMediaIds },
-      });
-      if (imagesCount !== imagesMediaIds.length) {
-        return res.status(400).json({
-          success: false,
-          message: 'Some additional images not found',
-        });
+    if (imagesMediaIds.length > 0) {
+      const count = await Media.countDocuments({ _id: { $in: imagesMediaIds } });
+      if (count !== imagesMediaIds.length) {
+        return res
+          .status(400)
+          .json({ success: false, message: 'Some additional images not found' });
       }
     }
 
     const product = new Product({
-      ...req.body,
+      ...rest,
       image: imageMediaId,
-      images: imagesMediaIds || [],
+      images: imagesMediaIds,
     });
 
     await product.save();
 
-    // Update Media records to track usage
+    // Tracking usage in Media
     await Media.findByIdAndUpdate(imageMediaId, {
-      $push: {
-        usedBy: {
-          modelType: 'Product',
-          modelId: product._id,
-        },
-      },
+      $push: { usedBy: { modelType: 'Product', modelId: product._id } },
     });
 
-    if (imagesMediaIds && imagesMediaIds.length > 0) {
+    if (imagesMediaIds.length > 0) {
       await Media.updateMany(
         { _id: { $in: imagesMediaIds } },
-        {
-          $push: {
-            usedBy: {
-              modelType: 'Product',
-              modelId: product._id,
-            },
-          },
-        },
+        { $push: { usedBy: { modelType: 'Product', modelId: product._id } } },
       );
     }
 
-    await invalidateCache('cache:/api/products*');
-
-    logger.info('Product created successfully', {
-      productId: product._id,
-      adminId: req.user.id,
-    });
-
-    return res.status(201).json({
-      success: true,
-      message: 'Product created successfully',
-      product,
-    });
-  } catch (error) {
-    logger.error('Create product error:', {
-      message: error.message,
-      stack: error.stack,
-    });
-
-    res.status(500).json({
-      success: false,
-      message: 'Failed to create product',
-    });
+    return res
+      .status(201)
+      .json({ success: true, message: 'Product created successfully', product });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ success: false, message: 'Failed to create product' });
   }
 };
 
