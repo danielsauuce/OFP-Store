@@ -11,6 +11,6 @@ router.post('/single', authenticate, isAdmin, uploadSingle('image'), uploadImage
 
 router.post('/multiple', authenticate, isAdmin, uploadMultiple('images', 5), uploadMultipleImages);
 
-router.delete('/delete', authenticate, isAdmin, deleteImage);
+router.delete('/delete/:folder/:id', authenticate, isAdmin, deleteImage);
 
 export default router;

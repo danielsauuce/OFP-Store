@@ -11,6 +11,7 @@ import corsOptions from './config/corsOptions.js';
 import authRoutes from './routes/authRoutes.js';
 import rateLimiterMiddleware from './middleware/rateLimiter.js';
 import productRoutes from './routes/productRoutes.js';
+import uploadRoutes from './routes/uploadRoutes.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -38,6 +39,7 @@ app.use(rateLimiterMiddleware);
 // Routes
 app.use('/api/auth/', authRoutes);
 app.use('/api/product', productRoutes);
+app.use('/api/media/upload', uploadRoutes);
 
 app.use(errorHandler);
 

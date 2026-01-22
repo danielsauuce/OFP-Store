@@ -120,14 +120,17 @@ export const uploadMultipleImages = async (req, res) => {
 
 export const deleteImage = async (req, res) => {
   try {
-    const { publicId } = req.body;
+    const { folder, id } = req.params;
 
-    if (!publicId) {
+    if (!folder || !id) {
       return res.status(400).json({
         success: false,
-        message: 'Public ID is required',
+        message: 'Folder and ID are required',
       });
     }
+
+    // Reconstruct full publicId used by Cloudinary
+    const publicId = `${folder}/${id}`;
 
     const media = await Media.findOne({ publicId });
 
@@ -152,21 +155,13 @@ export const deleteImage = async (req, res) => {
     // Delete from database
     await Media.findByIdAndDelete(media._id);
 
-    logger.info('Image deleted successfully', {
-      mediaId: media._id,
-      publicId,
-    });
-
     return res.status(200).json({
       success: true,
       message: 'Image deleted successfully',
     });
   } catch (error) {
-    logger.error('Delete image error:', {
-      message: error.message,
-      stack: error.stack,
-    });
-    res.status(500).json({
+    console.error('Delete image error:', error);
+    return res.status(500).json({
       success: false,
       message: 'Failed to delete image',
     });
