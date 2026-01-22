@@ -16,13 +16,17 @@ const productSchema = new mongoose.Schema(
       required: true,
       min: 0,
     },
+    // Main image - reference to Media model
     image: {
-      type: String,
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Media',
       required: true,
     },
+    // Additional images - references to Media model
     images: [
       {
-        type: String,
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Media',
       },
     ],
     category: {
@@ -76,7 +80,7 @@ productSchema.index({ isFeatured: 1 });
 productSchema.index({ inStock: 1 });
 productSchema.index({ name: 'text', description: 'text' });
 
-// Pre-save hook to update inStock based on stockQuantity
+// Pre-save hook
 productSchema.pre('save', function (next) {
   this.inStock = this.stockQuantity > 0;
   next();

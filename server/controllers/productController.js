@@ -74,6 +74,103 @@ export const getAllProducts = async (req, res) => {
     });
   }
 };
+export const createProduct = async (req, res) => {
+  logger.info('Create product endpoint hit');
+
+  try {
+    const { error } = createProductValidation.validate(req.body, {
+      abortEarly: false,
+    });
+
+    if (error) {
+      const errorMessages = error.details.map((detail) => detail.message);
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errorMessages,
+      });
+    }
+
+    const { imageMediaId, imagesMediaIds } = req.body;
+
+    // Verify main image exists
+    const mainImage = await Media.findById(imageMediaId);
+    if (!mainImage) {
+      return res.status(400).json({
+        success: false,
+        message: 'Main image not found',
+      });
+    }
+
+    // Verify additional images exist
+    if (imagesMediaIds && imagesMediaIds.length > 0) {
+      const imagesCount = await Media.countDocuments({
+        _id: { $in: imagesMediaIds },
+      });
+      if (imagesCount !== imagesMediaIds.length) {
+        return res.status(400).json({
+          success: false,
+          message: 'Some additional images not found',
+        });
+      }
+    }
+
+    const product = new Product({
+      ...req.body,
+      image: imageMediaId,
+      images: imagesMediaIds || [],
+    });
+
+    await product.save();
+
+    // Update Media records to track usage
+    await Media.findByIdAndUpdate(imageMediaId, {
+      $push: {
+        usedBy: {
+          modelType: 'Product',
+          modelId: product._id,
+        },
+      },
+    });
+
+    if (imagesMediaIds && imagesMediaIds.length > 0) {
+      await Media.updateMany(
+        { _id: { $in: imagesMediaIds } },
+        {
+          $push: {
+            usedBy: {
+              modelType: 'Product',
+              modelId: product._id,
+            },
+          },
+        },
+      );
+    }
+
+    await invalidateCache('cache:/api/products*');
+
+    logger.info('Product created successfully', {
+      productId: product._id,
+      adminId: req.user.id,
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: 'Product created successfully',
+      product,
+    });
+  } catch (error) {
+    logger.error('Create product error:', {
+      message: error.message,
+      stack: error.stack,
+    });
+
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create product',
+    });
+  }
+};
 
 export const getProductById = async (req, res) => {
   logger.info('Get product by ID endpoint hit');
@@ -87,7 +184,9 @@ export const getProductById = async (req, res) => {
       });
     }
 
-    const product = await Product.findById(req.params.id);
+    const product = await Product.findById(req.params.id)
+      .populate('image', 'secureUrl publicId')
+      .populate('images', 'secureUrl publicId');
 
     if (!product) {
       logger.warn('Product not found', { productId: req.params.id });
@@ -111,58 +210,6 @@ export const getProductById = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to fetch product',
-    });
-  }
-};
-
-export const createProduct = async (req, res) => {
-  logger.info('Create product endpoint hit');
-
-  try {
-    const { error } = createProductValidation.validate(req.body, {
-      abortEarly: false,
-    });
-
-    if (error) {
-      const errorMessages = error.details.map((detail) => detail.message);
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errorMessages,
-      });
-    }
-
-    const product = new Product(req.body);
-    await product.save();
-
-    await invalidateCache('cache:/api/products*');
-
-    logger.info('Product created successfully', {
-      productId: product._id,
-      adminId: req.user.id,
-    });
-
-    return res.status(201).json({
-      success: true,
-      message: 'Product created successfully',
-      product,
-    });
-  } catch (error) {
-    logger.error('Create product error:', {
-      message: error.message,
-      stack: error.stack,
-    });
-
-    if (error.code === 11000) {
-      return res.status(409).json({
-        success: false,
-        message: 'Product with this name already exists',
-      });
-    }
-
-    res.status(500).json({
-      success: false,
-      message: 'Failed to create product',
     });
   }
 };
