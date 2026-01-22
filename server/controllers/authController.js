@@ -152,7 +152,6 @@ export const changePassword = async (req, res) => {
       return res.status(blocked.status).json(blocked.response);
     }
 
-    // req.body validation
     const { error } = changePasswordValidation.validate(req.body);
     if (error) {
       logger.warn('Validation error', error.details[0].message);

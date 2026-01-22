@@ -81,7 +81,7 @@ const SignUpForm = ({ handleSignUp }) => {
       <button
         type="submit"
         disabled={!checkIfSignUpFormIsValid()}
-        className={`w-full h-13 font-medium transition-all rounded duration-300 group justify-center flex
+        className={`w-full py-2 font-medium transition-all rounded duration-300 group justify-center flex
         ${
           checkIfSignUpFormIsValid()
             ? 'bg-primary hover:bg-primary-dark text-amber-50'
