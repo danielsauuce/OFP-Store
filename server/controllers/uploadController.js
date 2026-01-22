@@ -1,5 +1,5 @@
 import { uploadMediaToCloudinary, deleteMediaFromCloudinary } from '../config/cloudinary.js';
-import Media from '../models/Media.js';
+import Media from '../models/media.js';
 import logger from '../utils/logger.js';
 
 export const uploadImage = async (req, res) => {
