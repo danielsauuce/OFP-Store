@@ -1,66 +1,39 @@
-import dotenv from 'dotenv';
-dotenv.config();
-
-import Redis from 'ioredis';
-import { RateLimiterRedis } from 'rate-limiter-flexible';
-import logger from '../utils/logger.js';
-
-let redisClient;
-let rateLimiter;
-
-try {
-  const connectionString = process.env.REDIS_URi;
-  if (!connectionString) {
-    throw new Error('REDIS_URL environment variable is not set.');
+export const delPattern = async (pattern) => {
+  if (!redisClient) {
+    logger.warn('delPattern called but redisClient is not initialized');
+    return false;
   }
 
-  redisClient = new Redis(connectionString, {
-    retryStrategy: (times) => {
-      const delay = Math.min(times * 50, 2000);
-      logger.info(`Redis retry attempt ${times} after ${delay}ms`);
-      return delay;
-    },
+  let cursor = '0';
 
-    tls: {
-      rejectUnauthorized: false,
-      servername: new URL(connectionString).hostname,
-    },
+  try {
+    do {
+      const [nextCursor, keys] = await redisClient.scan(cursor, {
+        match: pattern,
+        count: 500,
+      });
 
-    keepAlive: 10000,
-  });
+      if (keys.length) {
+        // Prefer UNLINK (non-blocking), fallback to DEL
+        if (typeof redisClient.unlink === 'function') {
+          await redisClient.unlink(...keys);
+        } else {
+          await redisClient.del(...keys);
+        }
+      }
 
-  redisClient.on('connect', () => {
-    logger.info('Redis client connected successfully to Upstash');
-  });
+      cursor = nextCursor;
+    } while (cursor !== '0');
 
-  redisClient.on('error', (err) => {
-    logger.error('Redis Client Error:', {
-      message: err.message || 'Unknown error',
-      stack: err.stack,
-      code: err.code,
+    logger.info(`delPattern completed successfully`, { pattern });
+    return true;
+  } catch (error) {
+    logger.error('delPattern failed', {
+      pattern,
+      message: error.message,
+      stack: error.stack,
     });
-  });
 
-  redisClient.on('ready', () => {
-    logger.info('Redis client is ready and authenticated');
-  });
-
-  rateLimiter = new RateLimiterRedis({
-    storeClient: redisClient,
-    keyPrefix: 'middleware',
-    points: 10, // 10 requests
-    duration: 60, // per 60 seconds
-    blockDuration: 60, // block for 60s on exceed
-  });
-
-  logger.info('Rate limiter initialized with Upstash Redis');
-} catch (error) {
-  logger.error('Failed to initialize Redis/Rate Limiter:', {
-    message: error.message,
-    stack: error.stack,
-  });
-
-  rateLimiter = null;
-}
-
-export default { redisClient, rateLimiter };
+    return false;
+  }
+};
