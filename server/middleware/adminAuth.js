@@ -7,13 +7,12 @@ export const isAdmin = (req, res, next) => {
     if (!req.user) {
       logger.warn('No user found in request');
 
-      return res.status(401)({
+      return res.status(401).json({
         success: false,
-        messgae: 'Authentication Required',
+        message: 'Authentication Required',
       });
     }
 
-    // if user is not admin
     if (req.user.role !== 'admin') {
       logger.warn('Only admin user allowed', { userId: req.user.id, role: req.user.role });
 

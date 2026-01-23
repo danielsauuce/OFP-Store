@@ -1,4 +1,8 @@
-import { uploadMediaToCloudinary, deleteMediaFromCloudinary } from '../config/cloudinary.js';
+import {
+  uploadMediaToCloudinary,
+  deleteMediaFromCloudinary,
+  deleteMultipleMediaFromCloudinary,
+} from '../config/cloudinary.js';
 import Media from '../models/media.js';
 import logger from '../utils/logger.js';
 
@@ -24,7 +28,7 @@ export const uploadImage = async (req, res) => {
       size: cloudinaryResult.bytes,
       width: cloudinaryResult.width,
       height: cloudinaryResult.height,
-      folder: folder,
+      folder,
       resourceType: cloudinaryResult.resource_type,
       uploadedBy: req.user.id,
     });
@@ -51,6 +55,7 @@ export const uploadImage = async (req, res) => {
       message: error.message,
       stack: error.stack,
     });
+
     res.status(500).json({
       success: false,
       message: 'Failed to upload image',
@@ -59,111 +64,97 @@ export const uploadImage = async (req, res) => {
 };
 
 export const uploadMultipleImages = async (req, res) => {
-  try {
-    if (!req.files || req.files.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'No files uploaded',
-      });
-    }
-
-    const folder = req.body.folder || 'products';
-    const uploadPromises = req.files.map((file) => uploadMediaToCloudinary(file, folder));
-
-    const cloudinaryResults = await Promise.all(uploadPromises);
-
-    // Create Media records for all uploads
-    const mediaDocuments = cloudinaryResults.map((result, index) => ({
-      publicId: result.public_id,
-      url: result.url,
-      secureUrl: result.secure_url,
-      originalName: req.files[index].originalname,
-      mimeType: req.files[index].mimetype,
-      format: result.format,
-      size: result.bytes,
-      width: result.width,
-      height: result.height,
-      folder: folder,
-      resourceType: result.resource_type,
-      uploadedBy: req.user.id,
-    }));
-
-    const savedMedia = await Media.insertMany(mediaDocuments);
-
-    const mediaData = savedMedia.map((media) => ({
-      id: media._id,
-      url: media.secureUrl,
-      publicId: media.publicId,
-    }));
-
-    logger.info('Multiple images uploaded and tracked successfully', {
-      count: mediaData.length,
-      uploadedBy: req.user.id,
-    });
-
-    return res.status(200).json({
-      success: true,
-      message: 'Images uploaded successfully',
-      media: mediaData,
-    });
-  } catch (error) {
-    logger.error('Upload multiple images error:', {
-      message: error.message,
-      stack: error.stack,
-    });
-    res.status(500).json({
+  if (!req.files || req.files.length === 0) {
+    return res.status(400).json({
       success: false,
-      message: 'Failed to upload images',
+      message: 'No files uploaded',
     });
   }
-};
 
-export const deleteImage = async (req, res) => {
-  try {
-    const { folder, id } = req.params;
+  const folder = req.body.folder || 'products';
 
-    if (!folder || !id) {
-      return res.status(400).json({
-        success: false,
-        message: 'Folder and ID are required',
+  // Upload all to Cloudinary using allSettled
+  const uploadPromises = req.files.map((file) => uploadMediaToCloudinary(file, folder));
+  const results = await Promise.allSettled(uploadPromises);
+
+  const successfulUploads = [];
+  const failedUploads = [];
+
+  results.forEach((r, index) => {
+    if (r.status === 'fulfilled') {
+      successfulUploads.push({ file: req.files[index], result: r.value });
+    } else {
+      failedUploads.push({ file: req.files[index], error: r.reason });
+    }
+  });
+
+  // If any failed, rollback successful uploads
+  if (failedUploads.length > 0) {
+    try {
+      await Promise.all(
+        successfulUploads.map((u) => deleteMediaFromCloudinary(u.result.public_id)),
+      );
+      logger.warn('Rolled back successful Cloudinary uploads due to failures', {
+        failedCount: failedUploads.length,
+      });
+    } catch (err) {
+      logger.error('Failed to rollback Cloudinary uploads', {
+        message: err.message,
+        stack: err.stack,
       });
     }
 
-    // Reconstruct full publicId used by Cloudinary
-    const publicId = `${folder}/${id}`;
-
-    const media = await Media.findOne({ publicId });
-
-    if (!media) {
-      return res.status(404).json({
-        success: false,
-        message: 'Media not found',
-      });
-    }
-
-    if (media.usedBy && media.usedBy.length > 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Cannot delete media that is currently in use',
-        usedBy: media.usedBy,
-      });
-    }
-
-    // Delete from Cloudinary
-    await deleteMediaFromCloudinary(publicId);
-
-    // Delete from database
-    await Media.findByIdAndDelete(media._id);
-
-    return res.status(200).json({
-      success: true,
-      message: 'Image deleted successfully',
-    });
-  } catch (error) {
-    console.error('Delete image error:', error);
     return res.status(500).json({
       success: false,
-      message: 'Failed to delete image',
+      message: 'Some uploads failed, all uploads rolled back',
+      failedUploads: failedUploads.map((f) => f.file.originalname),
     });
   }
+
+  // Prepare Media documents
+  const mediaDocuments = successfulUploads.map(({ file, result }) => ({
+    publicId: result.public_id,
+    url: result.url,
+    secureUrl: result.secure_url,
+    originalName: file.originalname,
+    mimeType: file.mimetype,
+    format: result.format,
+    size: result.bytes,
+    width: result.width,
+    height: result.height,
+    folder,
+    resourceType: result.resource_type,
+    uploadedBy: req.user.id,
+  }));
+
+  // Insert into DB with rollback if insertMany fails
+  let savedMedia;
+  try {
+    savedMedia = await Media.insertMany(mediaDocuments);
+  } catch (dbError) {
+    // Rollback Cloudinary if DB insert fails
+    await Promise.all(mediaDocuments.map((m) => deleteMediaFromCloudinary(m.publicId)));
+    logger.error('DB insert failed, rolled back Cloudinary uploads', { message: dbError.message });
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to save media in database, uploads rolled back',
+    });
+  }
+
+  const mediaData = savedMedia.map((media) => ({
+    id: media._id,
+    url: media.secureUrl,
+    publicId: media.publicId,
+  }));
+
+  logger.info('Multiple images uploaded and tracked successfully', {
+    count: mediaData.length,
+    uploadedBy: req.user.id,
+  });
+
+  return res.status(200).json({
+    success: true,
+    message: 'Images uploaded successfully',
+    media: mediaData,
+  });
 };
