@@ -16,13 +16,11 @@ const productSchema = new mongoose.Schema(
       required: true,
       min: 0,
     },
-    // Main image - reference to Media model
     image: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Media',
       required: true,
     },
-    // Additional images - references to Media model
     images: [
       {
         type: mongoose.Schema.Types.ObjectId,
