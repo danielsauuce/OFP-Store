@@ -28,7 +28,8 @@ const userSchema = new mongoose.Schema(
       maxlength: 20,
     },
     profilePicture: {
-      type: String,
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Media',
     },
     address: {
       street: String,
