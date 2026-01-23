@@ -6,7 +6,6 @@ const mediaSchema = new mongoose.Schema(
       type: String,
       required: true,
       unique: true,
-      index: true,
     },
     url: {
       type: String,
@@ -72,7 +71,6 @@ const mediaSchema = new mongoose.Schema(
   },
 );
 
-mediaSchema.index({ publicId: 1 });
 mediaSchema.index({ uploadedBy: 1 });
 mediaSchema.index({ 'usedBy.modelId': 1 });
 

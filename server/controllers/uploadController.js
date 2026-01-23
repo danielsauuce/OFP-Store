@@ -1,8 +1,4 @@
-import {
-  uploadMediaToCloudinary,
-  deleteMediaFromCloudinary,
-  deleteMultipleMediaFromCloudinary,
-} from '../config/cloudinary.js';
+import { uploadMediaToCloudinary, deleteMediaFromCloudinary } from '../config/cloudinary.js';
 import Media from '../models/media.js';
 import logger from '../utils/logger.js';
 

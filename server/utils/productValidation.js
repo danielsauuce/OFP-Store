@@ -27,8 +27,12 @@ export const updateProductValidation = Joi.object({
   name: Joi.string().min(3).max(200).trim(),
   description: Joi.string().min(10).max(2000).trim(),
   price: Joi.number().positive().precision(2),
-  image: Joi.string().uri(),
-  images: Joi.array().items(Joi.string().uri()),
+  imageMediaId: Joi.string()
+    .pattern(objectIdPattern)
+    .messages({ 'string.pattern.base': 'Invalid main image ID' }),
+  imagesMediaIds: Joi.array()
+    .items(Joi.string().pattern(objectIdPattern))
+    .messages({ 'string.pattern.base': 'Invalid media ID in images array' }),
   category: Joi.string().valid('Sofas', 'Tables', 'Chairs', 'Beds', 'Storage', 'Lighting', 'Decor'),
   material: Joi.string().trim(),
   dimensions: Joi.string().trim(),
