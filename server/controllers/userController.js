@@ -1,8 +1,8 @@
-import User from '../models/user.js';
+import { deleteMediaFromCloudinary, uploadMediaToCloudinary } from '../config/cloudinary.js';
 import Media from '../models/media.js';
+import User from '../models/user.js';
 import logger from '../utils/logger.js';
 import { updateProfileValidation } from '../utils/userValidation';
-import { deleteMediaFromCloudinary, uploadMediaToCloudinary } from '../config/cloudinary.js';
 
 export const getUserProfile = async (req, res) => {
   try {
@@ -218,6 +218,41 @@ export const deleteProfilePicture = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to delete profile picture',
+    });
+  }
+};
+
+export const deactivateAccount = async (req, res) => {
+  logger.info('Deactivate Account endpoint hit');
+
+  try {
+    const userId = req.user.id;
+
+    const user = await User.findByIdAndUpdate(userId, { isActive: false }, { new: true }).select(
+      '-password',
+    );
+
+    if (!user) {
+      logger.war('User not found');
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+    }
+
+    logger.info('User account deactivated', { userId });
+    return res.status(200).json({
+      success: 'true',
+      message: 'Account deactivated successfully',
+    });
+  } catch (error) {
+    logger.error('Deactivate account error:', {
+      message: error.message,
+      stack: error.stack,
+    });
+    res.status(500).json({
+      success: false,
+      message: 'Failed to deactivate account',
     });
   }
 };
