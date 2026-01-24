@@ -2,7 +2,7 @@ import { deleteMediaFromCloudinary, uploadMediaToCloudinary } from '../config/cl
 import Media from '../models/media.js';
 import User from '../models/user.js';
 import logger from '../utils/logger.js';
-import { updateProfileValidation } from '../utils/userValidation';
+import { updateProfileValidation } from '../utils/userValidation.js';
 
 export const getUserProfile = async (req, res) => {
   try {

@@ -1,7 +1,7 @@
 import express from 'express';
 import {
   getAllUsers,
-  getUserById,
+  getUsersById,
   updateUserStatus,
   updateUserRole,
   deleteUser,
@@ -13,7 +13,7 @@ const router = express.Router();
 
 // user management
 router.get('/users', authenticate, isAdmin, getAllUsers);
-router.get('/users/:id', authenticate, isAdmin, getUserById);
+router.get('/users/:id', authenticate, isAdmin, getUsersById);
 router.patch('/users/:id/status', authenticate, isAdmin, updateUserStatus);
 router.patch('/users/:id/role', authenticate, isAdmin, updateUserRole);
 router.delete('/users/:id', authenticate, isAdmin, deleteUser);

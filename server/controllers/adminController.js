@@ -1,10 +1,10 @@
-import User from '../models/user';
-import logger from '../utils/logger';
+import User from '../models/user.js';
+import logger from '../utils/logger.js';
 import {
   updateUserRoleValidation,
   updateUserStatusValidation,
   userIdValidation,
-} from '../utils/userValidation';
+} from '../utils/userValidation.js';
 
 export const getAllUsers = async (req, res) => {
   logger.info('Admin get all user endpoint hit');
