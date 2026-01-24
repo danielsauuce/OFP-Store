@@ -12,6 +12,8 @@ import authRoutes from './routes/authRoutes.js';
 import rateLimiterMiddleware from './middleware/rateLimiter.js';
 import productRoutes from './routes/productRoutes.js';
 import uploadRoutes from './routes/uploadRoutes.js';
+import adminRoutes from './routes/adminRoutes.js';
+import userRoutes from './routes/userRoutes.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -40,6 +42,8 @@ app.use(rateLimiterMiddleware);
 app.use('/api/auth/', authRoutes);
 app.use('/api/product', productRoutes);
 app.use('/api/media/upload', uploadRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/admin', adminRoutes);
 
 app.use(errorHandler);
 
