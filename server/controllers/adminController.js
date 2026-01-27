@@ -7,12 +7,14 @@ import {
 } from '../utils/userValidation.js';
 
 export const getAllUsers = async (req, res) => {
-  logger.info('Admin get all user endpoint hit');
+  logger.info('Admin get all users endpoint hit');
 
   try {
     const { page = 1, limit = 20, search, role, isActive } = req.query;
 
     const query = {};
+
+    // Search by name or email
     if (search) {
       query.$or = [
         { fullName: { $regex: search, $options: 'i' } },
@@ -20,17 +22,29 @@ export const getAllUsers = async (req, res) => {
       ];
     }
 
-    if (role) query.role = role;
-    if (isActive !== undefined) query.isActive = isActive === 'true';
+    // 🎭 Filter by role
+    if (role) {
+      query.role = role;
+    }
 
-    const skip = Number(page) - 1 * Number(limit);
+    // ✅ Filter by active status
+    if (isActive !== undefined) {
+      query.isActive = isActive === 'true';
+    }
+
+    // 📄 Pagination
+    const pageNumber = Number(page);
+    const limitNumber = Number(limit);
+    const skip = (pageNumber - 1) * limitNumber;
 
     const [users, total] = await Promise.all([
-      (await User.find(query).populate('profilePicture', 'secureUrl'))
+      User.find(query)
+        .populate('profilePicture', 'secureUrl')
         .select('-password')
         .sort({ createdAt: -1 })
         .skip(skip)
-        .limit(Number(limit)),
+        .limit(limitNumber)
+        .lean(),
       User.countDocuments(query),
     ]);
 
@@ -40,20 +54,23 @@ export const getAllUsers = async (req, res) => {
     });
 
     return res.status(200).json({
-      success: 'false',
+      success: true,
       message: 'Users fetched successfully',
       users,
-      pagination: total,
-      page: Number(page),
-      pages: Math.ceil(total / Number(limit)),
-      limit: Number(limit),
+      pagination: {
+        total,
+        page: pageNumber,
+        pages: Math.ceil(total / limitNumber),
+        limit: limitNumber,
+      },
     });
   } catch (error) {
-    logger.error('Get all users error:', {
+    logger.error('Get all users error', {
       message: error.message,
       stack: error.stack,
     });
-    res.status(500).json({
+
+    return res.status(500).json({
       success: false,
       message: 'Failed to fetch users',
     });

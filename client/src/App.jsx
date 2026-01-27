@@ -7,10 +7,10 @@ import About from './views/About';
 import Contact from './views/Contact';
 import AuthPage from './views/AuthPage';
 import NotFound from './views/NotFound';
-import AdminLayout from './views/admin/AdminLayout';
 import { Toaster } from 'react-hot-toast';
 import RouteGuard from './components/RouteGuard';
 import { useAuth } from './context/authContext';
+import CommonSideBar from './views/admin/components/CommonSideBar';
 
 // Layout component for pages with Navbar & Footer
 const MainLayout = () => (
@@ -86,7 +86,7 @@ function App() {
             <RouteGuard
               authenticated={auth.authenticate}
               user={auth.user}
-              element={<AdminLayout />}
+              element={<CommonSideBar />}
               requireAuth={true}
               requireAdmin={true}
             />

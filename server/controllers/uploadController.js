@@ -2,21 +2,73 @@ import { uploadMediaToCloudinary, deleteMediaFromCloudinary } from '../config/cl
 import Media from '../models/media.js';
 import logger from '../utils/logger.js';
 
+// export const uploadImage = async (req, res) => {
+//   try {
+//     if (!req.file) {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'No file uploaded',
+//       });
+//     }
+
+//     const folder = req.body.folder || 'products';
+//     const cloudinaryResult = await uploadMediaToCloudinary(req.file, folder);
+
+//     const media = new Media({
+//       publicId: cloudinaryResult.public_id,
+//       url: cloudinaryResult.url,
+//       secureUrl: cloudinaryResult.secure_url,
+//       originalName: req.file.originalname,
+//       mimeType: req.file.mimetype,
+//       format: cloudinaryResult.format,
+//       size: cloudinaryResult.bytes,
+//       width: cloudinaryResult.width,
+//       height: cloudinaryResult.height,
+//       folder,
+//       resourceType: cloudinaryResult.resource_type,
+//       uploadedBy: req.user.id,
+//     });
+
+//     await media.save();
+
+//     logger.info('Image uploaded and tracked successfully', {
+//       mediaId: media._id,
+//       publicId: cloudinaryResult.public_id,
+//       uploadedBy: req.user.id,
+//     });
+
+//     return res.status(200).json({
+//       success: true,
+//       message: 'Image uploaded successfully',
+//       media: {
+//         id: media._id,
+//         url: media.secureUrl,
+//         publicId: media.publicId,
+//       },
+//     });
+//   } catch (error) {
+//     logger.error('Upload image error:', {
+//       message: error.message,
+//       stack: error.stack,
+//     });
+
+//     res.status(500).json({
+//       success: false,
+//       message: 'Failed to upload image',
+//     });
+//   }
+// };
+
 export const uploadImage = async (req, res) => {
+  let cloudinaryResult = null;
   try {
-    if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        message: 'No file uploaded',
-      });
-    }
+    if (!req.file) return res.status(400).json({ success: false, message: 'No file uploaded' });
 
     const folder = req.body.folder || 'products';
-    const cloudinaryResult = await uploadMediaToCloudinary(req.file, folder);
+    cloudinaryResult = await uploadMediaToCloudinary(req.file, folder);
 
     const media = new Media({
       publicId: cloudinaryResult.public_id,
-      url: cloudinaryResult.url,
       secureUrl: cloudinaryResult.secure_url,
       originalName: req.file.originalname,
       mimeType: req.file.mimetype,
@@ -30,7 +82,6 @@ export const uploadImage = async (req, res) => {
     });
 
     await media.save();
-
     logger.info('Image uploaded and tracked successfully', {
       mediaId: media._id,
       publicId: cloudinaryResult.public_id,
@@ -47,15 +98,14 @@ export const uploadImage = async (req, res) => {
       },
     });
   } catch (error) {
-    logger.error('Upload image error:', {
-      message: error.message,
-      stack: error.stack,
-    });
-
-    res.status(500).json({
-      success: false,
-      message: 'Failed to upload image',
-    });
+    // Cleanup Cloudinary if DB save fails
+    if (cloudinaryResult) {
+      await deleteMediaFromCloudinary(cloudinaryResult.public_id).catch((err) =>
+        logger.error('Cleanup failed', err),
+      );
+    }
+    logger.error('Upload image error:', error);
+    res.status(500).json({ success: false, message: 'Failed to upload image' });
   }
 };
 

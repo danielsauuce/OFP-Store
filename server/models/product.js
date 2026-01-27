@@ -84,4 +84,23 @@ productSchema.pre('save', function (next) {
   next();
 });
 
+productSchema.pre('findOneAndUpdate', async function (next) {
+  const update = this.getUpdate();
+
+  // Handle direct $set
+  if (update.stockQuantity !== undefined || update.$set?.stockQuantity !== undefined) {
+    const newQty = update.stockQuantity ?? update.$set.stockQuantity;
+    if (update.$set) update.$set.inStock = newQty > 0;
+    else update.inStock = newQty > 0;
+  }
+
+  // Handle $inc
+  if (update.$inc?.stockQuantity) {
+    const doc = await this.model.findOne(this.getQuery());
+    const newQty = (doc.stockQuantity || 0) + update.$inc.stockQuantity;
+    update.$set = update.$set || {};
+    update.$set.inStock = newQty > 0;
+  }
+  next();
+});
 export default mongoose.model('Product', productSchema);

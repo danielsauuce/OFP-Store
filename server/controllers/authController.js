@@ -101,6 +101,14 @@ export const loginUser = async (req, res) => {
       });
     }
 
+    //block deactivated user
+    if (!user.isActive) {
+      return res.status(403).json({
+        success: false,
+        message: 'Account is deactivated',
+      });
+    }
+
     const isPasswordValid = await user.comparePassword(password);
     if (!isPasswordValid) {
       logger.warn('Invalid password attempt');

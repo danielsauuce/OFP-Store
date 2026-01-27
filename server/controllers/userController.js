@@ -38,46 +38,89 @@ export const getUserProfile = async (req, res) => {
   }
 };
 
-export const updateUserProfile = async (req, res) => {
-  logger.info('Update profile endpoint hit');
+// export const updateUserProfile = async (req, res) => {
+//   logger.info('Update profile endpoint hit');
 
+//   try {
+//     const userId = req.user.id;
+
+//     const { error } = updateProfileValidation.validate(req.body, {
+//       abortEarly: false,
+//     });
+
+//     if (error) {
+//       logger.warn('Validation error', error.details[0].message);
+//       return res.status(400).json({
+//         success: false,
+//         message: 'Validation failed',
+//         errors: errorMessages,
+//       });
+//     }
+
+//     const user = await User.findByIdAndUpdate(userId, req.body, {
+//       new: true,
+//       runValidators: true,
+//     })
+//       .populate('profilePicture', 'secureUrl publicId')
+//       .select('-password');
+
+//     if (!user) {
+//       return res.status(404).json({
+//         success: false,
+//         message: 'User not found',
+//       });
+//     }
+
+//     logger.info('User profile updated successfully', { userId });
+
+//     return res.status(200).json({
+//       success: true,
+//       message: 'Profile updated successfully',
+//       user,
+//     });
+//   } catch (error) {
+//     logger.error('Update user profile error:', {
+//       message: error.message,
+//       stack: error.stack,
+//     });
+//     res.status(500).json({
+//       success: false,
+//       message: 'Failed to update profile',
+//     });
+//   }
+// };
+
+export const updateUserProfile = async (req, res) => {
   try {
     const userId = req.user.id;
-
-    const { error } = updateProfileValidation.validate(req.body, {
-      abortEarly: false,
-    });
+    const { error } = updateProfileValidation.validate(req.body, { abortEarly: false });
 
     if (error) {
-      logger.warn('Validation error', error.details[0].message);
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errorMessages,
-      });
+      const errorMessages = error.details.map((d) => ({ field: d.path[0], message: d.message }));
+      return res
+        .status(400)
+        .json({ success: false, message: 'Validation failed', errors: errorMessages });
     }
 
-    const user = await User.findByIdAndUpdate(userId, req.body, {
+    // Mass Assignment Protection: Whitelist fields
+    const allowed = ['fullName', 'email', 'bio'];
+    const updateData = Object.keys(req.body)
+      .filter((key) => allowed.includes(key))
+      .reduce((obj, key) => {
+        obj[key] = req.body[key];
+        return obj;
+      }, {});
+
+    const user = await User.findByIdAndUpdate(userId, updateData, {
       new: true,
       runValidators: true,
     })
-      .populate('profilePicture', 'secureUrl publicId')
+      .populate('profilePicture', 'secureUrl')
       .select('-password');
 
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found',
-      });
-    }
+    logger.info('Profile picture updated', { userId: user._id });
 
-    logger.info('User profile updated successfully', { userId });
-
-    return res.status(200).json({
-      success: true,
-      message: 'Profile updated successfully',
-      user,
-    });
+    return res.status(200).json({ success: true, message: 'Profile updated successfully', user });
   } catch (error) {
     logger.error('Update user profile error:', {
       message: error.message,
@@ -233,16 +276,11 @@ export const deactivateAccount = async (req, res) => {
     );
 
     if (!user) {
-      logger.war('User not found');
-      return res.status(404).json({
-        success: false,
-        message: 'User not found',
-      });
+      logger.warn('User not found');
+      return res.status(404).json({ success: false, message: 'User not found' });
     }
-
-    logger.info('User account deactivated', { userId });
     return res.status(200).json({
-      success: 'true',
+      success: true,
       message: 'Account deactivated successfully',
     });
   } catch (error) {

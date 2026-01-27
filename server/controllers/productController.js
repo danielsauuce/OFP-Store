@@ -97,36 +97,12 @@ export const createProduct = async (req, res) => {
       });
     }
 
-    const { imageMediaId, imagesMediaIds = [], ...rest } = req.body;
+    const product = await Product.create({ ...rest, image: imageMediaId, images: imagesMediaIds });
 
-    const mainImage = await Media.findById(imageMediaId);
-    if (!mainImage) {
-      return res.status(400).json({
-        success: false,
-        message: 'Main image not found',
-      });
-    }
-
-    if (imagesMediaIds.length > 0) {
-      const count = await Media.countDocuments({ _id: { $in: imagesMediaIds } });
-      if (count !== imagesMediaIds.length) {
-        return res.status(400).json({
-          success: false,
-          message: 'Some additional images not found',
-        });
-      }
-    }
-
-    const product = await Product.create({
-      ...rest,
-      image: imageMediaId,
-      images: imagesMediaIds,
-    });
-
+    // Update Media usage
     await Media.findByIdAndUpdate(imageMediaId, {
       $push: { usedBy: { modelType: 'Product', modelId: product._id } },
     });
-
     if (imagesMediaIds.length) {
       await Media.updateMany(
         { _id: { $in: imagesMediaIds } },
@@ -134,11 +110,14 @@ export const createProduct = async (req, res) => {
       );
     }
 
-    res.status(201).json({
-      success: true,
-      message: 'Product created successfully',
-      product,
-    });
+    // Clear cache after creation
+    try {
+      await invalidateCache('cache:/api/product*');
+    } catch (err) {
+      logger.error('Cache invalidation failed on product creation', err);
+    }
+
+    res.status(201).json({ success: true, message: 'Product created successfully', product });
   } catch (error) {
     logger.error('Create product error', {
       message: error.message,
@@ -148,6 +127,59 @@ export const createProduct = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to create product',
+    });
+  }
+};
+
+export const updateProduct = async (req, res) => {
+  try {
+    const existingProduct = await Product.findById(req.params.id);
+    if (!existingProduct)
+      return res.status(404).json({ success: false, message: 'Product not found' });
+
+    const oldIds = [
+      existingProduct.image.toString(),
+      ...existingProduct.images.map((id) => id.toString()),
+    ];
+    const newIds = [req.body.imageMediaId, ...(req.body.imagesMediaIds || [])].filter(Boolean);
+
+    const added = newIds.filter((id) => !oldIds.includes(id));
+    const removed = oldIds.filter((id) => !newIds.includes(id));
+
+    const product = await Product.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+      runValidators: true,
+    });
+
+    // Sync media usedBy
+    if (removed.length) {
+      await Media.updateMany(
+        { _id: { $in: removed } },
+        { $pull: { usedBy: { modelId: product._id } } },
+      );
+    }
+    if (added.length) {
+      await Media.updateMany(
+        { _id: { $in: added } },
+        { $push: { usedBy: { modelType: 'Product', modelId: product._id } } },
+      );
+    }
+
+    await Promise.all([
+      invalidateCache('cache:/api/product*'),
+      invalidateCache(`cache:/api/product/${req.params.id}`),
+    ]);
+
+    res.status(200).json({ success: true, message: 'Product updated successfully', product });
+  } catch (error) {
+    logger.error('Update product error', {
+      message: error.message,
+      stack: error.stack,
+    });
+
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update product',
     });
   }
 };
@@ -190,62 +222,62 @@ export const getProductById = async (req, res) => {
   }
 };
 
-export const updateProduct = async (req, res) => {
-  try {
-    const { error: idError } = productIdValidation.validate({ id: req.params.id });
-    if (idError) {
-      return res.status(400).json({
-        success: false,
-        message: idError.details[0].message,
-      });
-    }
+// export const updateProduct = async (req, res) => {
+//   try {
+//     const { error: idError } = productIdValidation.validate({ id: req.params.id });
+//     if (idError) {
+//       return res.status(400).json({
+//         success: false,
+//         message: idError.details[0].message,
+//       });
+//     }
 
-    const { error } = updateProductValidation.validate(req.body, {
-      abortEarly: false,
-    });
+//     const { error } = updateProductValidation.validate(req.body, {
+//       abortEarly: false,
+//     });
 
-    if (error) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: error.details.map((d) => d.message),
-      });
-    }
+//     if (error) {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'Validation failed',
+//         errors: error.details.map((d) => d.message),
+//       });
+//     }
 
-    const product = await Product.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true,
-    });
+//     const product = await Product.findByIdAndUpdate(req.params.id, req.body, {
+//       new: true,
+//       runValidators: true,
+//     });
 
-    if (!product) {
-      return res.status(404).json({
-        success: false,
-        message: 'Product not found',
-      });
-    }
+//     if (!product) {
+//       return res.status(404).json({
+//         success: false,
+//         message: 'Product not found',
+//       });
+//     }
 
-    await Promise.all([
-      invalidateCache('cache:/api/products*'),
-      invalidateCache(`cache:/api/products/${req.params.id}`),
-    ]);
+//     await Promise.all([
+//       invalidateCache('cache:/api/products*'),
+//       invalidateCache(`cache:/api/products/${req.params.id}`),
+//     ]);
 
-    res.status(200).json({
-      success: true,
-      message: 'Product updated successfully',
-      product,
-    });
-  } catch (error) {
-    logger.error('Update product error', {
-      message: error.message,
-      stack: error.stack,
-    });
+//     res.status(200).json({
+//       success: true,
+//       message: 'Product updated successfully',
+//       product,
+//     });
+//   } catch (error) {
+//     logger.error('Update product error', {
+//       message: error.message,
+//       stack: error.stack,
+//     });
 
-    res.status(500).json({
-      success: false,
-      message: 'Failed to update product',
-    });
-  }
-};
+//     res.status(500).json({
+//       success: false,
+//       message: 'Failed to update product',
+//     });
+//   }
+// };
 
 export const deleteProduct = async (req, res) => {
   logger.info('Delete product endpoint hit');
