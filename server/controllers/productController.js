@@ -15,15 +15,29 @@ export const getAllProducts = async (req, res) => {
   try {
     const {
       category,
+      search,
       minPrice,
       maxPrice,
       inStock,
       isFeatured,
-      search,
       sort = '-createdAt',
       page = 1,
       limit = 12,
     } = req.query;
+
+    // Category allowlist sanitization
+    const allowedCategories = ['Sofas', 'Tables', 'Chairs', 'Beds', 'Storage', 'Lighting', 'Decor'];
+    if (category) {
+      if (allowedCategories.includes(category)) {
+        query.category = category;
+      } else {
+        return res.status(400).json({ success: false, message: 'Invalid category' });
+      }
+    }
+
+    if (search) {
+      query.$text = { $search: String(search).replace(/[^\w\s]/gi, '') };
+    }
 
     const query = { isActive: true };
 
@@ -110,6 +124,13 @@ export const createProduct = async (req, res) => {
       );
     }
 
+    // Clear product list cache so UI updates immediately
+    try {
+      await invalidateCache('cache:/api/product*');
+    } catch (cacheErr) {
+      logger.error('Cache invalidation failed', { message: cacheErr.message });
+    }
+
     // Clear cache after creation
     try {
       await invalidateCache('cache:/api/product*');
@@ -118,6 +139,11 @@ export const createProduct = async (req, res) => {
     }
 
     res.status(201).json({ success: true, message: 'Product created successfully', product });
+
+    await Promise.all([
+      invalidateCache('cache:/api/product*'),
+      invalidateCache(`cache:/api/product/${req.params.id}`),
+    ]);
   } catch (error) {
     logger.error('Create product error', {
       message: error.message,

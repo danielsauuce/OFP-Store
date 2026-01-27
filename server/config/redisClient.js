@@ -7,8 +7,8 @@ export const redisClient = new Redis(process.env.REDIS_URL);
 export const rateLimiter = new RateLimiterRedis({
   storeClient: redisClient,
   keyPrefix: 'middleware',
-  points: 10, // 10 requests
-  duration: 1, // per 1 second
+  points: 10,
+  duration: 1,
 });
 
 export const delPattern = async (pattern) => {
