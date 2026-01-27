@@ -34,6 +34,7 @@ export const authenticate = (req, res, next) => {
     req.user = {
       id: payload.userId,
       username: payload.username,
+      role: payload.role,
     };
     next();
   } catch (error) {

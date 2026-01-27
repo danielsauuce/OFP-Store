@@ -22,4 +22,4 @@ jobs:
       - name: Prettier check
         run: npx prettier --check .
       - name: Security audit
-        run: npm audit --audit-level=moderate
+        run: npm audit --audit-level=high

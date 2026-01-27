@@ -1,4 +1,4 @@
-import User from '../models/user.mjs';
+import User from '../models/user.js';
 import generateTokens from '../utils/generateToken.js';
 import logger from '../utils/logger.js';
 import {
@@ -101,6 +101,14 @@ export const loginUser = async (req, res) => {
       });
     }
 
+    //block deactivated user
+    if (!user.isActive) {
+      return res.status(403).json({
+        success: false,
+        message: 'Account is deactivated',
+      });
+    }
+
     const isPasswordValid = await user.comparePassword(password);
     if (!isPasswordValid) {
       logger.warn('Invalid password attempt');
@@ -152,7 +160,6 @@ export const changePassword = async (req, res) => {
       return res.status(blocked.status).json(blocked.response);
     }
 
-    // req.body validation
     const { error } = changePasswordValidation.validate(req.body);
     if (error) {
       logger.warn('Validation error', error.details[0].message);

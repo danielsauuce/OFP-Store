@@ -7,10 +7,10 @@ import About from './views/About';
 import Contact from './views/Contact';
 import AuthPage from './views/AuthPage';
 import NotFound from './views/NotFound';
-import AdminLayout from './views/admin/AdminLayout';
 import { Toaster } from 'react-hot-toast';
 import RouteGuard from './components/RouteGuard';
 import { useAuth } from './context/authContext';
+import CommonSideBar from './views/admin/components/CommonSideBar';
 
 // Layout component for pages with Navbar & Footer
 const MainLayout = () => (
@@ -41,28 +41,32 @@ function App() {
     <>
       <Toaster
         position="top-center"
-        reverseOrder={false}
         toastOptions={{
-          // Default options
-          duration: 4000,
           style: {
-            background: '#B87C4C',
-            color: '#fff',
+            background: 'hsl(0 0% 100%)',
+            color: 'hsl(25 30% 15%)',
+            border: '1px solid hsl(40 20% 85%)',
+            borderRadius: '0.375rem',
+            padding: '1rem 1.5rem',
+            boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)',
+            fontSize: '0.875rem',
           },
-          // styles for success message
+
           success: {
-            duration: 3000,
-            style: {
-              background: '#10b981',
+            iconTheme: {
+              primary: 'hsl(150 30% 40%)',
+              secondary: 'hsl(0 0% 100%)',
             },
           },
-          // styles for error message
+
           error: {
-            duration: 5000,
             style: {
-              background: '#ef4444',
+              background: 'hsl(0 72% 51%)',
+              color: 'hsl(0 0% 100%)',
+              border: '1px solid hsl(0 72% 51%)',
             },
           },
+          duration: 4000,
         }}
       />
 
@@ -82,7 +86,7 @@ function App() {
             <RouteGuard
               authenticated={auth.authenticate}
               user={auth.user}
-              element={<AdminLayout />}
+              element={<CommonSideBar />}
               requireAuth={true}
               requireAdmin={true}
             />

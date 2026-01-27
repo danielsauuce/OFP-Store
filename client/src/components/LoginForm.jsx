@@ -75,7 +75,7 @@ const LoginForm = ({ handleLogin }) => {
       <button
         type="submit"
         disabled={!checkIfSignInFormIsValid()}
-        className={`w-full h-13 font-medium transition-all rounded duration-300 group justify-center flex
+        className={`w-full py-4 font-medium transition-all rounded duration-300 group justify-center flex
         ${
           checkIfSignInFormIsValid()
             ? 'bg-primary hover:bg-primary-dark text-amber-50'

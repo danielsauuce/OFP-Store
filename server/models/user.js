@@ -28,7 +28,8 @@ const userSchema = new mongoose.Schema(
       maxlength: 20,
     },
     profilePicture: {
-      type: String,
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Media',
     },
     address: {
       street: String,
@@ -54,8 +55,6 @@ const userSchema = new mongoose.Schema(
     timestamps: true,
   },
 );
-
-userSchema.index({ email: 1 });
 
 userSchema.pre('save', async function (next) {
   if (this.isModified('password')) {
