@@ -14,7 +14,7 @@ router.post('/register', registerUser);
 
 router.post('/login', loginUser);
 
-router.post('/reset-password', changePassword);
+router.post('/reset-password', authenticate, changePassword);
 
 router.get('/logout', logoutUser);
 
