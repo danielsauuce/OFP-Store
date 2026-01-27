@@ -40,7 +40,8 @@ app.use(rateLimiterMiddleware);
 
 // Routes
 app.use('/api/auth/', authRoutes);
-app.use('/api/product', productRoutes);
+app.use('/api/product', productRoutes); // routes fetch products for both admin and user
+app.use('/api/admin/product', adminRoutes); // routes fetch products for admin only
 app.use('/api/media/upload', uploadRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/admin', adminRoutes);

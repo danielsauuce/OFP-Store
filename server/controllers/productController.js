@@ -10,89 +10,73 @@ import {
 } from '../utils/productValidation.js';
 
 export const getAllProducts = async (req, res) => {
-  logger.info('Get all product endpoint hit');
-
   try {
-    const {
-      category,
-      search,
-      minPrice,
-      maxPrice,
-      inStock,
-      isFeatured,
-      sort = '-createdAt',
-      page = 1,
-      limit = 12,
-    } = req.query;
+    const { page = 1, limit = 12, search, category, minPrice, maxPrice, sort } = req.query;
 
-    // Category allowlist sanitization
-    const allowedCategories = ['Sofas', 'Tables', 'Chairs', 'Beds', 'Storage', 'Lighting', 'Decor'];
-    if (category) {
-      if (allowedCategories.includes(category)) {
-        query.category = category;
-      } else {
-        return res.status(400).json({ success: false, message: 'Invalid category' });
-      }
-    }
-
-    if (search) {
-      query.$text = { $search: String(search).replace(/[^\w\s]/gi, '') };
-    }
+    const skip = (Number(page) - 1) * Number(limit);
 
     const query = { isActive: true };
 
-    if (category) query.category = category;
-    if (inStock !== undefined) query.inStock = inStock === 'true';
-    if (isFeatured !== undefined) query.isFeatured = isFeatured === 'true';
+    // Category filter
+    const allowedCategories = ['Sofas', 'Tables', 'Chairs', 'Beds', 'Storage', 'Lighting', 'Decor'];
 
+    if (category) {
+      if (!allowedCategories.includes(category)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid category',
+        });
+      }
+      query.category = category;
+    }
+
+    // text search
+    if (search) {
+      query.$text = {
+        $search: String(search).replace(/[^\w\s]/gi, ''),
+      };
+    }
+
+    // Price filtering
     if (minPrice || maxPrice) {
       query.price = {};
       if (minPrice) query.price.$gte = Number(minPrice);
       if (maxPrice) query.price.$lte = Number(maxPrice);
     }
 
-    if (search) {
-      query.$text = { $search: search };
-    }
-
-    const allowedSortFields = ['createdAt', 'price', 'name', 'updatedAt'];
-    let sortObj = { createdAt: -1 };
-
+    // Sorting
+    let sortOption = { createdAt: -1 };
     if (sort) {
-      const direction = sort.startsWith('-') ? -1 : 1;
-      const field = sort.replace('-', '');
-
-      if (allowedSortFields.includes(field)) {
-        sortObj = { [field]: direction };
-      }
+      sortOption = sort.startsWith('-') ? { [sort.substring(1)]: -1 } : { [sort]: 1 };
     }
 
-    const skip = (Number(page) - 1) * Number(limit);
+    const products = await Product.find(query)
+      .populate('image')
+      .populate('images')
+      .sort(sortOption)
+      .skip(skip)
+      .limit(Number(limit))
+      .lean();
 
-    const [products, total] = await Promise.all([
-      Product.find(query).sort(sortObj).skip(skip).limit(Number(limit)),
-      Product.countDocuments(query),
-    ]);
+    const totalProducts = await Product.countDocuments(query);
 
     return res.status(200).json({
       success: true,
+      count: products.length,
+      total: totalProducts,
+      currentPage: Number(page),
+      totalPages: Math.ceil(totalProducts / Number(limit)),
       products,
-      pagination: {
-        total,
-        page: Number(page),
-        pages: Math.ceil(total / Number(limit)),
-        limit: Number(limit),
-      },
     });
   } catch (error) {
-    logger.error('Get all products error', {
-      message: error.message,
-      stack: error.stack,
-    });
+    console.error('Get all products error:', error);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message: 'Failed to fetch products',
+      message: 'Something went wrong',
+      ...(process.env.NODE_ENV === 'development' && {
+        error: error.message,
+      }),
     });
   }
 };
