@@ -13,9 +13,9 @@ const router = express.Router();
 
 // Profile routes
 router.get('/profile', authenticate, getUserProfile);
-router.put('/profile', authenticate, updateUserProfile);
+router.put('/update/profile', authenticate, updateUserProfile);
 
-// Profile picture routes
+// to update profile picture and then call /profile where profile pictire then shows up
 router.patch(
   '/profile-picture',
   authenticate,

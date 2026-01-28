@@ -37,6 +37,7 @@ export const updateProfileValidation = Joi.object({
     postalCode: Joi.string().trim(),
     country: Joi.string().trim(),
   }),
+  bio: Joi.string().max(500).allow('').optional(),
 })
   .min(1)
   .messages({

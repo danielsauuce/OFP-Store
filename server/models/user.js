@@ -22,6 +22,12 @@ const userSchema = new mongoose.Schema(
       trim: true,
       maxlength: 100,
     },
+    bio: {
+      type: String,
+      trim: true,
+      maxlength: 500,
+      default: '',
+    },
     phone: {
       type: String,
       trim: true,

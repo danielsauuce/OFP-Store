@@ -38,7 +38,6 @@ export const getUserProfile = async (req, res) => {
   }
 };
 
-// export const updateUserProfile = async (req, res) => {
 //   logger.info('Update profile endpoint hit');
 
 //   try {
@@ -104,6 +103,7 @@ export const updateUserProfile = async (req, res) => {
 
     // Mass Assignment Protection: Whitelist fields
     const allowed = ['fullName', 'email', 'bio'];
+
     const updateData = Object.keys(req.body)
       .filter((key) => allowed.includes(key))
       .reduce((obj, key) => {

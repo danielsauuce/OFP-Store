@@ -6,36 +6,32 @@ import {
   userIdValidation,
 } from '../utils/userValidation.js';
 
-export const getAllUsers = async (req, res) => {
-  logger.info('Admin get all users endpoint hit');
+// Helper to prevent ReDoS
+const regexEscape = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
+export const getAllUsers = async (req, res) => {
   try {
     const { page = 1, limit = 20, search, role, isActive } = req.query;
-
     const query = {};
 
-    // Search by name or email
     if (search) {
-      query.$or = [
-        { fullName: { $regex: search, $options: 'i' } },
-        { email: { $regex: search, $options: 'i' } },
-      ];
+      const safeSearch = regexEscape(search.substring(0, 100));
+      const searchRegex = new RegExp(safeSearch, 'i');
+      query.$or = [{ fullName: searchRegex }, { email: searchRegex }];
     }
 
-    // 🎭 Filter by role
+    const allowedRoles = ['user', 'admin'];
     if (role) {
-      query.role = role;
+      if (allowedRoles.includes(role)) {
+        query.role = role;
+      } else {
+        return res.status(400).json({ success: false, message: 'Invalid role filter' });
+      }
     }
 
-    // ✅ Filter by active status
-    if (isActive !== undefined) {
-      query.isActive = isActive === 'true';
-    }
+    if (isActive !== undefined) query.isActive = isActive === 'true';
 
-    // 📄 Pagination
-    const pageNumber = Number(page);
-    const limitNumber = Number(limit);
-    const skip = (pageNumber - 1) * limitNumber;
+    const skip = (Number(page) - 1) * Number(limit);
 
     const [users, total] = await Promise.all([
       User.find(query)
@@ -43,15 +39,10 @@ export const getAllUsers = async (req, res) => {
         .select('-password')
         .sort({ createdAt: -1 })
         .skip(skip)
-        .limit(limitNumber)
+        .limit(Number(limit))
         .lean(),
       User.countDocuments(query),
     ]);
-
-    logger.info('Users fetched successfully by admin', {
-      adminId: req.user.id,
-      count: users.length,
-    });
 
     return res.status(200).json({
       success: true,
@@ -59,21 +50,14 @@ export const getAllUsers = async (req, res) => {
       users,
       pagination: {
         total,
-        page: pageNumber,
-        pages: Math.ceil(total / limitNumber),
-        limit: limitNumber,
+        page: Number(page),
+        pages: Math.ceil(total / Number(limit)),
+        limit: Number(limit),
       },
     });
   } catch (error) {
-    logger.error('Get all users error', {
-      message: error.message,
-      stack: error.stack,
-    });
-
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to fetch users',
-    });
+    logger.error('Get all users error', { message: error.message });
+    return res.status(500).json({ success: false, message: 'Failed to fetch users' });
   }
 };
 
@@ -257,11 +241,9 @@ export const deleteUser = async (req, res) => {
         message: 'You cannot delete your own account',
       });
     }
-    const user = await User.findByIdAndUpdate(
-      req.params.id,
-      { isActive: false },
-      { new: true },
-    ).select('-password');
+
+    // Find user with profile picture
+    const user = await User.findById(req.params.id).populate('profilePicture');
 
     if (!user) {
       return res.status(404).json({
@@ -269,21 +251,36 @@ export const deleteUser = async (req, res) => {
         message: 'User not found',
       });
     }
-    logger.info('User deleted by admin', {
+
+    //Delete profile picture from Cloudinary + Media collection
+    if (user.profilePicture) {
+      try {
+        await deleteMediaFromCloudinary(user.profilePicture.publicId);
+        await Media.findByIdAndDelete(user.profilePicture._id);
+      } catch (mediaError) {
+        logger.warn('Failed to delete user profile media', mediaError);
+      }
+    }
+
+    // Permanently delete user
+    await User.findByIdAndDelete(user._id);
+
+    logger.info('User permanently deleted by admin', {
       adminId: req.user.id,
       userId: user._id,
     });
 
     return res.status(200).json({
       success: true,
-      message: 'User deleted successfully',
+      message: 'User permanently deleted successfully',
     });
   } catch (error) {
-    logger.error('Delete user error:', {
+    logger.error('Permanent delete user error:', {
       message: error.message,
       stack: error.stack,
     });
-    res.status(500).json({
+
+    return res.status(500).json({
       success: false,
       message: 'Failed to delete user',
     });

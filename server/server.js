@@ -44,7 +44,7 @@ app.use('/api/product', productRoutes); // routes fetch products for both admin 
 app.use('/api/admin/product', adminRoutes); // routes fetch products for admin only
 app.use('/api/media/upload', uploadRoutes);
 app.use('/api/users', userRoutes);
-app.use('/api/admin', adminRoutes);
+app.use('/api/admin', adminRoutes); // for user management in admin routes
 
 app.use(errorHandler);
 
