@@ -22,7 +22,7 @@ router.patch(
   uploadSingle('profilePicture'),
   uploadProfilePicture,
 );
-router.delete('/profile-picture', authenticate, deleteProfilePicture);
+router.delete('/delete/profile-picture', authenticate, deleteProfilePicture);
 
 // Account management
 router.delete('/account', authenticate, deactivateAccount);

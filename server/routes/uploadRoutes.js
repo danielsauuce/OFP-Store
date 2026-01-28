@@ -1,11 +1,13 @@
 import express from 'express';
-import { uploadImage, uploadMultipleImages } from '../controllers/uploadController.js';
+import { uploadImage, uploadMultipleImages, getAllMedia } from '../controllers/uploadController.js';
 import { authenticate } from '../middleware/checkAuthMiddleware.js';
 import { isAdmin } from '../middleware/adminAuth.js';
 import { uploadSingle, uploadMultiple } from '../middleware/uploadMiddleware.js';
 import rateLimiterMiddleware from '../middleware/rateLimiter.js';
 
 const router = express.Router();
+
+router.get('/all', authenticate, isAdmin, getAllMedia);
 
 // only admin user can do all of this
 router.post(

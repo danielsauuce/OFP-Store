@@ -2,63 +2,6 @@ import { uploadMediaToCloudinary, deleteMediaFromCloudinary } from '../config/cl
 import Media from '../models/media.js';
 import logger from '../utils/logger.js';
 
-// export const uploadImage = async (req, res) => {
-//   try {
-//     if (!req.file) {
-//       return res.status(400).json({
-//         success: false,
-//         message: 'No file uploaded',
-//       });
-//     }
-
-//     const folder = req.body.folder || 'products';
-//     const cloudinaryResult = await uploadMediaToCloudinary(req.file, folder);
-
-//     const media = new Media({
-//       publicId: cloudinaryResult.public_id,
-//       url: cloudinaryResult.url,
-//       secureUrl: cloudinaryResult.secure_url,
-//       originalName: req.file.originalname,
-//       mimeType: req.file.mimetype,
-//       format: cloudinaryResult.format,
-//       size: cloudinaryResult.bytes,
-//       width: cloudinaryResult.width,
-//       height: cloudinaryResult.height,
-//       folder,
-//       resourceType: cloudinaryResult.resource_type,
-//       uploadedBy: req.user.id,
-//     });
-
-//     await media.save();
-
-//     logger.info('Image uploaded and tracked successfully', {
-//       mediaId: media._id,
-//       publicId: cloudinaryResult.public_id,
-//       uploadedBy: req.user.id,
-//     });
-
-//     return res.status(200).json({
-//       success: true,
-//       message: 'Image uploaded successfully',
-//       media: {
-//         id: media._id,
-//         url: media.secureUrl,
-//         publicId: media.publicId,
-//       },
-//     });
-//   } catch (error) {
-//     logger.error('Upload image error:', {
-//       message: error.message,
-//       stack: error.stack,
-//     });
-
-//     res.status(500).json({
-//       success: false,
-//       message: 'Failed to upload image',
-//     });
-//   }
-// };
-
 export const uploadImage = async (req, res) => {
   let cloudinaryResult = null;
   try {
@@ -69,6 +12,7 @@ export const uploadImage = async (req, res) => {
 
     const media = new Media({
       publicId: cloudinaryResult.public_id,
+      url: cloudinaryResult.secure_url,
       secureUrl: cloudinaryResult.secure_url,
       originalName: req.file.originalname,
       mimeType: req.file.mimetype,
@@ -203,4 +147,36 @@ export const uploadMultipleImages = async (req, res) => {
     message: 'Images uploaded successfully',
     media: mediaData,
   });
+};
+
+export const getAllMedia = async (req, res) => {
+  try {
+    const { folder, uploadedBy, page = 1, limit = 20 } = req.query;
+
+    const query = {};
+    if (folder) query.folder = folder;
+    if (uploadedBy) query.uploadedBy = uploadedBy;
+
+    const skip = (Number(page) - 1) * Number(limit);
+
+    const [media, total] = await Promise.all([
+      Media.find(query).sort({ createdAt: -1 }).skip(skip).limit(Number(limit)),
+      Media.countDocuments(query),
+    ]);
+
+    res.status(200).json({
+      success: true,
+      message: 'All media fetched successfully',
+      media,
+      pagination: {
+        total,
+        page: Number(page),
+        pages: Math.ceil(total / Number(limit)),
+        limit: Number(limit),
+      },
+    });
+  } catch (error) {
+    logger.error('Get all media error:', { message: error.message, stack: error.stack });
+    res.status(500).json({ success: false, message: 'Failed to fetch media' });
+  }
 };
