@@ -17,9 +17,10 @@ const categorySchema = new mongoose.Schema(
     },
     description: {
       type: String,
+      default: '',
     },
     image: {
-      type: String,
+      type: String, // URL or path to category image
     },
     isActive: {
       type: Boolean,
@@ -30,15 +31,13 @@ const categorySchema = new mongoose.Schema(
       default: 0,
     },
   },
-  {
-    timestamps: true,
-  },
+  { timestamps: true }
 );
 
 // Index
 categorySchema.index({ slug: 1 });
 
-// Pre-save hook to auto-generate slug from name
+// Auto-generate slug from name if missing
 categorySchema.pre('save', function (next) {
   if (!this.slug && this.name) {
     this.slug = this.name

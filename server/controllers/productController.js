@@ -8,51 +8,50 @@ import {
   updateProductValidation,
   productIdValidation,
 } from '../utils/productValidation.js';
+import Category from '../models/category.js';
 
 export const getAllProducts = async (req, res) => {
   try {
     const { page = 1, limit = 12, search, category, minPrice, maxPrice, sort } = req.query;
-
     const skip = (Number(page) - 1) * Number(limit);
 
     const query = { isActive: true };
 
-    // Category filter
-    const allowedCategories = ['Sofas', 'Tables', 'Chairs', 'Beds', 'Storage', 'Lighting', 'Decor'];
-
+    // --- Category filter by slug ---
     if (category) {
-      if (!allowedCategories.includes(category)) {
-        return res.status(400).json({
+      const cat = await Category.findOne({ slug: category.toLowerCase() });
+      if (!cat) {
+        return res.status(404).json({
           success: false,
-          message: 'Invalid category',
+          message: 'Category not found',
         });
       }
-      query.category = category;
+      query.category = cat._id;
     }
 
-    // text search
+    // --- Text search ---
     if (search) {
-      query.$text = {
-        $search: String(search).replace(/[^\w\s]/gi, ''),
-      };
+      query.$text = { $search: String(search).replace(/[^\w\s]/gi, '') };
     }
 
-    // Price filtering
+    // --- Price filtering ---
     if (minPrice || maxPrice) {
       query.price = {};
       if (minPrice) query.price.$gte = Number(minPrice);
       if (maxPrice) query.price.$lte = Number(maxPrice);
     }
 
-    // Sorting
+    // --- Sorting ---
     let sortOption = { createdAt: -1 };
     if (sort) {
       sortOption = sort.startsWith('-') ? { [sort.substring(1)]: -1 } : { [sort]: 1 };
     }
 
+    // --- Query products ---
     const products = await Product.find(query)
-      .populate('image')
-      .populate('images')
+      .populate('image', 'secureUrl publicId')
+      .populate('images', 'secureUrl publicId')
+      .populate('category', 'name slug image')
       .sort(sortOption)
       .skip(skip)
       .limit(Number(limit))
@@ -60,7 +59,7 @@ export const getAllProducts = async (req, res) => {
 
     const totalProducts = await Product.countDocuments(query);
 
-    return res.status(200).json({
+    res.status(200).json({
       success: true,
       count: products.length,
       total: totalProducts,
@@ -69,17 +68,15 @@ export const getAllProducts = async (req, res) => {
       products,
     });
   } catch (error) {
-    console.error('Get all products error:', error);
-
-    return res.status(500).json({
+    logger.error('Get all products error', { message: error.message, stack: error.stack });
+    res.status(500).json({
       success: false,
       message: 'Something went wrong',
-      ...(process.env.NODE_ENV === 'development' && {
-        error: error.message,
-      }),
+      ...(process.env.NODE_ENV === 'development' && { error: error.message }),
     });
   }
 };
+
 
 export const createProduct = async (req, res) => {
   try {

@@ -28,9 +28,9 @@ const productSchema = new mongoose.Schema(
       },
     ],
     category: {
-      type: String,
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Category',
       required: true,
-      enum: ['Sofas', 'Tables', 'Chairs', 'Beds', 'Storage', 'Lighting', 'Decor'],
     },
     material: {
       type: String,
@@ -66,41 +66,42 @@ const productSchema = new mongoose.Schema(
       default: 0,
     },
   },
-  {
-    timestamps: true,
-  },
+  { timestamps: true }
 );
 
-// Indexes
+// Indexes for efficient queries
 productSchema.index({ category: 1 });
 productSchema.index({ price: 1 });
 productSchema.index({ isFeatured: 1 });
 productSchema.index({ inStock: 1 });
 productSchema.index({ name: 'text', description: 'text' });
 
-// Pre-save hook
+// Automatically update inStock before save
 productSchema.pre('save', function (next) {
   this.inStock = this.stockQuantity > 0;
   next();
 });
 
+// Update inStock if stockQuantity changes via update
 productSchema.pre('findOneAndUpdate', async function (next) {
   const update = this.getUpdate();
 
-  // Handle direct $set
+  // Direct $set update
   if (update.stockQuantity !== undefined || update.$set?.stockQuantity !== undefined) {
     const newQty = update.stockQuantity ?? update.$set.stockQuantity;
     if (update.$set) update.$set.inStock = newQty > 0;
     else update.inStock = newQty > 0;
   }
 
-  // Handle $inc
+  // $inc update
   if (update.$inc?.stockQuantity) {
     const doc = await this.model.findOne(this.getQuery());
     const newQty = (doc.stockQuantity || 0) + update.$inc.stockQuantity;
     update.$set = update.$set || {};
     update.$set.inStock = newQty > 0;
   }
+
   next();
 });
+
 export default mongoose.model('Product', productSchema);
