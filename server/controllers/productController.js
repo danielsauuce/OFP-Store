@@ -77,7 +77,6 @@ export const getAllProducts = async (req, res) => {
   }
 };
 
-
 export const createProduct = async (req, res) => {
   try {
     const { error } = createProductValidation.validate(req.body, {
