@@ -17,6 +17,8 @@ import userRoutes from './routes/userRoutes.js';
 import cartRoutes from './routes/cartRoutes.js';
 import orderRoutes from './routes/orderRoutes.js';
 import categoryRoutes from './routes/categoryRoutes.js';
+import reviewRoutes from './routes/reviewRoutes.js';
+import supportRoutes from './routes/supportRoutes.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -49,8 +51,10 @@ app.use('/api/media/upload', uploadRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/admin', adminRoutes); // for user management in admin routes
 app.use('/api/cart', cartRoutes);
-app.use('./api/orders', orderRoutes);
-app.use('api/categories', categoryRoutes);
+app.use('/api/orders', orderRoutes);
+app.use('/api/categories', categoryRoutes);
+app.use('/api/reviews', reviewRoutes);
+app.use('/api/support', supportRoutes);
 
 app.use(errorHandler);
 
