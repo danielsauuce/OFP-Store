@@ -1,4 +1,3 @@
-// Product.js
 import mongoose from 'mongoose';
 
 const variantSchema = new mongoose.Schema(
