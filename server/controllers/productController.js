@@ -1,88 +1,125 @@
 import Product from '../models/product.js';
+import Category from '../models/category.js';
 import Media from '../models/media.js';
 import logger from '../utils/logger.js';
 import { invalidateCache } from '../middleware/cacheMiddleware.js';
 import { deleteMediaFromCloudinary } from '../config/cloudinary.js';
 import {
-  createProductValidation,
-  updateProductValidation,
-  productIdValidation,
+  createProduct as createProductValidation,
+  updateProduct as updateProductValidation,
 } from '../utils/productValidation.js';
-import Category from '../models/category.js';
 
 export const getAllProducts = async (req, res) => {
   try {
-    const { page = 1, limit = 12, search, category, minPrice, maxPrice, sort } = req.query;
-    const skip = (Number(page) - 1) * Number(limit);
+    const {
+      page = 1,
+      limit = 12,
+      search,
+      category, // slug
+      minPrice,
+      maxPrice,
+      sort,
+      inStock,
+      isFeatured,
+    } = req.query;
 
     const query = { isActive: true };
 
-    // --- Category filter by slug ---
+    // Filter by category slug
     if (category) {
-      const cat = await Category.findOne({ slug: category.toLowerCase() });
-      if (!cat) {
-        return res.status(404).json({
-          success: false,
-          message: 'Category not found',
-        });
+      const cat = await Category.findOne({ slug: category.toLowerCase().trim() });
+      if (cat) {
+        query.category = cat._id;
       }
-      query.category = cat._id;
     }
 
-    // --- Text search ---
+    // Text search
     if (search) {
-      query.$text = { $search: String(search).replace(/[^\w\s]/gi, '') };
+      query.$text = { $search: search.trim() };
     }
 
-    // --- Price filtering ---
+    // Price range (base price or any variant price)
     if (minPrice || maxPrice) {
-      query.price = {};
-      if (minPrice) query.price.$gte = Number(minPrice);
-      if (maxPrice) query.price.$lte = Number(maxPrice);
+      query.$or = [{ price: {} }, { 'variants.price': {} }];
+      const priceQuery = {};
+      if (minPrice) priceQuery.$gte = Number(minPrice);
+      if (maxPrice) priceQuery.$lte = Number(maxPrice);
+      query.$or[0].price = priceQuery;
+      query.$or[1]['variants.price'] = priceQuery;
     }
 
-    // --- Sorting ---
+    if (inStock === 'true') {
+      query.inStock = true;
+    }
+
+    if (isFeatured === 'true') {
+      query.isFeatured = true;
+    }
+
+    // Sorting
     let sortOption = { createdAt: -1 };
     if (sort) {
-      sortOption = sort.startsWith('-') ? { [sort.substring(1)]: -1 } : { [sort]: 1 };
+      const direction = sort.startsWith('-') ? -1 : 1;
+      const field = sort.replace(/^-/, '');
+      sortOption = { [field]: direction };
     }
 
-    // --- Query products ---
+    const skip = (Number(page) - 1) * Number(limit);
+
     const products = await Product.find(query)
-      .populate('image', 'secureUrl publicId')
-      .populate('images', 'secureUrl publicId')
-      .populate('category', 'name slug image')
+      .populate('primaryImage', 'secureUrl publicId url')
+      .populate('images', 'secureUrl publicId url')
+      .populate('category', 'name slug')
       .sort(sortOption)
       .skip(skip)
       .limit(Number(limit))
       .lean();
 
-    const totalProducts = await Product.countDocuments(query);
+    const total = await Product.countDocuments(query);
 
     res.status(200).json({
       success: true,
-      count: products.length,
-      total: totalProducts,
-      currentPage: Number(page),
-      totalPages: Math.ceil(totalProducts / Number(limit)),
-      products,
+      data: {
+        products,
+        pagination: {
+          total,
+          page: Number(page),
+          pages: Math.ceil(total / Number(limit)),
+          limit: Number(limit),
+        },
+      },
     });
-  } catch (error) {
-    logger.error('Get all products error', { message: error.message, stack: error.stack });
-    res.status(500).json({
-      success: false,
-      message: 'Something went wrong',
-      ...(process.env.NODE_ENV === 'development' && { error: error.message }),
+  } catch (err) {
+    logger.error('Get all products error', { error: err.message, stack: err.stack });
+    res.status(500).json({ success: false, message: 'Failed to fetch products' });
+  }
+};
+
+export const getProductById = async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id)
+      .populate('primaryImage', 'secureUrl publicId url')
+      .populate('images', 'secureUrl publicId url')
+      .populate('category', 'name slug description')
+      .lean();
+
+    if (!product) {
+      return res.status(404).json({ success: false, message: 'Product not found' });
+    }
+
+    res.status(200).json({
+      success: true,
+      product,
     });
+  } catch (err) {
+    logger.error('Get product by ID error', { id: req.params.id, error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to fetch product' });
   }
 };
 
 export const createProduct = async (req, res) => {
   try {
-    const { error } = createProductValidation.validate(req.body, {
-      abortEarly: false,
-    });
-
+    const { error } = createProductValidation.validate(req.body, { abortEarly: false });
     if (error) {
       return res.status(400).json({
         success: false,
@@ -91,209 +128,144 @@ export const createProduct = async (req, res) => {
       });
     }
 
-    const product = await Product.create({ ...rest, image: imageMediaId, images: imagesMediaIds });
+    const product = await Product.create(req.body);
 
-    // Update Media usage
-    await Media.findByIdAndUpdate(imageMediaId, {
-      $push: { usedBy: { modelType: 'Product', modelId: product._id } },
-    });
-    if (imagesMediaIds.length) {
+    // Mark media as used
+    if (product.primaryImage) {
+      await Media.findByIdAndUpdate(product.primaryImage, {
+        $addToSet: { usedBy: { modelType: 'Product', modelId: product._id } },
+      });
+    }
+    if (product.images?.length) {
       await Media.updateMany(
-        { _id: { $in: imagesMediaIds } },
-        { $push: { usedBy: { modelType: 'Product', modelId: product._id } } },
+        { _id: { $in: product.images } },
+        { $addToSet: { usedBy: { modelType: 'Product', modelId: product._id } } },
       );
     }
 
-    // Clear product list cache so UI updates immediately
-    try {
-      await invalidateCache('cache:/api/product*');
-    } catch (cacheErr) {
-      logger.error('Cache invalidation failed', { message: cacheErr.message });
-    }
+    await invalidateCache('cache:/api/product*');
+    await invalidateCache('cache:/api/products*');
 
-    // Clear cache after creation
-    try {
-      await invalidateCache('cache:/api/product*');
-    } catch (err) {
-      logger.error('Cache invalidation failed on product creation', err);
-    }
-
-    res.status(201).json({ success: true, message: 'Product created successfully', product });
-
-    await Promise.all([
-      invalidateCache('cache:/api/product*'),
-      invalidateCache(`cache:/api/product/${req.params.id}`),
-    ]);
-  } catch (error) {
-    logger.error('Create product error', {
-      message: error.message,
-      stack: error.stack,
+    res.status(201).json({
+      success: true,
+      message: 'Product created successfully',
+      product,
     });
-
-    res.status(500).json({
-      success: false,
-      message: 'Failed to create product',
-    });
+  } catch (err) {
+    logger.error('Create product error', { error: err.message, stack: err.stack });
+    res.status(500).json({ success: false, message: 'Failed to create product' });
   }
 };
 
 export const updateProduct = async (req, res) => {
   try {
-    const existingProduct = await Product.findById(req.params.id);
-    if (!existingProduct)
+    const { error } = updateProductValidation.validate(req.body, { abortEarly: false });
+    if (error) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: error.details.map((d) => d.message),
+      });
+    }
+
+    const product = await Product.findById(req.params.id);
+    if (!product) {
       return res.status(404).json({ success: false, message: 'Product not found' });
+    }
 
-    const oldIds = [
-      existingProduct.image.toString(),
-      ...existingProduct.images.map((id) => id.toString()),
-    ];
-    const newIds = [req.body.imageMediaId, ...(req.body.imagesMediaIds || [])].filter(Boolean);
+    const oldPrimary = product.primaryImage?.toString();
+    const oldImages = product.images?.map((id) => id.toString()) || [];
 
-    const added = newIds.filter((id) => !oldIds.includes(id));
-    const removed = oldIds.filter((id) => !newIds.includes(id));
+    // Apply updates
+    Object.assign(product, req.body);
+    await product.save();
 
-    const product = await Product.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true,
-    });
+    const newPrimary = product.primaryImage?.toString();
+    const newImages = product.images?.map((id) => id.toString()) || [];
 
-    // Sync media usedBy
+    // Handle removed media
+    if (oldPrimary && oldPrimary !== newPrimary) {
+      await Media.findByIdAndUpdate(oldPrimary, {
+        $pull: { usedBy: { modelId: product._id } },
+      });
+    }
+    const removed = oldImages.filter((id) => !newImages.includes(id));
     if (removed.length) {
       await Media.updateMany(
         { _id: { $in: removed } },
         { $pull: { usedBy: { modelId: product._id } } },
       );
     }
+
+    // Handle added media
+    if (newPrimary && newPrimary !== oldPrimary) {
+      await Media.findByIdAndUpdate(newPrimary, {
+        $addToSet: { usedBy: { modelType: 'Product', modelId: product._id } },
+      });
+    }
+    const added = newImages.filter((id) => !oldImages.includes(id));
     if (added.length) {
       await Media.updateMany(
         { _id: { $in: added } },
-        { $push: { usedBy: { modelType: 'Product', modelId: product._id } } },
+        { $addToSet: { usedBy: { modelType: 'Product', modelId: product._id } } },
       );
     }
 
-    await Promise.all([
-      invalidateCache('cache:/api/product*'),
-      invalidateCache(`cache:/api/product/${req.params.id}`),
-    ]);
-
-    res.status(200).json({ success: true, message: 'Product updated successfully', product });
-  } catch (error) {
-    logger.error('Update product error', {
-      message: error.message,
-      stack: error.stack,
-    });
-
-    res.status(500).json({
-      success: false,
-      message: 'Failed to update product',
-    });
-  }
-};
-
-export const getProductById = async (req, res) => {
-  try {
-    const { error } = productIdValidation.validate({ id: req.params.id });
-    if (error) {
-      return res.status(400).json({
-        success: false,
-        message: error.details[0].message,
-      });
-    }
-
-    const product = await Product.findById(req.params.id)
-      .populate('image', 'secureUrl publicId')
-      .populate('images', 'secureUrl publicId');
-
-    if (!product) {
-      return res.status(404).json({
-        success: false,
-        message: 'Product not found',
-      });
-    }
+    await invalidateCache('cache:/api/product*');
+    await invalidateCache(`cache:/api/product/${req.params.id}`);
 
     res.status(200).json({
       success: true,
+      message: 'Product updated successfully',
       product,
     });
-  } catch (error) {
-    logger.error('Get product by ID error', {
-      message: error.message,
-      stack: error.stack,
-    });
-
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch product',
-    });
+  } catch (err) {
+    logger.error('Update product error', { id: req.params.id, error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to update product' });
   }
 };
 
 export const deleteProduct = async (req, res) => {
-  logger.info('Delete product endpoint hit');
-
   try {
-    const { error } = productIdValidation.validate({ id: req.params.id });
-    if (error) {
-      return res.status(400).json({
-        success: false,
-        message: error.details[0].message,
-      });
-    }
-
-    const product = await Product.findByIdAndDelete(req.params.id);
+    const product = await Product.findById(req.params.id);
     if (!product) {
-      return res.status(404).json({
-        success: false,
-        message: 'Product not found',
-      });
+      return res.status(404).json({ success: false, message: 'Product not found' });
     }
 
-    //clean media up
-    const medias = await Media.find({ 'usedBy.modelId': product._id });
+    const mediaIds = [product.primaryImage, ...(product.images || [])].filter(Boolean);
 
-    // Remove product reference from Media.usedBy
-    await Media.updateMany(
-      { 'usedBy.modelId': product._id },
-      { $pull: { usedBy: { modelId: product._id } } },
-    );
+    if (mediaIds.length) {
+      await Media.updateMany(
+        { _id: { $in: mediaIds } },
+        { $pull: { usedBy: { modelId: product._id } } },
+      );
 
-    // Delete Cloudinary media if no longer used
-    for (const media of medias) {
-      const refreshed = await Media.findById(media._id);
-      if (refreshed && refreshed.usedBy.length === 0) {
+      const unused = await Media.find({
+        _id: { $in: mediaIds },
+        usedBy: { $size: 0 },
+      });
+
+      for (const m of unused) {
         try {
-          await deleteMediaFromCloudinary(refreshed.publicId);
-          await Media.findByIdAndDelete(refreshed._id);
-          logger.info('Deleted unused media', { mediaId: refreshed._id });
-        } catch (err) {
-          logger.error('Failed to delete media', {
-            mediaId: refreshed._id,
-            message: err.message,
-            stack: err.stack,
-          });
+          await deleteMediaFromCloudinary(m.publicId);
+          await m.deleteOne();
+        } catch (e) {
+          logger.warn('Failed to delete unused media', { mediaId: m._id });
         }
       }
     }
 
-    // Invalidate cache
-    await Promise.all([
-      invalidateCache('cache:/api/products*'),
-      invalidateCache(`cache:/api/products/${req.params.id}`),
-    ]);
+    await product.deleteOne();
+
+    await invalidateCache('cache:/api/product*');
+    await invalidateCache(`cache:/api/product/${req.params.id}`);
 
     res.status(200).json({
       success: true,
       message: 'Product deleted successfully',
     });
-  } catch (error) {
-    logger.error('Delete product error', {
-      message: error.message,
-      stack: error.stack,
-    });
-
-    res.status(500).json({
-      success: false,
-      message: 'Failed to delete product',
-    });
+  } catch (err) {
+    logger.error('Delete product error', { id: req.params.id, error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to delete product' });
   }
 };
