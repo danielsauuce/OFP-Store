@@ -50,7 +50,6 @@ export const getCategoryBySlug = async (req, res) => {
   }
 };
 
-
 // Admin endpoints
 export const createCategory = async (req, res) => {
   try {
