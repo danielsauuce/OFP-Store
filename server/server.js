@@ -19,6 +19,7 @@ import orderRoutes from './routes/orderRoutes.js';
 import categoryRoutes from './routes/categoryRoutes.js';
 import reviewRoutes from './routes/reviewRoutes.js';
 import supportRoutes from './routes/supportRoutes.js';
+import wishlistRoutes from './routes/wishlistRoutes.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -55,6 +56,7 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/support', supportRoutes);
+app.use('/api/wishlist', wishlistRoutes);
 
 app.use(errorHandler);
 
