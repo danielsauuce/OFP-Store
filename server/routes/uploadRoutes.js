@@ -7,28 +7,21 @@ import rateLimiterMiddleware from '../middleware/rateLimiter.js';
 
 const router = express.Router();
 
-router.get('/all', authenticate, isAdmin, getAllMedia);
+// All upload routes require authentication and admin role
+router.use(authenticate, isAdmin);
 
-// Admin Upload Management
-router.post(
-  '/single',
-  authenticate,
-  isAdmin,
-  rateLimiterMiddleware,
-  uploadSingle('image'),
-  uploadImage,
-);
+// Get all uploaded media (admin view)
+router.get('/all', getAllMedia);
 
+// Upload single image
+router.post('/single', rateLimiterMiddleware, uploadSingle('image'), uploadImage);
+
+// Upload multiple images
 router.post(
   '/multiple',
-  authenticate,
-  isAdmin,
   rateLimiterMiddleware,
-  uploadMultiple('images', 5),
+  uploadMultiple('images', 10), // max 10 files
   uploadMultipleImages,
 );
-
-// delete route would be implemented only if later admin is allowed to delte media outside the product
-// router.delete('/delete/:folder/:id', authenticate, isAdmin, deleteImage);
 
 export default router;
