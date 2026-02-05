@@ -21,7 +21,7 @@ router.get('/', getUserOrders);
 router.get('/:id', getOrderById);
 router.patch('/:id/cancel', cancelOrder);
 
-// admin route
+// Admin Order Management
 router.get('/admin', authenticate, isAdmin, getAllOrdersAdmin);
 router.patch('/admin/:id/status', authenticate, isAdmin, updateOrderStatusAdmin);
 

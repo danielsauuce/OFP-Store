@@ -24,7 +24,7 @@ router.get('/my-tickets', getMyTickets);
 router.get('/:id', getTicketById);
 router.post('/:id/reply', addReply);
 
-// Admin routes
+// Admin Support Management
 router.get('/admin', authenticate, isAdmin, getAllTicketsAdmin);
 router.get('/admin/:id', authenticate, isAdmin, getTicketAdmin);
 router.patch('/admin/:id', authenticate, isAdmin, updateTicketAdmin);

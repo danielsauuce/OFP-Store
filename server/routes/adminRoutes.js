@@ -5,6 +5,7 @@ import {
   updateUserStatus,
   updateUserRole,
   deleteUser,
+  getDashboardStats,
 } from '../controllers/adminController.js';
 import {
   createProduct,
@@ -19,18 +20,23 @@ import { cacheMiddleware } from '../middleware/cacheMiddleware.js';
 
 const router = express.Router();
 
+router.use(authenticate, isAdmin);
+
 // user management
-router.get('/users', authenticate, isAdmin, getAllUsers);
-router.get('/users/:id', authenticate, isAdmin, getUsersById);
-router.patch('/users/:id/status', authenticate, isAdmin, updateUserStatus);
-router.patch('/users/:id/role', authenticate, isAdmin, updateUserRole);
-router.delete('/users/delete/:id', authenticate, isAdmin, deleteUser);
+router.get('/users', getAllUsers);
+router.get('/users/:id', getUsersById);
+router.patch('/users/:id/status', updateUserStatus);
+router.patch('/users/:id/role', updateUserRole);
+router.delete('/users/delete/:id', deleteUser);
 
 // Product Management
 router.get('/', cacheMiddleware(3600), getAllProducts);
 router.get('/:id', cacheMiddleware(3600), getProductById);
-router.post('/create', authenticate, isAdmin, createProduct);
-router.put('/update/:id', authenticate, isAdmin, updateProduct);
-router.delete('/delete/:id', authenticate, isAdmin, deleteProduct);
+router.post('/create', createProduct);
+router.put('/update/:id', updateProduct);
+router.delete('/delete/:id', deleteProduct);
+
+// Dashboard Management
+router.get('/dashboard/stats', getDashboardStats);
 
 export default router;

@@ -9,7 +9,7 @@ const router = express.Router();
 
 router.get('/all', authenticate, isAdmin, getAllMedia);
 
-// only admin user can do all of this
+// Admin Upload Management
 router.post(
   '/single',
   authenticate,

@@ -23,7 +23,7 @@ router.post('/', createReview);
 router.put('/:reviewId', updateReview);
 router.delete('/:reviewId', deleteReview);
 
-// Admin routes
+// Admin Review Management
 router.get('/admin', authenticate, isAdmin, getAllReviewsAdmin);
 router.patch('/admin/:reviewId/approve', authenticate, isAdmin, approveReview);
 

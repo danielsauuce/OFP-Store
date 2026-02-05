@@ -18,7 +18,7 @@ const router = express.Router();
 router.get('/', cacheMiddleware(3600), getAllCategories);
 router.get('/:slug', cacheMiddleware(1800), getCategoryBySlug);
 
-// Admin routes
+// Admin Category Mnagement
 router.use(authenticate, isAdmin);
 
 router.get('/admin', getAllCategoriesAdmin);
