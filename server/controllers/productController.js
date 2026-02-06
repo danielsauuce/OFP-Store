@@ -290,6 +290,68 @@ export const updateProduct = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Product not found' });
     }
 
+    // Validate category if being updated
+    if (req.body.category && req.body.category.toString() !== product.category.toString()) {
+      if (!mongoose.Types.ObjectId.isValid(req.body.category)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid category ID format',
+        });
+      }
+
+      const categoryExists = await Category.findById(req.body.category);
+      if (!categoryExists) {
+        return res.status(400).json({
+          success: false,
+          message: 'Category not found',
+        });
+      }
+    }
+
+    // Validate primaryImage if being updated
+    if (
+      req.body.primaryImage &&
+      req.body.primaryImage.toString() !== product.primaryImage?.toString()
+    ) {
+      if (!mongoose.Types.ObjectId.isValid(req.body.primaryImage)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid primary image ID format',
+        });
+      }
+
+      const imageExists = await Media.findById(req.body.primaryImage);
+      if (!imageExists) {
+        return res.status(400).json({
+          success: false,
+          message: 'Primary image not found',
+        });
+      }
+    }
+
+    // Validate images array if being updated
+    if (req.body.images && req.body.images.length > 0) {
+      const invalidImages = req.body.images.filter((id) => !mongoose.Types.ObjectId.isValid(id));
+
+      if (invalidImages.length > 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid image IDs in images array',
+        });
+      }
+
+      const imageCount = await Media.countDocuments({
+        _id: { $in: req.body.images },
+      });
+
+      if (imageCount !== req.body.images.length) {
+        return res.status(400).json({
+          success: false,
+          message: 'Some images not found',
+        });
+      }
+    }
+
     const oldPrimary = product.primaryImage?.toString();
     const oldImages = product.images?.map((id) => id.toString()) || [];
 
@@ -300,32 +362,42 @@ export const updateProduct = async (req, res) => {
     const newPrimary = product.primaryImage?.toString();
     const newImages = product.images?.map((id) => id.toString()) || [];
 
-    // Handle removed media
+    // Handle removed media (only if Media model has usedBy field)
     if (oldPrimary && oldPrimary !== newPrimary) {
       await Media.findByIdAndUpdate(oldPrimary, {
         $pull: { usedBy: { modelId: product._id } },
+      }).catch((err) => {
+        logger.warn('Failed to update old primary image usedBy', { error: err.message });
       });
     }
+
     const removed = oldImages.filter((id) => !newImages.includes(id));
     if (removed.length) {
       await Media.updateMany(
         { _id: { $in: removed } },
         { $pull: { usedBy: { modelId: product._id } } },
-      );
+      ).catch((err) => {
+        logger.warn('Failed to update removed images usedBy', { error: err.message });
+      });
     }
 
     // Handle added media
     if (newPrimary && newPrimary !== oldPrimary) {
       await Media.findByIdAndUpdate(newPrimary, {
         $addToSet: { usedBy: { modelType: 'Product', modelId: product._id } },
+      }).catch((err) => {
+        logger.warn('Failed to update new primary image usedBy', { error: err.message });
       });
     }
+
     const added = newImages.filter((id) => !oldImages.includes(id));
     if (added.length) {
       await Media.updateMany(
         { _id: { $in: added } },
         { $addToSet: { usedBy: { modelType: 'Product', modelId: product._id } } },
-      );
+      ).catch((err) => {
+        logger.warn('Failed to update added images usedBy', { error: err.message });
+      });
     }
 
     await invalidateCache('cache:/api/product*');
@@ -337,7 +409,11 @@ export const updateProduct = async (req, res) => {
       product,
     });
   } catch (err) {
-    logger.error('Update product error', { id: req.params.id, error: err.message });
+    logger.error('Update product error', {
+      id: req.params.id,
+      error: err.message,
+      stack: err.stack,
+    });
     res.status(500).json({ success: false, message: 'Failed to update product' });
   }
 };
@@ -351,28 +427,37 @@ export const deleteProduct = async (req, res) => {
 
     const mediaIds = [product.primaryImage, ...(product.images || [])].filter(Boolean);
 
+    // Update media usedBy references (if Media model has usedBy field)
     if (mediaIds.length) {
       await Media.updateMany(
         { _id: { $in: mediaIds } },
         { $pull: { usedBy: { modelId: product._id } } },
-      );
+      ).catch((err) => {
+        logger.warn('Failed to update media usedBy references', { error: err.message });
+      });
 
+      // Find and delete unused media (if Media model has usedBy field)
       const unused = await Media.find({
         _id: { $in: mediaIds },
         usedBy: { $size: 0 },
+      }).catch((err) => {
+        logger.warn('Failed to find unused media', { error: err.message });
+        return [];
       });
 
       for (const m of unused) {
         try {
           await deleteMediaFromCloudinary(m.publicId);
           await m.deleteOne();
+          logger.info('Deleted unused media', { mediaId: m._id, publicId: m.publicId });
         } catch (e) {
-          logger.warn('Failed to delete unused media', { mediaId: m._id });
+          logger.warn('Failed to delete unused media', { mediaId: m._id, error: e.message });
         }
       }
     }
 
     await product.deleteOne();
+    logger.info('Product deleted successfully', { productId: req.params.id });
 
     await invalidateCache('cache:/api/product*');
     await invalidateCache(`cache:/api/product/${req.params.id}`);
@@ -382,7 +467,11 @@ export const deleteProduct = async (req, res) => {
       message: 'Product deleted successfully',
     });
   } catch (err) {
-    logger.error('Delete product error', { id: req.params.id, error: err.message });
+    logger.error('Delete product error', {
+      id: req.params.id,
+      error: err.message,
+      stack: err.stack,
+    });
     res.status(500).json({ success: false, message: 'Failed to delete product' });
   }
 };
