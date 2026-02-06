@@ -15,7 +15,7 @@ export const getAllProducts = async (req, res) => {
       page = 1,
       limit = 12,
       search,
-      category, // slug
+      category, // expected to be a slug
       minPrice,
       maxPrice,
       sort,
@@ -25,38 +25,47 @@ export const getAllProducts = async (req, res) => {
 
     const query = { isActive: true };
 
-    // Filter by category slug
+    // ===== Category filter =====
     if (category) {
+      // Look up category by slug first
       const cat = await Category.findOne({ slug: category.toLowerCase().trim() });
-      if (cat) {
-        query.category = cat._id;
+      if (!cat) {
+        // No category matches, return empty result instead of crashing
+        return res.status(200).json({
+          success: true,
+          data: {
+            products: [],
+            pagination: { total: 0, page: Number(page), pages: 0, limit: Number(limit) },
+          },
+        });
       }
+      query.category = cat._id; // safe ObjectId assignment
     }
 
-    // Text search
+    // ===== Text search =====
     if (search) {
       query.$text = { $search: search.trim() };
     }
 
-    // Price range (base price or any variant price)
+    // ===== Price range filter =====
     if (minPrice || maxPrice) {
-      query.$or = [{ price: {} }, { 'variants.price': {} }];
       const priceQuery = {};
       if (minPrice) priceQuery.$gte = Number(minPrice);
       if (maxPrice) priceQuery.$lte = Number(maxPrice);
-      query.$or[0].price = priceQuery;
-      query.$or[1]['variants.price'] = priceQuery;
+      query.$or = [{ price: priceQuery }, { 'variants.price': priceQuery }];
     }
 
+    // ===== Stock filter =====
     if (inStock === 'true') {
       query.inStock = true;
     }
 
+    // ===== Featured filter =====
     if (isFeatured === 'true') {
       query.isFeatured = true;
     }
 
-    // Sorting
+    // ===== Sorting =====
     let sortOption = { createdAt: -1 };
     if (sort) {
       const direction = sort.startsWith('-') ? -1 : 1;
@@ -66,6 +75,7 @@ export const getAllProducts = async (req, res) => {
 
     const skip = (Number(page) - 1) * Number(limit);
 
+    // ===== Fetch products =====
     const products = await Product.find(query)
       .populate('primaryImage', 'secureUrl publicId url')
       .populate('images', 'secureUrl publicId url')

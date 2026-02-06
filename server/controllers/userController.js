@@ -187,7 +187,6 @@ export const addAddress = async (req, res) => {
     const addressData = req.body;
 
     const { error } = addAddressValidation.validate(addressData);
-
     if (error) return res.status(400).json({ success: false, message: error.details[0].message });
 
     const user = await User.findById(userId);
@@ -195,7 +194,7 @@ export const addAddress = async (req, res) => {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    // If this is the first address or marked as default, set others to false
+    // If first address or marked as default, unset others
     if (addressData.isDefault || user.addresses.length === 0) {
       user.addresses.forEach((addr) => {
         addr.isDefault = false;
@@ -203,13 +202,26 @@ export const addAddress = async (req, res) => {
       addressData.isDefault = true;
     }
 
+    // Push new address
     user.addresses.push(addressData);
     await user.save();
 
+    // Return addresses with IDs
     res.status(201).json({
       success: true,
       message: 'Address added successfully',
-      addresses: user.addresses,
+      addresses: user.addresses.map((addr) => ({
+        _id: addr._id,
+        fullName: addr.fullName,
+        phone: addr.phone,
+        street: addr.street,
+        city: addr.city,
+        state: addr.state,
+        postalCode: addr.postalCode,
+        country: addr.country,
+        type: addr.type,
+        isDefault: addr.isDefault,
+      })),
     });
   } catch (error) {
     logger.error('Add address error', { error: error.message });

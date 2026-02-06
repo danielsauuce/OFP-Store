@@ -13,7 +13,7 @@ const addressSchema = new mongoose.Schema(
     country: { type: String, default: 'Nigeria' },
     type: { type: String, enum: ['home', 'work', 'other'], default: 'home' },
   },
-  { _id: false },
+  { _id: true },
 );
 
 const userSchema = new mongoose.Schema(

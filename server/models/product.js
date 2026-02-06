@@ -54,6 +54,11 @@ productSchema.pre('save', function (next) {
   next();
 });
 
+// if (this.variants && this.variants.length) {
+//   this.stockQuantity = this.variants.reduce((sum, v) => sum + (v.stockQuantity || 0), 0);
+//   this.inStock = this.stockQuantity > 0;
+// }
+
 productSchema.index({ category: 1 });
 productSchema.index({ price: 1 });
 productSchema.index({ isFeatured: 1 });
