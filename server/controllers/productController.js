@@ -145,17 +145,17 @@ export const getProductById = async (req, res) => {
 export const createProduct = async (req, res) => {
   try {
     // Log incoming request for debugging
-    logger.info('Creating product', { 
+    logger.info('Creating product', {
       bodyKeys: Object.keys(req.body),
       hasName: !!req.body.name,
-      hasCategory: !!req.body.category 
+      hasCategory: !!req.body.category,
     });
 
     // Validate request body
     const { error } = createProductValidation.validate(req.body, { abortEarly: false });
     if (error) {
-      logger.warn('Product validation failed', { 
-        errors: error.details.map(d => d.message) 
+      logger.warn('Product validation failed', {
+        errors: error.details.map((d) => d.message),
       });
       return res.status(400).json({
         success: false,
@@ -173,7 +173,7 @@ export const createProduct = async (req, res) => {
           message: 'Invalid category ID format',
         });
       }
-      
+
       const categoryExists = await Category.findById(req.body.category);
       if (!categoryExists) {
         logger.warn('Category not found', { categoryId: req.body.category });
@@ -192,7 +192,7 @@ export const createProduct = async (req, res) => {
           message: 'Invalid primary image ID format',
         });
       }
-      
+
       const imageExists = await Media.findById(req.body.primaryImage);
       if (!imageExists) {
         return res.status(400).json({
@@ -204,10 +204,8 @@ export const createProduct = async (req, res) => {
 
     // Validate additional images if provided
     if (req.body.images && req.body.images.length > 0) {
-      const invalidImages = req.body.images.filter(
-        id => !mongoose.Types.ObjectId.isValid(id)
-      );
-      
+      const invalidImages = req.body.images.filter((id) => !mongoose.Types.ObjectId.isValid(id));
+
       if (invalidImages.length > 0) {
         return res.status(400).json({
           success: false,
@@ -216,7 +214,7 @@ export const createProduct = async (req, res) => {
       }
 
       const imageCount = await Media.countDocuments({
-        _id: { $in: req.body.images }
+        _id: { $in: req.body.images },
       });
 
       if (imageCount !== req.body.images.length) {
@@ -237,7 +235,7 @@ export const createProduct = async (req, res) => {
         $addToSet: { usedBy: { modelType: 'Product', modelId: product._id } },
       });
     }
-    
+
     if (product.images?.length) {
       await Media.updateMany(
         { _id: { $in: product.images } },
@@ -255,23 +253,23 @@ export const createProduct = async (req, res) => {
       product,
     });
   } catch (err) {
-    logger.error('Create product error', { 
-      error: err.message, 
+    logger.error('Create product error', {
+      error: err.message,
       stack: err.stack,
-      body: req.body 
+      body: req.body,
     });
-    
+
     // Handle duplicate key error
     if (err.code === 11000) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Product with this slug already exists' 
+      return res.status(400).json({
+        success: false,
+        message: 'Product with this slug already exists',
       });
     }
-    
-    res.status(500).json({ 
-      success: false, 
-      message: 'Failed to create product' 
+
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create product',
     });
   }
 };

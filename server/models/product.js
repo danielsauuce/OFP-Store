@@ -22,7 +22,7 @@ const dimensionsSchema = new mongoose.Schema(
 const productSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },
-    slug: { type: String, unique: true, lowercase: true }, // ← Removed required: true
+    slug: { type: String, unique: true, lowercase: true },
     description: { type: String, required: true },
     shortDescription: { type: String, maxlength: 160 },
     price: { type: Number, required: true, min: 0 },
@@ -52,7 +52,7 @@ productSchema.pre('save', function (next) {
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '');
   }
-  
+
   // Update inStock status
   this.inStock = this.stockQuantity > 0 || this.variants.some((v) => v.stockQuantity > 0);
 
