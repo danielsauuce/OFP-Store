@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 const categorySchema = new mongoose.Schema(
   {
     name: { type: String, required: true, unique: true, trim: true },
-    slug: { type: String, required: true, unique: true, lowercase: true },
+    slug: { type: String, required: true, lowercase: true },
     description: { type: String, default: '' },
     image: { type: mongoose.Schema.Types.ObjectId, ref: 'Media' },
     parent: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' },
@@ -23,5 +23,6 @@ categorySchema.pre('save', function (next) {
 });
 
 categorySchema.index({ order: 1 });
+categorySchema.index({ slug: 1 }, { unique: true });
 
 export default mongoose.model('Category', categorySchema);

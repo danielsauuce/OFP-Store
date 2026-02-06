@@ -1,12 +1,14 @@
-import { rateLimiter } from '../config/redisClient.js';
+import { RateLimiterMemory } from 'rate-limiter-flexible';
 import logger from '../utils/logger.js';
+import { cacheHelpers } from '../config/upstashRedis.js';
+
+// Using memory limiter with fallback for production
+const rateLimiter = new RateLimiterMemory({
+  points: 10,
+  duration: 1,
+});
 
 const rateLimiterMiddleware = async (req, res, next) => {
-  if (!rateLimiter) {
-    logger.warn('Rate limiter not initialized (Redis unavailable)');
-    return next();
-  }
-
   try {
     await rateLimiter.consume(req.ip);
     next();
@@ -16,7 +18,7 @@ const rateLimiterMiddleware = async (req, res, next) => {
       : 60;
 
     res.set('Retry-After', String(retrySecs));
-    logger.warn(`Rate limit exceeded for IP ${req.ip}`);
+    logger.warn(`Rate limit exceeded for IP ${req.ip} - Retry after ${retrySecs}s`);
     res.status(429).json({
       success: false,
       message: 'Too many requests, please try again later',

@@ -3,8 +3,8 @@ import mongoose from 'mongoose';
 const paymentSchema = new mongoose.Schema(
   {
     order: { type: mongoose.Schema.Types.ObjectId, ref: 'Order', required: true, unique: true },
-    provider: { type: String, required: true }, // e.g., 'stripe', 'paystack'
-    intentId: { type: String, required: true }, // Token/reference from gateway
+    provider: { type: String, required: true },
+    intentId: { type: String, required: true },
     status: {
       type: String,
       enum: ['pending', 'succeeded', 'failed', 'refunded'],
@@ -12,7 +12,7 @@ const paymentSchema = new mongoose.Schema(
     },
     amount: { type: Number, required: true, min: 0 },
     currency: { type: String, default: 'NGN' },
-    lastFour: String, // Optional, encrypted last 4 digits
+    lastFour: String,
     method: { type: String, enum: ['card', 'bank', 'mobile'] },
   },
   { timestamps: true },

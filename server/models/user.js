@@ -28,7 +28,7 @@ const userSchema = new mongoose.Schema(
     isActive: { type: Boolean, default: true },
     emailVerified: { type: Boolean, default: false },
     lastLogin: Date,
-    preferences: { type: Map, of: String }, // e.g., { currency: 'NGN' }
+    preferences: { type: Map, of: String },
   },
   { timestamps: true },
 );

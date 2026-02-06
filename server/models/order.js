@@ -39,7 +39,7 @@ const orderSchema = new mongoose.Schema(
     subtotal: { type: Number, required: true, min: 0 },
     shippingCost: { type: Number, default: 0, min: 0 },
     total: { type: Number, required: true, min: 0 },
-    payment: { type: mongoose.Schema.Types.ObjectId, ref: 'Payment' }, // Reference to Payment
+    payment: { type: mongoose.Schema.Types.ObjectId, ref: 'Payment' },
     paymentMethod: { type: String, enum: ['card', 'pay_on_delivery', 'bank'], required: true },
     paymentStatus: {
       type: String,
