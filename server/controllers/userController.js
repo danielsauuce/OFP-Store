@@ -3,7 +3,11 @@ import Media from '../models/media.js';
 import { deleteMediaFromCloudinary, uploadMediaToCloudinary } from '../config/cloudinary.js';
 import logger from '../utils/logger.js';
 import { updateProfileValidation } from '../utils/userValidation.js';
-import { addAddress, updateAddress } from '../utils/addressValidation.js';
+import {
+  addAddress as addAddressValidation,
+  updateAddress as updateAddressValidation,
+} from '../utils/addressValidation.js';
+
 
 // Get current user profile
 export const getUserProfile = async (req, res) => {
@@ -183,7 +187,8 @@ export const addAddress = async (req, res) => {
     const userId = req.user.id;
     const addressData = req.body;
 
-    const { error } = addAddress.validate(addressData);
+    const { error } = addAddressValidation.validate(addressData);
+
     if (error) return res.status(400).json({ success: false, message: error.details[0].message });
 
     const user = await User.findById(userId);
