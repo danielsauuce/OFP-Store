@@ -15,7 +15,7 @@ export const getAllProducts = async (req, res) => {
       page = 1,
       limit = 12,
       search,
-      category, // expected to be a slug
+      category, // slug
       minPrice,
       maxPrice,
       sort,
@@ -25,47 +25,45 @@ export const getAllProducts = async (req, res) => {
 
     const query = { isActive: true };
 
-    // ===== Category filter =====
+    // --- FILTER BY CATEGORY SLUG ---
     if (category) {
-      // Look up category by slug first
       const cat = await Category.findOne({ slug: category.toLowerCase().trim() });
       if (!cat) {
-        // No category matches, return empty result instead of crashing
+        // Category not found → return empty result
         return res.status(200).json({
           success: true,
-          data: {
-            products: [],
-            pagination: { total: 0, page: Number(page), pages: 0, limit: Number(limit) },
-          },
+          data: { products: [], pagination: { total: 0, page: 1, pages: 0, limit: Number(limit) } },
         });
       }
-      query.category = cat._id; // safe ObjectId assignment
+      query.category = cat._id; // Use ObjectId, not the string
     }
 
-    // ===== Text search =====
+    // --- TEXT SEARCH ---
     if (search) {
       query.$text = { $search: search.trim() };
     }
 
-    // ===== Price range filter =====
+    // --- PRICE FILTER ---
     if (minPrice || maxPrice) {
+      query.$or = [{ price: {} }, { 'variants.price': {} }];
       const priceQuery = {};
       if (minPrice) priceQuery.$gte = Number(minPrice);
       if (maxPrice) priceQuery.$lte = Number(maxPrice);
-      query.$or = [{ price: priceQuery }, { 'variants.price': priceQuery }];
+      query.$or[0].price = priceQuery;
+      query.$or[1]['variants.price'] = priceQuery;
     }
 
-    // ===== Stock filter =====
+    // --- STOCK FILTER ---
     if (inStock === 'true') {
       query.inStock = true;
     }
 
-    // ===== Featured filter =====
+    // --- FEATURED FILTER ---
     if (isFeatured === 'true') {
       query.isFeatured = true;
     }
 
-    // ===== Sorting =====
+    // --- SORTING ---
     let sortOption = { createdAt: -1 };
     if (sort) {
       const direction = sort.startsWith('-') ? -1 : 1;
@@ -75,7 +73,6 @@ export const getAllProducts = async (req, res) => {
 
     const skip = (Number(page) - 1) * Number(limit);
 
-    // ===== Fetch products =====
     const products = await Product.find(query)
       .populate('primaryImage', 'secureUrl publicId url')
       .populate('images', 'secureUrl publicId url')
