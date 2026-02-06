@@ -3,7 +3,7 @@ import Order from '../models/order.js';
 import Product from '../models/product.js';
 import Media from '../models/media.js';
 import logger from '../utils/logger.js';
-import { deleteMediaFromCloudinary} from "../config/cloudinary.js"
+import { deleteMediaFromCloudinary } from '../config/cloudinary.js';
 import {
   userIdValidation,
   updateUserRoleValidation,

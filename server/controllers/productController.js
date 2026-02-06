@@ -11,78 +11,55 @@ import {
 
 export const getAllProducts = async (req, res) => {
   try {
-    const {
-      page = 1,
-      limit = 12,
-      search,
-      category, // slug
-      minPrice,
-      maxPrice,
-      sort,
-      inStock,
-      isFeatured,
-    } = req.query;
+    const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+    const limit = Math.max(parseInt(req.query.limit, 10) || 12, 1);
+    const skip = (page - 1) * limit;
 
     const query = { isActive: true };
 
-    // --- FILTER BY CATEGORY SLUG ---
-    if (category) {
-      const cat = await Category.findOne({ slug: category.toLowerCase().trim() });
-      if (!cat) {
-        // Category not found → return empty result
+    if (req.query.category) {
+      const categoryDoc = await Category.findOne({
+        name: { $regex: `^${req.query.category}$`, $options: 'i' },
+      });
+
+      if (!categoryDoc) {
         return res.status(200).json({
           success: true,
-          data: { products: [], pagination: { total: 0, page: 1, pages: 0, limit: Number(limit) } },
+          data: {
+            products: [],
+            pagination: {
+              total: 0,
+              page,
+              pages: 0,
+              limit,
+            },
+          },
         });
       }
-      query.category = cat._id; // Use ObjectId, not the string
+
+      query.category = categoryDoc._id;
     }
 
-    // --- TEXT SEARCH ---
-    if (search) {
-      query.$text = { $search: search.trim() };
+    if (req.query.search) {
+      query.$text = { $search: req.query.search };
     }
 
-    // --- PRICE FILTER ---
-    if (minPrice || maxPrice) {
-      query.$or = [{ price: {} }, { 'variants.price': {} }];
-      const priceQuery = {};
-      if (minPrice) priceQuery.$gte = Number(minPrice);
-      if (maxPrice) priceQuery.$lte = Number(maxPrice);
-      query.$or[0].price = priceQuery;
-      query.$or[1]['variants.price'] = priceQuery;
+    if (req.query.minPrice || req.query.maxPrice) {
+      query.price = {};
+      if (req.query.minPrice) query.price.$gte = Number(req.query.minPrice);
+      if (req.query.maxPrice) query.price.$lte = Number(req.query.maxPrice);
     }
 
-    // --- STOCK FILTER ---
-    if (inStock === 'true') {
-      query.inStock = true;
-    }
-
-    // --- FEATURED FILTER ---
-    if (isFeatured === 'true') {
-      query.isFeatured = true;
-    }
-
-    // --- SORTING ---
-    let sortOption = { createdAt: -1 };
-    if (sort) {
-      const direction = sort.startsWith('-') ? -1 : 1;
-      const field = sort.replace(/^-/, '');
-      sortOption = { [field]: direction };
-    }
-
-    const skip = (Number(page) - 1) * Number(limit);
-
-    const products = await Product.find(query)
-      .populate('primaryImage', 'secureUrl publicId url')
-      .populate('images', 'secureUrl publicId url')
-      .populate('category', 'name slug')
-      .sort(sortOption)
-      .skip(skip)
-      .limit(Number(limit))
-      .lean();
-
-    const total = await Product.countDocuments(query);
+    const [products, total] = await Promise.all([
+      Product.find(query)
+        .populate('category', 'name slug')
+        .populate('primaryImage')
+        .populate('images')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      Product.countDocuments(query),
+    ]);
 
     res.status(200).json({
       success: true,
@@ -90,15 +67,18 @@ export const getAllProducts = async (req, res) => {
         products,
         pagination: {
           total,
-          page: Number(page),
-          pages: Math.ceil(total / Number(limit)),
-          limit: Number(limit),
+          page,
+          pages: Math.ceil(total / limit),
+          limit,
         },
       },
     });
-  } catch (err) {
-    logger.error('Get all products error', { error: err.message, stack: err.stack });
-    res.status(500).json({ success: false, message: 'Failed to fetch products' });
+  } catch (error) {
+    console.error('getAllProducts error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch products',
+    });
   }
 };
 
