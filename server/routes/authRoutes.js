@@ -21,7 +21,7 @@ router.post('/reset-password', resetPassword);
 // protected routes
 router.use(authenticate);
 
-router.post('/reset-password', changePassword);
+router.post('/change-password', changePassword);
 router.get('/me', getCurrentUser);
 
 export default router;
