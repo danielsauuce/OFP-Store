@@ -88,18 +88,18 @@ export const getProductById = async (req, res) => {
     const { id } = req.params;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Invalid product ID' 
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid product ID',
       });
     }
 
     const product = await Product.findById(id).lean();
 
     if (!product) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Product not found' 
+      return res.status(404).json({
+        success: false,
+        message: 'Product not found',
       });
     }
 
@@ -111,15 +111,15 @@ export const getProductById = async (req, res) => {
           .populate('images', 'secureUrl publicId url')
           .populate('category', 'name slug description')
           .lean();
-        
+
         return res.status(200).json({
           success: true,
           product: populatedProduct,
         });
       } catch (populateError) {
-        logger.warn('Failed to populate product references', { 
-          id, 
-          error: populateError.message 
+        logger.warn('Failed to populate product references', {
+          id,
+          error: populateError.message,
         });
         // Return product without populated fields
       }
@@ -130,14 +130,14 @@ export const getProductById = async (req, res) => {
       product,
     });
   } catch (err) {
-    logger.error('Get product by ID error', { 
-      id: req.params.id, 
-      error: err.message, 
-      stack: err.stack 
+    logger.error('Get product by ID error', {
+      id: req.params.id,
+      error: err.message,
+      stack: err.stack,
     });
-    res.status(500).json({ 
-      success: false, 
-      message: 'Failed to fetch product' 
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch product',
     });
   }
 };
