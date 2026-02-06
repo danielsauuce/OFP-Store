@@ -3,7 +3,6 @@ import {
   registerUser,
   loginUser,
   changePassword,
-  checkAuth,
   logoutUser,
   getCurrentUser,
   forgotPassword,
@@ -23,7 +22,6 @@ router.post('/reset-password', resetPassword);
 router.use(authenticate);
 
 router.post('/reset-password', changePassword);
-router.get('/check-auth', checkAuth);
 router.get('/me', getCurrentUser);
 
 export default router;

@@ -1,7 +1,7 @@
 import express from 'express';
 import {
   getAllUsers,
-  getUsersById,
+  getUserById,
   updateUserStatus,
   updateUserRole,
   deleteUser,
@@ -24,7 +24,7 @@ router.use(authenticate, isAdmin);
 
 // user management
 router.get('/users', getAllUsers);
-router.get('/users/:id', getUsersById);
+router.get('/users/:id', getUserById);
 router.patch('/users/:id/status', updateUserStatus);
 router.patch('/users/:id/role', updateUserRole);
 router.delete('/users/delete/:id', deleteUser);

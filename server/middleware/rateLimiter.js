@@ -10,6 +10,11 @@ const rateLimiterMiddleware = async (req, res, next) => {
   try {
     await rateLimiter.consume(req.ip);
     next();
+
+    if (!rateLimiter) {
+      logger.warn('Rate limiter not initialized (Redis unavailable), skipping...');
+      return next();
+    }
   } catch (rateLimiterRes) {
     const retrySecs = rateLimiterRes.msBeforeNext
       ? Math.ceil(rateLimiterRes.msBeforeNext / 1000)

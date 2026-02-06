@@ -2,7 +2,7 @@ import { Redis } from 'ioredis';
 import logger from '../utils/logger.js';
 import { RateLimiterRedis } from 'rate-limiter-flexible';
 
-export const redisClient = new Redis(process.env.REDIS_URL);
+export const redisClient = new Redis(process.env.REDIS_URi);
 
 export const rateLimiter = new RateLimiterRedis({
   storeClient: redisClient,
