@@ -8,7 +8,6 @@ import {
   updateAddress as updateAddressValidation,
 } from '../utils/addressValidation.js';
 
-
 // Get current user profile
 export const getUserProfile = async (req, res) => {
   try {
