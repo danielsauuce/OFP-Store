@@ -12,6 +12,4 @@ const mediaSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-mediaSchema.index({ publicId: 1 }, { unique: true });
-
 export default mongoose.model('Media', mediaSchema);

@@ -42,6 +42,4 @@ userSchema.methods.comparePassword = async function (candidate) {
   return argon2.verify(this.password, candidate);
 };
 
-userSchema.index({ email: 1 });
-
 export default mongoose.model('User', userSchema);
