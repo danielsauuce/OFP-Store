@@ -1,12 +1,17 @@
 import User from '../models/user.js';
 import Order from '../models/order.js';
 import Product from '../models/product.js';
+import Media from '../models/media.js';
 import logger from '../utils/logger.js';
+import { deleteMediaFromCloudinary } from '../utils/cloudinary.js';
 import {
   userIdValidation,
   updateUserRoleValidation,
   updateUserStatusValidation,
 } from '../utils/userValidation.js';
+
+// Escape user input for safe RegExp usage
+const escapeRegex = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 // User Management
 
@@ -16,7 +21,8 @@ export const getAllUsers = async (req, res) => {
 
     const query = {};
     if (search) {
-      const regex = new RegExp(search.trim(), 'i');
+      const escapedSearch = escapeRegex(search.trim());
+      const regex = new RegExp(escapedSearch, 'i');
       query.$or = [{ fullName: regex }, { email: regex }];
     }
     if (role) query.role = role;
@@ -69,10 +75,7 @@ export const getUserById = async (req, res) => {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    res.status(200).json({
-      success: true,
-      user,
-    });
+    res.status(200).json({ success: true, user });
   } catch (error) {
     logger.error('Admin get user by ID error', { error: error.message });
     res.status(500).json({ success: false, message: 'Failed to fetch user' });
@@ -163,29 +166,27 @@ export const deleteUser = async (req, res) => {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    // Clean up profile picture if exists
     if (user.profilePicture) {
       try {
         await deleteMediaFromCloudinary(user.profilePicture.publicId);
         await Media.findByIdAndDelete(user.profilePicture._id);
       } catch (mediaError) {
-        logger.warn('Failed to delete user profile picture', { error: mediaError.message });
+        logger.warn('Failed to delete user profile picture', {
+          error: mediaError.message,
+        });
       }
     }
 
     await User.findByIdAndDelete(req.params.id);
 
-    res.status(200).json({
-      success: true,
-      message: 'User deleted successfully',
-    });
+    res.status(200).json({ success: true, message: 'User deleted successfully' });
   } catch (error) {
     logger.error('Admin delete user error', { error: error.message });
     res.status(500).json({ success: false, message: 'Failed to delete user' });
   }
 };
 
-// Quick Dashboard Stats
+// Dashboard Stats
 export const getDashboardStats = async (req, res) => {
   try {
     const [totalUsers, totalOrders, totalProducts, recentOrders] = await Promise.all([
@@ -202,12 +203,7 @@ export const getDashboardStats = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      stats: {
-        totalUsers,
-        totalOrders,
-        totalProducts,
-        recentOrders,
-      },
+      stats: { totalUsers, totalOrders, totalProducts, recentOrders },
     });
   } catch (error) {
     logger.error('Admin dashboard stats error', { error: error.message });

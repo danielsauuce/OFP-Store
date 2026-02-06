@@ -21,6 +21,7 @@ reviewSchema.statics.updateAverage = async function (productId) {
     { $match: { product: new mongoose.Types.ObjectId(productId), isApproved: true } },
     { $group: { _id: '$product', avg: { $avg: '$rating' }, count: { $sum: 1 } } },
   ]);
+
   await mongoose.model('Product').findByIdAndUpdate(productId, {
     averageRating: stats[0] ? stats[0].avg : 0,
     reviewCount: stats[0] ? stats[0].count : 0,
@@ -30,7 +31,8 @@ reviewSchema.statics.updateAverage = async function (productId) {
 reviewSchema.post('save', function () {
   this.constructor.updateAverage(this.product);
 });
-reviewSchema.post('deleteOne', function () {
+
+reviewSchema.post('deleteOne', { document: true, query: false }, function () {
   this.constructor.updateAverage(this.product);
 });
 
