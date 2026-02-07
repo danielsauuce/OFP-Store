@@ -14,18 +14,15 @@ import { cacheMiddleware } from '../middleware/cacheMiddleware.js';
 
 const router = express.Router();
 
-// Public routes
 router.get('/', cacheMiddleware(3600), getAllCategories);
+router.get('/:slug', cacheMiddleware(1800), getCategoryBySlug);
 
-// Admin routes (must come before :slug)
+// Admin routes
 router.use(authenticate, isAdmin);
-router.get('/admin', getAllCategoriesAdmin);
+router.get('/admin/all', getAllCategoriesAdmin);
 router.post('/', createCategory);
 router.put('/:id', updateCategory);
 router.delete('/:id', deleteCategory);
 router.patch('/:id/order', reorderCategories);
-
-// Public slug route (last)
-router.get('/:slug', cacheMiddleware(1800), getCategoryBySlug);
 
 export default router;

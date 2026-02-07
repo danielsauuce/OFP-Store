@@ -22,7 +22,10 @@ const router = express.Router();
 
 router.use(authenticate, isAdmin);
 
-// user management
+// Dashboard
+router.get('/dashboard/stats', getDashboardStats);
+
+// User management
 router.get('/users', getAllUsers);
 router.get('/users/:id', getUserById);
 router.patch('/users/:id/status', updateUserStatus);
@@ -30,13 +33,10 @@ router.patch('/users/:id/role', updateUserRole);
 router.delete('/users/delete/:id', deleteUser);
 
 // Product Management
-router.get('/', cacheMiddleware(3600), getAllProducts);
-router.get('/:id', cacheMiddleware(3600), getProductById);
-router.post('/create', createProduct);
-router.put('/update/:id', updateProduct);
-router.delete('/delete/:id', deleteProduct);
-
-// Dashboard Management
-router.get('/dashboard/stats', getDashboardStats);
+router.get('/products', cacheMiddleware(3600), getAllProducts);
+router.get('/products/:id', cacheMiddleware(3600), getProductById);
+router.post('/products/create', createProduct);
+router.put('/products/update/:id', updateProduct);
+router.delete('/products/delete/:id', deleteProduct);
 
 export default router;

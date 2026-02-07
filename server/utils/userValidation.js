@@ -85,9 +85,10 @@ export const updateUserStatusValidation = Joi.object({
   }),
 });
 
+// FIX: Changed 'user' to 'customer' to match the User model enum ['customer', 'admin']
 export const updateUserRoleValidation = Joi.object({
-  role: Joi.string().valid('user', 'admin').required().messages({
-    'any.only': 'Role must be either user or admin',
+  role: Joi.string().valid('customer', 'admin').required().messages({
+    'any.only': 'Role must be either customer or admin',
     'any.required': 'Role is required',
   }),
 });

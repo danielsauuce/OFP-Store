@@ -19,12 +19,12 @@ router.get('/product/:productId', cacheMiddleware(1800), getProductReviews);
 // Authenticated user routes
 router.use(authenticate);
 
+router.get('/admin', isAdmin, getAllReviewsAdmin);
+router.patch('/admin/:reviewId/approve', isAdmin, approveReview);
+
+// User review CRUD
 router.post('/', createReview);
 router.put('/:reviewId', updateReview);
 router.delete('/:reviewId', deleteReview);
-
-// Admin Review Management
-router.get('/admin', authenticate, isAdmin, getAllReviewsAdmin);
-router.patch('/admin/:reviewId/approve', authenticate, isAdmin, approveReview);
 
 export default router;

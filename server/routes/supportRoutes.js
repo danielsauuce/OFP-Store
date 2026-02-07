@@ -15,19 +15,19 @@ import { isAdmin } from '../middleware/adminAuth.js';
 
 const router = express.Router();
 
-// ─── Public / Authenticated user routes
-router.post('/', createTicket); // allows both logged-in and guests
+// Public
+router.post('/', createTicket);
 
 router.use(authenticate);
 
+router.get('/admin', isAdmin, getAllTicketsAdmin);
+router.get('/admin/:id', isAdmin, getTicketAdmin);
+router.patch('/admin/:id', isAdmin, updateTicketAdmin);
+router.post('/admin/:id/reply', isAdmin, addAdminReply);
+
+// User ticket routes
 router.get('/my-tickets', getMyTickets);
 router.get('/:id', getTicketById);
 router.post('/:id/reply', addReply);
-
-// Admin Support Management
-router.get('/admin', authenticate, isAdmin, getAllTicketsAdmin);
-router.get('/admin/:id', authenticate, isAdmin, getTicketAdmin);
-router.patch('/admin/:id', authenticate, isAdmin, updateTicketAdmin);
-router.post('/admin/:id/reply', authenticate, isAdmin, addAdminReply);
 
 export default router;

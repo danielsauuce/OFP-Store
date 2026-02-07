@@ -13,16 +13,16 @@ import { isAdmin } from '../middleware/adminAuth.js';
 
 const router = express.Router();
 
-// user route
 router.use(authenticate);
 
+// Admin routes
+router.get('/admin', isAdmin, getAllOrdersAdmin);
+router.patch('/admin/:id/status', isAdmin, updateOrderStatusAdmin);
+
+// User routes
 router.post('/', createOrder);
 router.get('/', getUserOrders);
 router.get('/:id', getOrderById);
 router.patch('/:id/cancel', cancelOrder);
-
-// Admin Order Management
-router.get('/admin', authenticate, isAdmin, getAllOrdersAdmin);
-router.patch('/admin/:id/status', authenticate, isAdmin, updateOrderStatusAdmin);
 
 export default router;

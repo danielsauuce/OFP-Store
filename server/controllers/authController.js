@@ -211,7 +211,6 @@ export const forgotPassword = async (req, res) => {
 
     const user = await User.findOne({ email: email.toLowerCase() });
     if (!user) {
-      // We still return success message for security (don't reveal if email exists)
       return res.status(200).json({
         success: true,
         message: 'If the email exists, a password reset link has been sent.',
@@ -251,12 +250,21 @@ export const forgotPassword = async (req, res) => {
       },
     });
 
-    await transporter.sendMail({
-      from: `"Your Store" <${process.env.EMAIL_FROM}>`,
-      to: user.email,
-      subject: 'Password Reset Request',
-      html: message,
-    });
+    try {
+      await transporter.sendMail({
+        from: `"Your Store" <${process.env.EMAIL_FROM}>`,
+        to: user.email,
+        subject: 'Password Reset Request',
+        html: message,
+      });
+    } catch (emailError) {
+      // Clear the reset token if email fails to send
+      // Otherwise the token sits in DB for 1 hour but user never receives it
+      user.resetPasswordToken = undefined;
+      user.resetPasswordExpire = undefined;
+      await user.save();
+      logger.error('Failed to send password reset email', { error: emailError.message });
+    }
 
     res.status(200).json({
       success: true,
