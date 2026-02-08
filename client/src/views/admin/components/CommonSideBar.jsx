@@ -1,6 +1,13 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, Routes, Route } from 'react-router-dom';
 import { Home } from 'lucide-react';
 import { LayoutDashboard, Package, ShoppingCart, Users, BarChart3 } from 'lucide-react';
+
+// Lazy import admin pages (these are currently empty but will be filled in)
+import Dashboard from '../Dashboard';
+import Products from '../Products';
+import Orders from '../Orders';
+import UsersPage from '../Users';
+import Analytics from '../Analystics';
 
 export const navigations = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
@@ -10,14 +17,13 @@ export const navigations = [
   { name: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
 ];
 
-const CommonSideBar = ({ children }) => {
+const CommonSideBar = () => {
   const location = useLocation();
-  const navigation = navigations;
 
   return (
     <div className="min-h-screen bg-muted/30 flex">
       {/* Sidebar */}
-      <aside className="w-64 min-h-screen bg-card border-r border-primary ">
+      <aside className="w-64 min-h-screen bg-card border-r border-primary">
         <div className="p-6">
           {/* Back to Store */}
           <Link
@@ -30,11 +36,40 @@ const CommonSideBar = ({ children }) => {
 
           {/* Sidebar Title */}
           <h2 className="text-xl font-serif font-bold mb-6">Admin Panel</h2>
+
+          <nav className="space-y-2">
+            {navigations.map((item) => {
+              const Icon = item.icon;
+              const isActive = location.pathname === item.href;
+
+              return (
+                <Link
+                  key={item.name}
+                  to={item.href}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                    isActive
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                  }`}
+                >
+                  <Icon className="h-5 w-5" />
+                  {item.name}
+                </Link>
+              );
+            })}
+          </nav>
         </div>
       </aside>
 
-      {/* Main Content */}
-      <main className="flex-1 p-8">{children}</main>
+      <main className="flex-1 p-8">
+        <Routes>
+          <Route index element={<Dashboard />} />
+          <Route path="products" element={<Products />} />
+          <Route path="orders" element={<Orders />} />
+          <Route path="users" element={<UsersPage />} />
+          <Route path="analytics" element={<Analytics />} />
+        </Routes>
+      </main>
     </div>
   );
 };
