@@ -1,8 +1,6 @@
 import { Link, useLocation, Routes, Route } from 'react-router-dom';
 import { Home } from 'lucide-react';
 import { LayoutDashboard, Package, ShoppingCart, Users, BarChart3 } from 'lucide-react';
-
-// Lazy import admin pages (these are currently empty but will be filled in)
 import Dashboard from '../Dashboard';
 import Products from '../Products';
 import Orders from '../Orders';
