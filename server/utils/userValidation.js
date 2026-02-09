@@ -1,4 +1,9 @@
 import Joi from 'joi';
+<<<<<<< Updated upstream
+=======
+
+const objectId = Joi.string().hex().length(24);
+>>>>>>> Stashed changes
 
 const objectId = Joi.string().hex().length(24);
 
@@ -59,7 +64,11 @@ export const updateProfileValidation = Joi.object({
     'object.min': 'At least one field must be provided for update',
   });
 
+<<<<<<< Updated upstream
 export const updateProfilePictureValidation = Joi.object({
+=======
+export const updateProfilePicture = Joi.object({
+>>>>>>> Stashed changes
   mediaId: objectId.required(),
 });
 
@@ -69,6 +78,7 @@ export const updatePhoneValidation = Joi.object({
     .required(),
 });
 
+<<<<<<< Updated upstream
 export const userIdValidation = Joi.object({
   id: Joi.string()
     .pattern(/^[0-9a-fA-F]{24}$/)
@@ -91,4 +101,36 @@ export const updateUserRoleValidation = Joi.object({
     'any.only': 'Role must be either customer or admin',
     'any.required': 'Role is required',
   }),
+=======
+export const register = Joi.object({
+  fullName: Joi.string().min(2).max(100).trim().required(),
+  email: Joi.string().email().lowercase().trim().required(),
+  password: Joi.string().min(8).required(),
+  phone: Joi.string()
+    .pattern(/^[0-9]{9,15}$/)
+    .optional(),
+});
+
+export const login = Joi.object({
+  email: Joi.string().email().lowercase().trim().required(),
+  password: Joi.string().required(),
+});
+
+export const changePassword = Joi.object({
+  currentPassword: Joi.string().min(8).required(),
+  newPassword: Joi.string().min(8).required(),
+});
+
+export const forgotPassword = Joi.object({
+  email: Joi.string().email().required(),
+});
+
+export const resetPassword = Joi.object({
+  token: Joi.string().required(),
+  newPassword: Joi.string().min(8).required(),
+});
+
+export const verifyEmail = Joi.object({
+  token: Joi.string().required(),
+>>>>>>> Stashed changes
 });
