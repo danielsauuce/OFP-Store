@@ -100,3 +100,15 @@ export const resetPassword = Joi.object({
 export const verifyEmail = Joi.object({
   token: Joi.string().required(),
 });
+
+export const userIdValidation = Joi.object({
+  id: objectId.required(),
+});
+
+export const updateUserRoleValidation = Joi.object({
+  role: Joi.string().valid('user', 'admin').required(),
+});
+
+export const updateUserStatusValidation = Joi.object({
+  isActive: Joi.boolean().required(),
+});
