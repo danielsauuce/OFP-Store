@@ -1,5 +1,5 @@
-import MetricCard from '../admin/components/MetricCard';
-import { dashboardStats, recentOrders, topProducts } from '../../data/DashboardData';
+import MetricCard from '../../views/admin/components/MetricCard';
+import { dashboardStats, recentOrders, topProducts } from '../../../src/data/DashboardData';
 
 const Dashboard = () => {
   return (
