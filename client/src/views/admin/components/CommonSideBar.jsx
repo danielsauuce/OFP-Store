@@ -1,11 +1,11 @@
 import { Link, useLocation, Routes, Route } from 'react-router-dom';
-import { Home } from 'lucide-react';
-import { LayoutDashboard, Package, ShoppingCart, Users, BarChart3 } from 'lucide-react';
+import { Home, LayoutDashboard, Package, ShoppingCart, Users, BarChart3 } from 'lucide-react';
+
 import Dashboard from '../Dashboard';
 import Products from '../Products';
 import Orders from '../Orders';
 import UsersPage from '../Users';
-import Analytics from '../Analystics';
+import Analytics from '../Analytics';
 
 export const navigations = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
@@ -23,7 +23,6 @@ const CommonSideBar = () => {
       {/* Sidebar */}
       <aside className="w-64 min-h-screen bg-card border-r border-primary">
         <div className="p-6">
-          {/* Back to Store */}
           <Link
             to="/"
             className="flex items-center gap-2 mb-8 hover:text-primary transition-colors"
@@ -32,10 +31,9 @@ const CommonSideBar = () => {
             <span className="font-semibold">Back to Store</span>
           </Link>
 
-          {/* Sidebar Title */}
           <h2 className="text-xl font-serif font-bold mb-6">Admin Panel</h2>
 
-          <nav className="space-y-2">
+          <nav className="space-y-5">
             {navigations.map((item) => {
               const Icon = item.icon;
               const isActive = location.pathname === item.href;
