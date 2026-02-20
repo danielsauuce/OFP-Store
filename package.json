@@ -13,7 +13,8 @@
     "lint:fix": "turbo run lint -- --fix",
     "clean": "turbo run clean",
     "test": "turbo run test",
-    "format": "turbo run format"
+    "format": "prettier --write . && turbo run format",
+    "format:check": "prettier --check . && turbo run format -- --check"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",
