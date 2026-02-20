@@ -1,9 +1,24 @@
+import { useState } from 'react';
 import { Eye } from 'lucide-react';
 import toast from 'react-hot-toast';
 import StatusBadge from '../admin/components/StatusBadge';
-import { orders, statusStyles } from '../../data/OrdersSata';
+import Pagination from '../admin/components/Pagination';
+import { orders, statusStyles } from '../../data/OrdersData';
+
+const ORDERS_PER_PAGE = 6;
 
 const Orders = () => {
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const totalPages = Math.ceil(orders.length / ORDERS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ORDERS_PER_PAGE;
+  const paginatedOrders = orders.slice(startIndex, startIndex + ORDERS_PER_PAGE);
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -11,8 +26,14 @@ const Orders = () => {
         <p className="text-muted-foreground mt-2">Track and manage customer orders</p>
       </div>
 
+      {/* Pagination Info */}
+      <p className="text-sm text-muted-foreground">
+        Showing {startIndex + 1}–{Math.min(startIndex + ORDERS_PER_PAGE, orders.length)} of{' '}
+        {orders.length} orders
+      </p>
+
       <div className="grid gap-4">
-        {orders.map((order) => (
+        {paginatedOrders.map((order) => (
           <div
             key={order.id}
             className="bg-card p-6 rounded-lg shadow-card border border-border hover:scale-[1.01] transition-transform"
@@ -43,6 +64,13 @@ const Orders = () => {
           </div>
         ))}
       </div>
+
+      {/* Pagination */}
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={handlePageChange}
+      />
     </div>
   );
 };

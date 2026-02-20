@@ -1,8 +1,23 @@
+import { useState } from 'react';
 import Avatar from '../admin/components/Avatar';
 import StatusBadge from '../admin/components/StatusBadge';
+import Pagination from '../admin/components/Pagination';
 import { users, roleStyles } from '../../data/UsersData';
 
+const USERS_PER_PAGE = 6;
+
 const Users = () => {
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const totalPages = Math.ceil(users.length / USERS_PER_PAGE);
+  const startIndex = (currentPage - 1) * USERS_PER_PAGE;
+  const paginatedUsers = users.slice(startIndex, startIndex + USERS_PER_PAGE);
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -10,8 +25,14 @@ const Users = () => {
         <p className="text-muted-foreground mt-2">Manage registered users and their roles</p>
       </div>
 
+      {/* Pagination Info */}
+      <p className="text-sm text-muted-foreground">
+        Showing {startIndex + 1}–{Math.min(startIndex + USERS_PER_PAGE, users.length)} of{' '}
+        {users.length} users
+      </p>
+
       <div className="grid gap-4">
-        {users.map((user) => (
+        {paginatedUsers.map((user) => (
           <div
             key={user.id}
             className="bg-card p-6 rounded-lg shadow-card border border-border hover:scale-[1.01] transition-transform"
@@ -35,6 +56,13 @@ const Users = () => {
           </div>
         ))}
       </div>
+
+      {/* Pagination */}
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={handlePageChange}
+      />
     </div>
   );
 };
