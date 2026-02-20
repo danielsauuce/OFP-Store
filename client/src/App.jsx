@@ -3,16 +3,17 @@ import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import Home from './views/Home';
 import Shop from './views/Shop';
+import ProductDetails from './views/ProductDetails';
 import About from './views/About';
 import Contact from './views/Contact';
+import Cart from './views/Cart';
+import Profile from './views/Profile';
 import AuthPage from './views/AuthPage';
 import NotFound from './views/NotFound';
 import { Toaster } from 'react-hot-toast';
 import RouteGuard from './components/RouteGuard';
 import { useAuth } from './context/authContext';
 import CommonSideBar from './views/admin/components/CommonSideBar';
-import ProductDetails from './views/ProductDetails';
-import Cart from './views/Cart';
 
 // Layout component for pages with Navbar & Footer
 const MainLayout = () => (
@@ -27,14 +28,13 @@ const MainLayout = () => (
 
 function App() {
   const { auth, isLoading } = useAuth();
-  console.log('🔍 Auth state in App:', auth);
 
   // Show loading spinner while checking auth
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center flex-col">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mb-3"></div>
-        <div className="font-medium text-primary text-xl mt-2 ">Loading.....</div>
+        <div className="font-medium text-primary text-xl mt-2">Loading.....</div>
       </div>
     );
   }
@@ -73,7 +73,7 @@ function App() {
       />
 
       <Routes>
-        {/* Auth Route - Redirects if already authenticatedd */}
+        {/* Auth Route - Redirects if already authenticated */}
         <Route
           path="/auth"
           element={
@@ -99,11 +99,22 @@ function App() {
         <Route element={<MainLayout />}>
           <Route path="/" element={<Home />} />
           <Route path="/shop" element={<Shop />} />
+          <Route path="/product/:id" element={<ProductDetails />} />
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
-          <Route path="*" element={<NotFound />} />
-          <Route path="/product/:id" element={<ProductDetails />} />
           <Route path="/cart" element={<Cart />} />
+          <Route
+            path="/profile"
+            element={
+              <RouteGuard
+                authenticated={auth.authenticate}
+                user={auth.user}
+                element={<Profile />}
+                requireAuth={true}
+              />
+            }
+          />
+          <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>
     </>

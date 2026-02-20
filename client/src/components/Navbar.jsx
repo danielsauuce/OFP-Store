@@ -1,9 +1,8 @@
 import { useState } from 'react';
-import { Link, NavLink } from 'react-router-dom';
-import { ShoppingCart, Users, Menu, X, Sun, Moon, LogOut } from 'lucide-react';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
+import { ShoppingCart, UserCircle, Users, Menu, X, Sun, Moon, LogOut } from 'lucide-react';
 import useDarkMode from '../hooks/useDarkMode';
 import { useAuth } from '../context/authContext';
-import { useNavigate } from 'react-router-dom';
 
 const navItems = [
   { label: 'Home', path: '/' },
@@ -32,11 +31,11 @@ function Navbar() {
       <div className="flex justify-between pl-5 pr-3 items-center">
         {/* Logo */}
         <Link to="/">
-          <h2 className="text-xl font-bold font-serif text-[#815331]">Olayinka Furniture Palace</h2>
+          <h2 className="text-xl font-bold font-serif text-primary">Olayinka Furniture Palace</h2>
         </Link>
 
         {/* Desktop Nav */}
-        <div className="hidden md:flex flex-row space-x-10 text-[#815331] items-center">
+        <div className="hidden md:flex flex-row space-x-10 text-foreground items-center">
           {navItems.map((item) => (
             <NavLink
               key={item.label}
@@ -47,10 +46,9 @@ function Navbar() {
             >
               {({ isActive }) => (
                 <>
-                  {' '}
-                  {item.label}{' '}
+                  {item.label}
                   <span
-                    className={`absolute left-0 -bottom-1 h-[2px] w-full bg-primary transition-transform duration-300 ${isActive ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'}`}
+                    className={`absolute left-0 -bottom-1 h-[2px] w-full bg-primary transition-transform duration-300 ${isActive ? 'scale-x-100' : 'scale-x-0'}`}
                   />
                 </>
               )}
@@ -58,39 +56,49 @@ function Navbar() {
           ))}
 
           {/* Cart Icon */}
-          <Link to="/cart">
+          <Link to="/cart" className="hover:text-primary transition-colors">
             <ShoppingCart size={18} />
           </Link>
 
-          {/* Auth/Profile Icon or Logout */}
+          {/* Authenticated: Profile + Logout | Not authenticated: Login */}
           {auth.authenticate ? (
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-2 hover:text-red-600 transition-colors"
-              title="Logout"
-            >
-              <LogOut size={18} />
-            </button>
+            <>
+              <Link
+                to="/profile"
+                className="hover:text-primary transition-colors"
+                title="My Profile"
+              >
+                <UserCircle size={18} />
+              </Link>
+              <button
+                onClick={handleLogout}
+                className="hover:text-destructive transition-colors"
+                title="Logout"
+              >
+                <LogOut size={18} />
+              </button>
+            </>
           ) : (
-            <Link to="/auth">
+            <Link to="/auth" className="hover:text-primary transition-colors">
               <Users size={18} />
             </Link>
           )}
 
           {/* Dark Mode Toggle */}
-          <button onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}>
+          <button
+            onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+            className="hover:text-primary transition-colors"
+          >
             {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
           </button>
         </div>
 
         {/* Mobile Hamburger + Cart */}
-        <div className="flex md:hidden items-center space-x-8 text-[#815331]">
-          {/* Cart Icon */}
+        <div className="flex md:hidden items-center space-x-8 text-foreground">
           <Link to="/cart">
             <ShoppingCart size={20} />
           </Link>
 
-          {/* Hamburger */}
           <button onClick={() => setOpen(!open)}>
             {open ? <X size={20} /> : <Menu size={23} />}
           </button>
@@ -99,7 +107,7 @@ function Navbar() {
 
       {/* Mobile Menu */}
       {open && (
-        <div className="md:hidden mt-4 flex flex-col space-y-4 text-[#815331] dark:text-[#e8d9c3] bg-[#faf8f5] dark:bg-[#1a1a1a] p-4 rounded-lg shadow">
+        <div className="md:hidden mt-4 flex flex-col space-y-4 text-foreground bg-card p-4 rounded-lg shadow border border-border">
           {navItems.map((item) => (
             <NavLink
               key={item.label}
@@ -114,15 +122,26 @@ function Navbar() {
           ))}
 
           <div className="flex flex-col space-y-3 pt-2 border-t border-border">
-            {/* Logout in Mobile */}
             {auth.authenticate ? (
               <>
                 <div className="text-sm text-muted-foreground">
-                  Logged in as: <span className="font-medium">{auth.user?.fullName}</span>
+                  Logged in as:{' '}
+                  <span className="font-medium text-foreground">{auth.user?.fullName}</span>
                 </div>
+
+                {/* Mobile Profile Link */}
+                <Link
+                  to="/profile"
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-2 hover:text-primary transition-colors"
+                >
+                  <UserCircle size={18} />
+                  <span>My Profile</span>
+                </Link>
+
                 <button
                   onClick={handleLogout}
-                  className="flex items-center gap-2 hover:text-red-600 transition-colors"
+                  className="flex items-center gap-2 hover:text-destructive transition-colors"
                 >
                   <LogOut size={18} />
                   <span>Logout</span>
@@ -137,14 +156,10 @@ function Navbar() {
           </div>
 
           <button
-            className="pt-2 flex items-center border-t border-border"
+            className="pt-2 flex items-center border-t border-border hover:text-primary transition-colors"
             onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
           >
-            {theme === 'dark' ? (
-              <Sun size={22} className="h-5 w-5 rotate-0 scale-100 transition-all" />
-            ) : (
-              <Moon size={22} className="h-5 w-5 rotate-0 scale-100 transition-all" />
-            )}
+            {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
             <span className="ml-2">{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
           </button>
         </div>
