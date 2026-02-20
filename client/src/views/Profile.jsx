@@ -203,7 +203,7 @@ const Profile = () => {
           </div>
         </div>
 
-        {/* ================= PROFILE TAB ================= */}
+        {/* PROFILE TAB */}
         {activeTab === 'profile' && (
           <div className="space-y-6">
             <div className="bg-card rounded-lg border border-border shadow-card p-6">
@@ -312,7 +312,7 @@ const Profile = () => {
           </div>
         )}
 
-        {/* ================= SECURITY TAB ================= */}
+        {/* SECURITY TAB */}
         {activeTab === 'security' && (
           <div className="bg-card rounded-lg border border-border shadow-card p-6 space-y-4">
             <h2 className="text-lg font-semibold">Change Password</h2>
@@ -358,7 +358,7 @@ const Profile = () => {
           </div>
         )}
 
-        {/* ================= DANGER TAB ================= */}
+        {/* DANGER TAB */}
         {activeTab === 'danger' && (
           <div className="bg-card rounded-lg border border-destructive/50 shadow-card p-6">
             <h2 className="text-lg font-semibold text-destructive">Danger Zone</h2>
