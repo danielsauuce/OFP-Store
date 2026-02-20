@@ -173,8 +173,8 @@ const Checkout = () => {
   const shipping = subtotal > SHIPPING_THRESHOLD ? 0 : SHIPPING_COST;
   const total = subtotal + shipping;
 
-  // --- Loading ---
-  if (loading) {
+  // --- Loading or no cart ---
+  if (loading || !cart) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader className="h-8 w-8 animate-spin text-primary" />

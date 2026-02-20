@@ -1,9 +1,24 @@
+import { useState, useEffect } from 'react';
 import ProductCard from './ProductCard';
 import { Link } from 'react-router-dom';
-import { furnitureItems } from '../data/FurnitureItems';
+import { getAllProductsService } from '../services/productService';
 
 const Features = () => {
-  const featuresProduct = furnitureItems.slice(0, 6);
+  const [products, setProducts] = useState([]);
+
+  useEffect(() => {
+    const fetchFeatured = async () => {
+      try {
+        const data = await getAllProductsService({ limit: 6 });
+        if (data?.success) {
+          setProducts(data.data?.products || []);
+        }
+      } catch (error) {
+        console.error('Failed to fetch featured products:', error);
+      }
+    };
+    fetchFeatured();
+  }, []);
 
   return (
     <section className="bg-gradient-to-b from-secondary to-muted py-20">
@@ -19,11 +34,15 @@ const Features = () => {
         </div>
 
         {/* Product Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {featuresProduct.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
+        {products.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {products.map((product) => (
+              <ProductCard key={product._id} product={product} />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12 text-muted-foreground">Loading products...</div>
+        )}
 
         {/* View All Button */}
         <div className="text-center mt-12">
