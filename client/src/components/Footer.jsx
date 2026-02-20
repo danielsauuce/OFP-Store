@@ -16,27 +16,26 @@ const customerServiceLinks = [
 ];
 
 const socialLinks = [
-  { icon: <Facebook className="h-5 w-5" />, href: '#' },
-  { icon: <Instagram className="h-5 w-5" />, href: '#' },
-  { icon: <Twitter className="h-5 w-5" />, href: '#' },
+  { icon: Facebook, href: '#' },
+  { icon: Instagram, href: '#' },
+  { icon: Twitter, href: '#' },
 ];
 
 const contactInfo = [
-  { icon: <Phone className="h-4 w-4" />, text: '+234 (0) 123 456 7890' },
-  { icon: <Mail className="h-4 w-4" />, text: 'info@olayinkafurniture.com' },
+  { icon: Phone, text: '+234 (0) 123 456 7890' },
+  { icon: Mail, text: 'info@olayinkafurniture.com' },
   {
-    icon: <MapPin className="h-6 w-6 mt-1" />,
+    icon: MapPin,
     text: '1, Aroworamimo Street, Igbo-olomu, Agric Ikorodu, Lagos State, Nigeria.',
-    isStart: true, // flag for items that should use items-start
+    isStart: true,
   },
 ];
 
 function Footer() {
   return (
-    <footer className="bg-muted border-t mt-20">
+    <footer className="bg-muted border-t border-border">
       <div className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          {/* Brand & Social */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           <div className="space-y-4">
             <h3 className="font-serif font-bold text-lg text-foreground">
               Olayinka Furniture Palace
@@ -46,15 +45,18 @@ function Footer() {
             </p>
 
             <div className="flex space-x-4">
-              {socialLinks.map((link, index) => (
-                <a
-                  key={index}
-                  href={link.href}
-                  className="text-muted-foreground hover:text-primary transition-colors"
-                >
-                  {link.icon}
-                </a>
-              ))}
+              {socialLinks.map((link, index) => {
+                const Icon = link.icon;
+                return (
+                  <a
+                    key={index}
+                    href={link.href}
+                    className="text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    <Icon className="h-5 w-5" />
+                  </a>
+                );
+              })}
             </div>
           </div>
 
@@ -89,23 +91,26 @@ function Footer() {
           <div className="space-y-4">
             <h4 className="font-semibold text-foreground">Contact Us</h4>
             <ul className="space-y-3 text-sm">
-              {contactInfo.map((item, index) => (
-                <li
-                  key={index}
-                  className={`flex ${
-                    item.isStart ? 'items-start' : 'items-center'
-                  } space-x-2 text-muted-foreground`}
-                >
-                  {item.icon}
-                  <span>{item.text}</span>
-                </li>
-              ))}
+              {contactInfo.map((item, index) => {
+                const Icon = item.icon;
+                return (
+                  <li
+                    key={index}
+                    className={`flex gap-2 text-muted-foreground ${
+                      item.isStart ? 'items-start' : 'items-center'
+                    }`}
+                  >
+                    <Icon className={`h-4 w-4 shrink-0 ${item.isStart ? 'mt-0.5' : ''}`} />
+                    <span>{item.text}</span>
+                  </li>
+                );
+              })}
             </ul>
           </div>
         </div>
 
         {/* Footer Bottom */}
-        <div className="mt-12 pt-8 border-t text-center text-sm text-muted-foreground">
+        <div className="mt-12 pt-8 border-t border-border text-center text-sm text-muted-foreground">
           <p>&copy; {new Date().getFullYear()} Olayinka Furniture Palace. All rights reserved.</p>
         </div>
       </div>

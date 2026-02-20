@@ -109,7 +109,7 @@ export const furnitureItems = [
       'A compact side table with an industrial edge. The raw steel frame pairs with a thick mango wood top to create a functional piece that doubles as a design statement. Ideal next to sofas or as a bedside table.',
     material: 'Mango Wood / Raw Steel',
     dimensions: '45cm x 45cm x 55cm',
-    inStock: true,
+    inStock: false,
     rating: 4.6,
     reviews: 11,
   },
