@@ -1,14 +1,63 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ShoppingCart, Minus, Plus, ArrowLeft } from 'lucide-react';
+import { ShoppingCart, Minus, Plus, ArrowLeft, Loader } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { furnitureItems } from '../data/FurnitureItems';
-import ProductCard from '../components/ProductCard';
+import { getProductByIdService } from '../services/productService';
+import { addToCartService } from '../services/cartService';
+import { useAuth } from '../context/authContext';
 
 const ProductDetails = () => {
   const { id } = useParams();
-  const product = furnitureItems.find((item) => item.id === Number(id));
+  const { auth } = useAuth();
+  const [product, setProduct] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [adding, setAdding] = useState(false);
   const [quantity, setQuantity] = useState(1);
+
+  useEffect(() => {
+    fetchProduct();
+  }, [id]);
+
+  const fetchProduct = async () => {
+    setLoading(true);
+    try {
+      const data = await getProductByIdService(id);
+      if (data?.success) {
+        setProduct(data.product);
+      }
+    } catch (error) {
+      console.error('Failed to fetch product:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddToCart = async () => {
+    if (!auth.authenticate) {
+      toast.error('Please sign in to add items to your cart');
+      return;
+    }
+
+    setAdding(true);
+    try {
+      const data = await addToCartService(product._id, quantity);
+      if (data?.success) {
+        toast.success(`${quantity} x ${product.name} added to cart!`);
+      }
+    } catch (error) {
+      toast.error(error?.response?.data?.message || 'Failed to add to cart');
+    } finally {
+      setAdding(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   if (!product) {
     return (
@@ -26,14 +75,10 @@ const ProductDetails = () => {
     );
   }
 
-  const relatedProducts = furnitureItems
-    .filter((item) => item.category === product.category && item.id !== product.id)
-    .slice(0, 4);
-
-  const handleAddToCart = () => {
-    // TODO: integrate with cart context/service
-    toast.success(`${quantity} x ${product.title} added to cart!`);
-  };
+  // Extract image URL from populated primaryImage
+  const imageUrl = product.primaryImage?.secureUrl || product.primaryImage?.url || '';
+  const categoryName =
+    typeof product.category === 'object' ? product.category.name : product.category;
 
   return (
     <div className="min-h-screen py-12 bg-background text-foreground">
@@ -51,7 +96,7 @@ const ProductDetails = () => {
           {/* Product Image */}
           <div className="space-y-4">
             <div className="aspect-square rounded-lg overflow-hidden shadow-card border border-border">
-              <img src={product.image} alt={product.title} className="w-full h-full object-cover" />
+              <img src={imageUrl} alt={product.name} className="w-full h-full object-cover" />
             </div>
           </div>
 
@@ -59,12 +104,12 @@ const ProductDetails = () => {
           <div className="space-y-6">
             <div>
               {/* Category Badge */}
-              <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground mb-2">
-                {product.category}
-              </span>
-              <h1 className="text-4xl font-serif font-bold mb-4 text-foreground">
-                {product.title}
-              </h1>
+              {categoryName && (
+                <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground mb-2">
+                  {categoryName}
+                </span>
+              )}
+              <h1 className="text-4xl font-serif font-bold mb-4 text-foreground">{product.name}</h1>
               <p className="text-3xl font-bold text-primary mb-6">£{product.price.toFixed(2)}</p>
             </div>
 
@@ -72,7 +117,9 @@ const ProductDetails = () => {
               {/* Description */}
               <div>
                 <h3 className="font-semibold text-foreground mb-2">Description</h3>
-                <p className="text-muted-foreground">{product.description}</p>
+                <p className="text-muted-foreground">
+                  {product.description || product.shortDescription}
+                </p>
               </div>
 
               {/* Material */}
@@ -87,7 +134,11 @@ const ProductDetails = () => {
               {product.dimensions && (
                 <div>
                   <h3 className="font-semibold text-foreground mb-2">Dimensions</h3>
-                  <p className="text-muted-foreground">{product.dimensions}</p>
+                  <p className="text-muted-foreground">
+                    {product.dimensions.width && `${product.dimensions.width}cm (W)`}
+                    {product.dimensions.height && ` × ${product.dimensions.height}cm (H)`}
+                    {product.dimensions.depth && ` × ${product.dimensions.depth}cm (D)`}
+                  </p>
                 </div>
               )}
 
@@ -130,15 +181,19 @@ const ProductDetails = () => {
               {/* Add to Cart Button */}
               <button
                 onClick={handleAddToCart}
-                disabled={!product.inStock}
+                disabled={!product.inStock || adding}
                 className={`w-full flex items-center justify-center gap-2 px-6 py-3 rounded-md font-medium transition-colors ${
                   product.inStock
                     ? 'bg-primary text-primary-foreground hover:bg-primary-dark'
                     : 'bg-muted text-muted-foreground cursor-not-allowed'
-                }`}
+                } disabled:opacity-60`}
               >
-                <ShoppingCart className="h-5 w-5" />
-                {product.inStock ? 'Add to Cart' : 'Out of Stock'}
+                {adding ? (
+                  <Loader className="h-5 w-5 animate-spin" />
+                ) : (
+                  <ShoppingCart className="h-5 w-5" />
+                )}
+                {product.inStock ? (adding ? 'Adding...' : 'Add to Cart') : 'Out of Stock'}
               </button>
             </div>
 
@@ -150,20 +205,6 @@ const ProductDetails = () => {
             </div>
           </div>
         </div>
-
-        {/* Related Products */}
-        {relatedProducts.length > 0 && (
-          <section>
-            <h2 className="text-3xl font-serif font-bold text-foreground mb-8">
-              You May Also Like
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {relatedProducts.map((item) => (
-                <ProductCard key={item.id} product={item} />
-              ))}
-            </div>
-          </section>
-        )}
       </div>
     </div>
   );
