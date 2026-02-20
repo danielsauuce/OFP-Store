@@ -7,6 +7,7 @@ import ProductDetails from './views/ProductDetails';
 import About from './views/About';
 import Contact from './views/Contact';
 import Cart from './views/Cart';
+import Checkout from './views/CheckOutPage';
 import Profile from './views/Profile';
 import AuthPage from './views/AuthPage';
 import NotFound from './views/NotFound';
@@ -29,7 +30,6 @@ const MainLayout = () => (
 function App() {
   const { auth, isLoading } = useAuth();
 
-  // Show loading spinner while checking auth
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center flex-col">
@@ -53,14 +53,12 @@ function App() {
             boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)',
             fontSize: '0.875rem',
           },
-
           success: {
             iconTheme: {
               primary: 'hsl(150 30% 40%)',
               secondary: 'hsl(0 0% 100%)',
             },
           },
-
           error: {
             style: {
               background: 'hsl(0 72% 51%)',
@@ -73,7 +71,7 @@ function App() {
       />
 
       <Routes>
-        {/* Auth Route - Redirects if already authenticated */}
+        {/* Auth Route */}
         <Route
           path="/auth"
           element={
@@ -81,7 +79,7 @@ function App() {
           }
         />
 
-        {/* Admin Routes - Requires admin role */}
+        {/* Admin Routes */}
         <Route
           path="/admin/*"
           element={
@@ -95,7 +93,7 @@ function App() {
           }
         />
 
-        {/* Public Routes with Navbar/Footer */}
+        {/* Public Routes with Navbar and Footer */}
         <Route element={<MainLayout />}>
           <Route path="/" element={<Home />} />
           <Route path="/shop" element={<Shop />} />
@@ -103,6 +101,17 @@ function App() {
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/cart" element={<Cart />} />
+          <Route
+            path="/checkout"
+            element={
+              <RouteGuard
+                authenticated={auth.authenticate}
+                user={auth.user}
+                element={<Checkout />}
+                requireAuth={true}
+              />
+            }
+          />
           <Route
             path="/profile"
             element={
