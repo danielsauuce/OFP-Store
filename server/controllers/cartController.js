@@ -3,6 +3,11 @@ import Product from '../models/product.js';
 import logger from '../utils/logger.js';
 import { addItem, updateItem } from '../utils/cartValidation.js';
 
+// Helper: compute total from items (needed because .lean() strips virtuals)
+const computeCartTotal = (items) => {
+  return items.reduce((sum, item) => sum + (item.priceSnapshot || 0) * item.quantity, 0);
+};
+
 export const getCart = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -20,6 +25,15 @@ export const getCart = async (req, res) => {
 
     if (!cart) {
       cart = await Cart.create({ user: userId, items: [] });
+      // .create() returns a Mongoose doc, but send consistent shape
+      return res.status(200).json({
+        success: true,
+        cart: {
+          _id: cart._id,
+          items: [],
+          total: 0,
+        },
+      });
     }
 
     res.status(200).json({
@@ -27,7 +41,7 @@ export const getCart = async (req, res) => {
       cart: {
         _id: cart._id,
         items: cart.items,
-        total: cart.total,
+        total: computeCartTotal(cart.items),
       },
     });
   } catch (error) {
@@ -117,7 +131,7 @@ export const addToCart = async (req, res) => {
       cart: {
         _id: cart._id,
         items: cart.items,
-        total: cart.total,
+        total: cart.total, // Mongoose doc — virtual works here
       },
     });
   } catch (error) {
