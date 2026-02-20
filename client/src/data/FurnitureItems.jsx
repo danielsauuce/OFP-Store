@@ -5,6 +5,13 @@ export const furnitureItems = [
     title: 'Classic Leather Sofa',
     price: 1299.99,
     image: 'https://i.pinimg.com/1200x/90/d1/06/90d106af4070a5a38e92f0247d7f24f9.jpg',
+    description:
+      'Timeless elegance meets modern comfort in this handcrafted leather sofa. Built with a solid hardwood frame and premium full-grain leather upholstery, it develops a beautiful patina over time. Deep cushions provide exceptional support for everyday lounging.',
+    material: 'Full-Grain Leather / Hardwood Frame',
+    dimensions: '220cm x 90cm x 85cm',
+    inStock: true,
+    rating: 4.8,
+    reviews: 24,
   },
   {
     id: 2,
@@ -12,6 +19,13 @@ export const furnitureItems = [
     title: 'Modern Dining Table',
     price: 899.99,
     image: 'https://i.pinimg.com/1200x/d3/94/42/d39442404a7ded5b0e8f0fb27e4867ef.jpg',
+    description:
+      'A sleek dining table that seats six comfortably. The solid oak top is paired with minimalist steel legs for a contemporary look that works in both casual and formal settings. Treated with a food-safe matte finish for durability.',
+    material: 'Solid Oak / Powder-Coated Steel',
+    dimensions: '180cm x 90cm x 75cm',
+    inStock: true,
+    rating: 4.6,
+    reviews: 18,
   },
   {
     id: 3,
@@ -20,6 +34,13 @@ export const furnitureItems = [
     price: 449.99,
     image:
       'https://loopandtwist.com/cdn/shop/files/BONNY-169016_cfdcf2f7-51fd-40ee-bfec-bca994392786_2048x.jpg?v=1724163903',
+    description:
+      'Designed for all-day comfort with adjustable lumbar support, breathable mesh back, and a contoured seat cushion. Features height adjustment, 360° swivel, and smooth-rolling casters suitable for all floor types.',
+    material: 'Mesh / Aluminium Base',
+    dimensions: '68cm x 68cm x 115cm',
+    inStock: true,
+    rating: 4.5,
+    reviews: 31,
   },
   {
     id: 4,
@@ -27,6 +48,13 @@ export const furnitureItems = [
     title: 'Luxury Upholstered Bed',
     price: 1599.99,
     image: 'https://i.pinimg.com/736x/ba/f6/29/baf629850a56bcf1cb0d493a08b2b902.jpg',
+    description:
+      'Make a statement with this upholstered king-size bed. The tall padded headboard offers comfortable back support for reading, while the solid slat base eliminates the need for a box spring. Wrapped in soft linen-blend fabric.',
+    material: 'Linen Blend / Solid Pine Frame',
+    dimensions: '210cm x 180cm x 130cm',
+    inStock: true,
+    rating: 4.9,
+    reviews: 12,
   },
   {
     id: 5,
@@ -34,6 +62,13 @@ export const furnitureItems = [
     title: 'Minimalist Lounge Chair',
     price: 799.99,
     image: 'https://i.pinimg.com/1200x/22/28/34/2228340690e0b96643e7275067179c3d.jpg',
+    description:
+      'A sculptural accent chair that blends Scandinavian simplicity with plush comfort. The curved walnut shell cradles a removable cushion upholstered in boucle fabric. Perfect as a reading nook centrepiece.',
+    material: 'Walnut Veneer / Boucle Fabric',
+    dimensions: '75cm x 80cm x 85cm',
+    inStock: false,
+    rating: 4.7,
+    reviews: 9,
   },
   {
     id: 6,
@@ -41,28 +76,56 @@ export const furnitureItems = [
     title: 'Rustic Coffee Table',
     price: 349.99,
     image: 'https://i.pinimg.com/736x/e9/72/fc/e972fc34117f9db6dbfc5b24e17af522.jpg',
+    description:
+      'Bring warmth to your living space with this reclaimed wood coffee table. Each piece is unique with natural grain patterns and a hand-applied wax finish. Features a handy lower shelf for books and magazines.',
+    material: 'Reclaimed Pine / Black Iron',
+    dimensions: '120cm x 60cm x 45cm',
+    inStock: true,
+    rating: 4.4,
+    reviews: 15,
   },
   {
     id: 7,
     category: 'Beds',
-    title: 'Luxury Upholstered Bed',
+    title: 'Platform Storage Bed',
     price: 1599.99,
     image:
       'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=800&q=80',
+    description:
+      'Maximise your bedroom space with integrated drawers on both sides. The low-profile platform design gives a modern feel, while the engineered wood construction ensures lasting stability. Available in king size.',
+    material: 'Engineered Wood / Brushed Steel Handles',
+    dimensions: '210cm x 180cm x 40cm',
+    inStock: true,
+    rating: 4.3,
+    reviews: 7,
   },
   {
     id: 8,
     category: 'Tables',
-    title: 'Rustic Coffee Table',
+    title: 'Industrial Side Table',
     price: 349.99,
     image: 'https://i.pinimg.com/736x/f9/af/58/f9af58657d3c3583dfdc56e2bea79ef3.jpg',
+    description:
+      'A compact side table with an industrial edge. The raw steel frame pairs with a thick mango wood top to create a functional piece that doubles as a design statement. Ideal next to sofas or as a bedside table.',
+    material: 'Mango Wood / Raw Steel',
+    dimensions: '45cm x 45cm x 55cm',
+    inStock: true,
+    rating: 4.6,
+    reviews: 11,
   },
   {
     id: 9,
     category: 'Beds',
-    title: 'Luxury Upholstered Bed',
-    price: 1599.99,
+    title: 'Velvet Canopy Bed',
+    price: 1899.99,
     image:
       'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=800&q=80',
+    description:
+      'Transform your bedroom into a retreat with this velvet-upholstered canopy bed. The brass-finished metal frame adds a touch of glamour, while the deep-tufted headboard provides luxurious comfort.',
+    material: 'Velvet / Brass-Finished Steel',
+    dimensions: '220cm x 185cm x 210cm',
+    inStock: false,
+    rating: 4.8,
+    reviews: 5,
   },
 ];

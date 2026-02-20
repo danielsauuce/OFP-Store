@@ -11,6 +11,7 @@ import { Toaster } from 'react-hot-toast';
 import RouteGuard from './components/RouteGuard';
 import { useAuth } from './context/authContext';
 import CommonSideBar from './views/admin/components/CommonSideBar';
+import ProductDetails from './views/ProductDetails';
 
 // Layout component for pages with Navbar & Footer
 const MainLayout = () => (
@@ -100,6 +101,7 @@ function App() {
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="*" element={<NotFound />} />
+          <Route path="/product/:id" element={<ProductDetails />} />
         </Route>
       </Routes>
     </>
