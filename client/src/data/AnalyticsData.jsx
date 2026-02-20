@@ -1,69 +1,45 @@
-import MetricCard from '../components/MetricCard';
-import ProgressBar from '../components/ProgressBar';
-import { metrics, topCategories, salesPerformance } from '../../data/AnalyticsData';
+import { TrendingUp, TrendingDown } from 'lucide-react';
 
-const Analytics = () => {
-  return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-serif font-bold text-foreground">Analytics</h1>
-        <p className="text-muted-foreground mt-2">
-          Insights and performance metrics for your store
-        </p>
-      </div>
+export const metrics = [
+  {
+    title: 'Sales Trend',
+    value: '+25.3%',
+    description: 'Compared to last month',
+    trend: 'up',
+    icon: TrendingUp,
+  },
+  {
+    title: 'Conversion Rate',
+    value: '3.2%',
+    description: '0.5% increase from last week',
+    trend: 'up',
+    icon: TrendingUp,
+  },
+  {
+    title: 'Average Order Value',
+    value: '$425',
+    description: '5% decrease from last month',
+    trend: 'down',
+    icon: TrendingDown,
+  },
+  {
+    title: 'Customer Retention',
+    value: '68%',
+    description: '2% increase from last quarter',
+    trend: 'up',
+    icon: TrendingUp,
+  },
+];
 
-      {/* Metric Cards */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        {metrics.map((metric, index) => (
-          <MetricCard
-            key={index}
-            title={metric.title}
-            value={metric.value}
-            description={metric.description}
-            trend={metric.trend}
-            icon={metric.icon}
-          />
-        ))}
-      </div>
+export const topCategories = [
+  { name: 'Sofas', sales: 45, revenue: '$58,495' },
+  { name: 'Tables', sales: 38, revenue: '$34,196' },
+  { name: 'Chairs', sales: 32, revenue: '$14,400' },
+  { name: 'Beds', sales: 15, revenue: '$22,499' },
+];
 
-      <div className="grid gap-6 md:grid-cols-2">
-        {/* Best Selling Categories */}
-        <div className="bg-card p-6 rounded-lg shadow-card border border-border">
-          <h2 className="text-lg font-semibold text-foreground mb-4">Best Selling Categories</h2>
-          <div className="space-y-4">
-            {topCategories.map((category, index) => (
-              <div
-                key={index}
-                className="flex items-center justify-between border-b border-border pb-4 last:border-0 last:pb-0"
-              >
-                <div>
-                  <p className="font-medium text-foreground">{category.name}</p>
-                  <p className="text-sm text-muted-foreground">{category.sales} units sold</p>
-                </div>
-                <p className="font-bold text-primary">{category.revenue}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Sales Performance */}
-        <div className="bg-card p-6 rounded-lg shadow-card border border-border">
-          <h2 className="text-lg font-semibold text-foreground mb-4">Sales Performance</h2>
-          <div className="space-y-4">
-            {salesPerformance.map((item, index) => (
-              <ProgressBar
-                key={index}
-                label={item.label}
-                amount={item.amount}
-                width={item.width}
-                opacity={item.opacity}
-              />
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default Analytics;
+export const salesPerformance = [
+  { label: 'This Month', amount: '$45,231', width: '75%', opacity: '' },
+  { label: 'Last Month', amount: '$36,142', width: '60%', opacity: '/60' },
+  { label: '3 Months Ago', amount: '$28,956', width: '48%', opacity: '/40' },
+];

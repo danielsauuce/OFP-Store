@@ -3,16 +3,30 @@ import { Edit, Trash2, Plus, Eye } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Modal from '../admin/components/Modal';
 import ProductFormFields from '../admin/components/Productformfields';
+import Pagination from '../admin/components/Pagination';
 import { initialProducts, emptyProduct } from '../../data/ProductsData';
+
+const PRODUCTS_PER_PAGE = 6;
 
 const Products = () => {
   const [productList, setProductList] = useState(initialProducts);
+  const [currentPage, setCurrentPage] = useState(1);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [formData, setFormData] = useState(emptyProduct);
+
+  // --- Pagination ---
+  const totalPages = Math.ceil(productList.length / PRODUCTS_PER_PAGE);
+  const startIndex = (currentPage - 1) * PRODUCTS_PER_PAGE;
+  const paginatedProducts = productList.slice(startIndex, startIndex + PRODUCTS_PER_PAGE);
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   // --- Form handlers ---
   const handleInputChange = (e) => {
@@ -73,6 +87,10 @@ const Products = () => {
     setIsAddOpen(false);
     setFormData({ ...emptyProduct });
     toast.success(`Product "${newProduct.name}" added successfully!`);
+
+    // Jump to last page to show the new product
+    const newTotal = Math.ceil((productList.length + 1) / PRODUCTS_PER_PAGE);
+    setCurrentPage(newTotal);
   };
 
   const handleEdit = () => {
@@ -94,10 +112,17 @@ const Products = () => {
   const handleDelete = () => {
     if (!selectedProduct) return;
 
-    setProductList((prev) => prev.filter((p) => p.id !== selectedProduct.id));
+    const updatedList = productList.filter((p) => p.id !== selectedProduct.id);
+    setProductList(updatedList);
     setIsDeleteOpen(false);
     toast.success(`Product "${selectedProduct.name}" deleted successfully!`);
     setSelectedProduct(null);
+
+    // If current page is now empty, go back a page
+    const newTotal = Math.ceil(updatedList.length / PRODUCTS_PER_PAGE);
+    if (currentPage > newTotal && newTotal > 0) {
+      setCurrentPage(newTotal);
+    }
   };
 
   return (
@@ -119,9 +144,15 @@ const Products = () => {
         </button>
       </div>
 
+      {/* Pagination Info */}
+      <p className="text-sm text-muted-foreground">
+        Showing {startIndex + 1}–{Math.min(startIndex + PRODUCTS_PER_PAGE, productList.length)} of{' '}
+        {productList.length} products
+      </p>
+
       {/* Product List */}
       <div className="grid gap-4">
-        {productList.map((product) => (
+        {paginatedProducts.map((product) => (
           <div
             key={product.id}
             className="bg-card p-6 rounded-lg shadow-card border border-border hover:scale-[1.01] transition-transform"
@@ -183,6 +214,13 @@ const Products = () => {
           </div>
         ))}
       </div>
+
+      {/* Pagination */}
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={handlePageChange}
+      />
 
       {/* Add Product Modal */}
       <Modal
