@@ -1,7 +1,7 @@
-import { ArrowRight } from "lucide-react";
-import { Link } from "react-router-dom";
-import { useLayoutEffect, useRef } from "react";
-import gsap from "gsap";
+import { ArrowRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { useLayoutEffect, useRef } from 'react';
+import gsap from 'gsap';
 
 function Hero() {
   const heroRef = useRef(null);
@@ -9,41 +9,37 @@ function Hero() {
   const buttonRef = useRef(null);
 
   const heroImage =
-    "https://images.unsplash.com/photo-1549187774-b4e9b0445b41?w=900&auto=format&fit=crop&q=60";
+    'https://images.unsplash.com/photo-1549187774-b4e9b0445b41?w=900&auto=format&fit=crop&q=60';
 
   useLayoutEffect(() => {
     const ctx = gsap.context(() => {
       const tl = gsap.timeline({
-        defaults: { ease: "power3.out" },
+        defaults: { ease: 'power3.out' },
       });
 
       // Image reveal
-      tl.fromTo(
-        imageRef.current,
-        { scale: 1.2 },
-        { scale: 1, duration: 1.8 }
-      )
+      tl.fromTo(imageRef.current, { scale: 1.2 }, { scale: 1, duration: 1.8 })
 
         // Title
         .from(
-          ".hero-title",
+          '.hero-title',
           {
             y: 80,
             opacity: 0,
             duration: 1,
           },
-          "-=1.2"
+          '-=1.2',
         )
 
         // Subtitle
         .from(
-          ".hero-subtitle",
+          '.hero-subtitle',
           {
             y: 40,
             opacity: 0,
             duration: 0.9,
           },
-          "-=0.8"
+          '-=0.8',
         )
 
         // Button
@@ -54,31 +50,33 @@ function Hero() {
             opacity: 0,
             scale: 0.9,
             duration: 0.7,
-            ease: "back.out(1.7)",
-            clearProps: "all", // IMPORTANT
+            ease: 'back.out(1.7)',
+            clearProps: 'all', // IMPORTANT
           },
-          "-=0.6"
+          '-=0.6',
         );
 
       // Smooth hover animation (GSAP-safe)
       const hoverTL = gsap.timeline({ paused: true });
 
-      hoverTL.to(buttonRef.current, {
-        scale: 1.05,
-        duration: 0.3,
-        ease: "power2.out",
-      }).to(
-        ".hero-arrow",
-        {
-          x: 6,
+      hoverTL
+        .to(buttonRef.current, {
+          scale: 1.05,
           duration: 0.3,
-          ease: "power2.out",
-        },
-        0
-      );
+          ease: 'power2.out',
+        })
+        .to(
+          '.hero-arrow',
+          {
+            x: 6,
+            duration: 0.3,
+            ease: 'power2.out',
+          },
+          0,
+        );
 
-      buttonRef.current.addEventListener("mouseenter", () => hoverTL.play());
-      buttonRef.current.addEventListener("mouseleave", () => hoverTL.reverse());
+      buttonRef.current.addEventListener('mouseenter', () => hoverTL.play());
+      buttonRef.current.addEventListener('mouseleave', () => hoverTL.reverse());
     }, heroRef);
 
     return () => ctx.revert();
@@ -105,8 +103,8 @@ function Hero() {
           </h1>
 
           <p className="hero-subtitle text-xl mb-8 text-[hsl(40_20%_96%)] drop-shadow-md">
-            Discover timeless furniture pieces crafted with precision and passion.
-            Transform your house into a home with our curated collections.
+            Discover timeless furniture pieces crafted with precision and passion. Transform your
+            house into a home with our curated collections.
           </p>
 
           <Link to="/shop">
