@@ -6,6 +6,7 @@ import Contact from './views/Contact';
 import AuthPage from './views/AuthPage';
 import Cart from './views/Cart';
 import NotFound from './views/NotFound';
+import Profile from './views/Profile';
 import { Toaster } from 'react-hot-toast';
 import RouteGuard from './components/RouteGuard';
 import { useAuth } from './context/authContext';
@@ -17,6 +18,7 @@ import Users from './views/admin/Users';
 import Analytics from './views/admin/Analytics';
 import { Loader } from 'lucide-react';
 import MainLayout from './components/mainLayout';
+import Checkout from './views/CheckOutPage';
 
 function App() {
   const { auth, isLoading } = useAuth();
@@ -99,7 +101,9 @@ function App() {
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/cart" element={<Cart />} />
+          <Route path="/checkout" element={<Checkout />} />
           <Route path="*" element={<NotFound />} />
+                <Route path="/profile" element={<Profile />} />
         </Route>
       </Routes>
     </>
