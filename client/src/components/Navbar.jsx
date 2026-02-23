@@ -3,6 +3,7 @@ import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { ShoppingCart, UserCircle, Users, Menu, X, Sun, Moon, LogOut } from 'lucide-react';
 import useDarkMode from '../hooks/useDarkMode';
 import { useAuth } from '../context/authContext';
+import { useCart } from '../context/cartContext';
 import gsap from 'gsap';
 
 const navItems = [
@@ -16,21 +17,22 @@ function Navbar() {
   const [open, setOpen] = useState(false);
   const [theme, setTheme] = useDarkMode();
   const { auth, signOut } = useAuth();
+  const { itemCount } = useCart();
   const navigate = useNavigate();
 
   const navRef = useRef(null);
   const mobileMenuRef = useRef(null);
   const logoRef = useRef(null);
   const themeIconRef = useRef(null);
+  const cartBadgeRef = useRef(null);
   const hasAnimated = useRef(false);
 
-  // Desktop nav entrance runs once on mount
+  // Desktop nav entrance — runs once
   useLayoutEffect(() => {
     if (hasAnimated.current) return;
     hasAnimated.current = true;
 
     const ctx = gsap.context(() => {
-      // Logo slides in
       gsap.from(logoRef.current, {
         x: -30,
         opacity: 0,
@@ -38,7 +40,6 @@ function Navbar() {
         ease: 'power3.out',
       });
 
-      // Nav links stagger in
       const links = gsap.utils.toArray('.nav-desktop-link');
       gsap.from(links, {
         y: -15,
@@ -49,7 +50,6 @@ function Navbar() {
         ease: 'power2.out',
       });
 
-      // Action icons fade in
       const icons = gsap.utils.toArray('.nav-action-icon');
       gsap.from(icons, {
         scale: 0,
@@ -64,20 +64,27 @@ function Navbar() {
     return () => ctx.revert();
   }, []);
 
-  // Animate mobile menu open/close
+  // Bounce badge when count changes
+  useLayoutEffect(() => {
+    if (cartBadgeRef.current && itemCount > 0) {
+      gsap.fromTo(
+        cartBadgeRef.current,
+        { scale: 1.6 },
+        { scale: 1, duration: 0.4, ease: 'elastic.out(1, 0.4)' },
+      );
+    }
+  }, [itemCount]);
+
+  // Animate mobile menu
   useLayoutEffect(() => {
     if (!mobileMenuRef.current) return;
-
     if (open) {
       const ctx = gsap.context(() => {
-        // Menu container slides down
         gsap.fromTo(
           mobileMenuRef.current,
           { height: 0, opacity: 0 },
           { height: 'auto', opacity: 1, duration: 0.4, ease: 'power3.out' },
         );
-
-        // Menu items stagger in
         const items = gsap.utils.toArray('.mobile-nav-item');
         gsap.from(items, {
           x: -30,
@@ -88,12 +95,10 @@ function Navbar() {
           ease: 'power2.out',
         });
       }, mobileMenuRef);
-
       return () => ctx.revert();
     }
   }, [open]);
 
-  // Animate theme icon rotation on toggle
   const handleThemeToggle = useCallback(() => {
     if (themeIconRef.current) {
       gsap.fromTo(
@@ -107,7 +112,6 @@ function Navbar() {
 
   const handleLogout = async () => {
     const data = await signOut();
-
     if (data?.success) {
       navigate('/');
       setOpen(false);
@@ -120,7 +124,6 @@ function Navbar() {
       className="bg-card/95 w-full p-4 sticky top-0 z-50 shadow backdrop-blur supports-[backdrop-filter]:bg-card/60"
     >
       <div className="flex justify-between pl-5 pr-3 items-center">
-        {/* Logo */}
         <Link to="/" ref={logoRef}>
           <h2 className="text-xl font-bold font-serif text-primary">Olayinka Furniture Palace</h2>
         </Link>
@@ -146,12 +149,22 @@ function Navbar() {
             </NavLink>
           ))}
 
-          {/* Cart Icon */}
-          <Link to="/cart" className="nav-action-icon hover:text-primary transition-colors">
+          {/* Cart with badge */}
+          <Link
+            to="/cart"
+            className="nav-action-icon hover:text-primary transition-colors relative"
+          >
             <ShoppingCart size={18} />
+            {itemCount > 0 && (
+              <span
+                ref={cartBadgeRef}
+                className="absolute -top-2 -right-2.5 bg-primary text-primary-foreground text-[10px] font-bold min-w-[18px] h-[18px] flex items-center justify-center rounded-full"
+              >
+                {itemCount > 99 ? '99+' : itemCount}
+              </span>
+            )}
           </Link>
 
-          {/* Authenticated: Profile + Logout | Not authenticated: Login */}
           {auth.authenticate ? (
             <>
               <Link
@@ -175,7 +188,6 @@ function Navbar() {
             </Link>
           )}
 
-          {/* Dark Mode Toggle */}
           <button
             onClick={handleThemeToggle}
             className="nav-action-icon hover:text-primary transition-colors"
@@ -186,12 +198,16 @@ function Navbar() {
           </button>
         </div>
 
-        {/* Mobile Hamburger + Cart */}
+        {/* Mobile */}
         <div className="flex md:hidden items-center space-x-8 text-foreground">
-          <Link to="/cart">
+          <Link to="/cart" className="relative">
             <ShoppingCart size={20} />
+            {itemCount > 0 && (
+              <span className="absolute -top-2 -right-2.5 bg-primary text-primary-foreground text-[10px] font-bold min-w-[18px] h-[18px] flex items-center justify-center rounded-full">
+                {itemCount > 99 ? '99+' : itemCount}
+              </span>
+            )}
           </Link>
-
           <button onClick={() => setOpen(!open)} aria-label="Toggle menu">
             {open ? <X size={20} /> : <Menu size={23} />}
           </button>
@@ -202,7 +218,7 @@ function Navbar() {
       {open && (
         <div
           ref={mobileMenuRef}
-          className="md:hidden mt-4 flex flex-col space-y-4 text-foreground bg-card p-4 rounded-2xl shadow border border-border overflow-hidden"
+          className="md:hidden mt-4 flex flex-col space-y-4 text-foreground bg-card p-4 rounded-lg shadow border border-border overflow-hidden"
         >
           {navItems.map((item) => (
             <NavLink
@@ -210,7 +226,7 @@ function Navbar() {
               to={item.path}
               onClick={() => setOpen(false)}
               className={({ isActive }) =>
-                `mobile-nav-item transition-colors ${isActive ? 'text-primary font-semibold' : 'text-black/60'}`
+                `mobile-nav-item transition-colors ${isActive ? 'text-primary font-semibold' : ''}`
               }
             >
               {item.label}
@@ -224,7 +240,6 @@ function Navbar() {
                   Logged in as:{' '}
                   <span className="font-medium text-foreground">{auth.user?.fullName}</span>
                 </div>
-
                 <Link
                   to="/profile"
                   onClick={() => setOpen(false)}
@@ -233,7 +248,6 @@ function Navbar() {
                   <UserCircle size={18} />
                   <span>My Profile</span>
                 </Link>
-
                 <button
                   onClick={handleLogout}
                   className="flex items-center gap-2 hover:text-destructive transition-colors"

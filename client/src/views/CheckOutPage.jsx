@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useState, useEffect, useRef, useLayoutEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   ChevronLeft,
   Loader,
@@ -12,10 +12,12 @@ import {
   Phone,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import gsap from 'gsap';
 import { useAuth } from '../context/authContext';
-import { getCartService } from '../services/cartService';
+import { useCart } from '../context/cartContext';
 import { createOrderService } from '../services/orderService';
 import { getUserProfileService } from '../services/userService';
+import { shippingSchema, validateForm } from '../validation/formSchemas';
 import FormField from '../components/FormField';
 import StepProgressBar from '../components/StepProgressBar';
 import PaymentMethodSelector from '../components/PaymentMethodSelector';
@@ -30,6 +32,7 @@ const STEP_LABELS = ['Shipping', 'Payment', 'Review'];
 const Checkout = () => {
   const navigate = useNavigate();
   const { auth } = useAuth();
+  const { cart, loading: cartLoading, fetchCart } = useCart();
 
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(true);
@@ -37,7 +40,6 @@ const Checkout = () => {
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [orderNumber, setOrderNumber] = useState('');
 
-  const [cart, setCart] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState('card');
   const [errors, setErrors] = useState({});
 
@@ -51,6 +53,9 @@ const Checkout = () => {
     postalCode: '',
   });
 
+  const stepContentRef = useRef(null);
+  const pageRef = useRef(null);
+
   useEffect(() => {
     if (!auth.authenticate) {
       toast.error('Please sign in to continue to checkout');
@@ -62,13 +67,10 @@ const Checkout = () => {
 
   const loadCheckoutData = async () => {
     try {
-      // Fetch cart
-      const cartData = await getCartService();
-      if (!cartData?.success || !cartData.cart?.items?.length) {
-        navigate('/cart');
-        return;
+      // Ensure cart is loaded
+      if (!cart?.items?.length) {
+        await fetchCart();
       }
-      setCart(cartData.cart);
 
       // Pre-fill from profile
       const profileData = await getUserProfileService();
@@ -93,7 +95,42 @@ const Checkout = () => {
     }
   };
 
-  // --- Form handling ---
+  // Redirect if cart becomes empty
+  useEffect(() => {
+    if (!loading && !cartLoading && !cart?.items?.length && !orderPlaced) {
+      navigate('/cart');
+    }
+  }, [cart, loading, cartLoading, orderPlaced]);
+
+  // GSAP step transition
+  const animateStepChange = useCallback(() => {
+    if (!stepContentRef.current) return;
+    gsap.fromTo(
+      stepContentRef.current,
+      { y: 30, opacity: 0 },
+      { y: 0, opacity: 1, duration: 0.45, ease: 'power3.out' },
+    );
+  }, []);
+
+  useLayoutEffect(() => {
+    animateStepChange();
+  }, [step, animateStepChange]);
+
+  // Page entrance
+  useLayoutEffect(() => {
+    if (loading || !pageRef.current) return;
+    const ctx = gsap.context(() => {
+      gsap.from('.checkout-header', {
+        y: 30,
+        opacity: 0,
+        duration: 0.7,
+        ease: 'power3.out',
+      });
+    }, pageRef);
+    return () => ctx.revert();
+  }, [loading]);
+
+  // Form handling
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -103,20 +140,23 @@ const Checkout = () => {
   };
 
   const validateShipping = () => {
-    const newErrors = {};
-    if (!formData.fullName || formData.fullName.length < 2)
-      newErrors.fullName = 'Name must be at least 2 characters';
-    if (!formData.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email))
-      newErrors.email = 'Invalid email address';
-    if (!formData.phone || formData.phone.length < 10)
-      newErrors.phone = 'Phone must be at least 10 digits';
-    if (!formData.street || formData.street.length < 5) newErrors.street = 'Address is required';
-    if (!formData.city || formData.city.length < 2) newErrors.city = 'City is required';
-    if (!formData.postalCode || formData.postalCode.length < 3)
-      newErrors.postalCode = 'Postal code is required';
+    const { success, errors: zodErrors } = validateForm(shippingSchema, formData);
+    if (!success) {
+      setErrors(zodErrors);
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+      // Shake error fields
+      if (stepContentRef.current) {
+        Object.keys(zodErrors).forEach((fieldName) => {
+          const el = stepContentRef.current.querySelector(`[name="${fieldName}"]`);
+          if (el) {
+            gsap.fromTo(el, { x: -8 }, { x: 0, duration: 0.4, ease: 'elastic.out(1, 0.3)' });
+          }
+        });
+      }
+      return false;
+    }
+    setErrors({});
+    return true;
   };
 
   const handleNextStep = () => {
@@ -129,7 +169,7 @@ const Checkout = () => {
     else navigate('/cart');
   };
 
-  // --- Submit order ---
+  // Submit order
   const handleSubmit = async () => {
     if (submitting) return;
     setSubmitting(true);
@@ -160,6 +200,8 @@ const Checkout = () => {
         setOrderNumber(data.order.orderNumber);
         setOrderPlaced(true);
         toast.success('Order placed successfully!');
+        // Refetch cart to clear it
+        fetchCart();
       }
     } catch (error) {
       toast.error(error?.response?.data?.message || 'Failed to place order. Please try again.');
@@ -168,13 +210,12 @@ const Checkout = () => {
     }
   };
 
-  // --- Computed values ---
+  // Computed
   const subtotal = cart?.total || 0;
   const shipping = subtotal > SHIPPING_THRESHOLD ? 0 : SHIPPING_COST;
   const total = subtotal + shipping;
 
-  // --- Loading or no cart ---
-  if (loading || !cart) {
+  if (loading || cartLoading || !cart) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader className="h-8 w-8 animate-spin text-primary" />
@@ -182,16 +223,15 @@ const Checkout = () => {
     );
   }
 
-  // --- Order Confirmation ---
   if (orderPlaced) {
     return <OrderConfirmation orderNumber={orderNumber} />;
   }
 
   return (
-    <div className="min-h-screen py-8 lg:py-12 bg-background text-foreground">
+    <div ref={pageRef} className="min-h-screen py-8 lg:py-12 bg-background text-foreground">
       <div className="container mx-auto px-4 max-w-6xl">
         {/* Header */}
-        <div className="flex items-center gap-4 mb-8">
+        <div className="checkout-header flex items-center gap-4 mb-8">
           <button
             onClick={handleBack}
             className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
@@ -206,12 +246,11 @@ const Checkout = () => {
           </div>
         </div>
 
-        {/* Progress Bar */}
         <StepProgressBar currentStep={step} totalSteps={3} />
 
         <div className="grid lg:grid-cols-3 gap-8">
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">
+          {/* Main Content — animated container */}
+          <div ref={stepContentRef} className="lg:col-span-2 space-y-6">
             {/* Step 1: Shipping */}
             {step === 1 && (
               <div className="bg-card rounded-lg border border-border shadow-card p-6">
@@ -331,7 +370,6 @@ const Checkout = () => {
             {/* Step 3: Review */}
             {step === 3 && (
               <div className="space-y-6">
-                {/* Shipping Summary */}
                 <div className="bg-card rounded-lg border border-border shadow-card p-6">
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="text-base font-semibold flex items-center gap-2 text-foreground">
@@ -355,7 +393,6 @@ const Checkout = () => {
                   </p>
                 </div>
 
-                {/* Payment Summary */}
                 <div className="bg-card rounded-lg border border-border shadow-card p-6">
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="text-base font-semibold flex items-center gap-2 text-foreground">
@@ -374,7 +411,6 @@ const Checkout = () => {
                   </p>
                 </div>
 
-                {/* Items Review */}
                 <div className="bg-card rounded-lg border border-border shadow-card p-6">
                   <h3 className="text-base font-semibold flex items-center gap-2 text-foreground mb-3">
                     <Package className="h-4 w-4 text-primary" />
@@ -407,7 +443,6 @@ const Checkout = () => {
                   </div>
                 </div>
 
-                {/* Place Order Button */}
                 <button
                   onClick={handleSubmit}
                   disabled={submitting}
@@ -429,7 +464,7 @@ const Checkout = () => {
             )}
           </div>
 
-          {/* Order Summary Sidebar */}
+          {/* Sidebar */}
           <div className="lg:col-span-1">
             <OrderSummaryCard items={cart?.items || []} subtotal={subtotal} />
           </div>

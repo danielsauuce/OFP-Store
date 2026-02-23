@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Camera, Lock, Trash2, Save, Loader, Mail, Phone } from 'lucide-react';
 import toast from 'react-hot-toast';
+import gsap from 'gsap';
 import { useAuth } from '../context/authContext';
 import Modal from '../views/admin/components/Modal';
 import Avatar from '../views/admin/components/Avatar';
@@ -12,6 +13,7 @@ import {
   deactivateAccountService,
 } from '../services/userService';
 import { changePasswordService } from '../services/authService';
+import { changePasswordWithConfirmSchema, validateForm } from '../validation/formSchemas';
 
 const TABS = [
   { key: 'profile', label: 'Profile', icon: User },
@@ -38,6 +40,10 @@ const Profile = () => {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordErrors, setPasswordErrors] = useState({});
+
+  const tabContentRef = useRef(null);
+  const pageRef = useRef(null);
 
   useEffect(() => {
     if (!auth.authenticate) {
@@ -46,6 +52,41 @@ const Profile = () => {
     }
     fetchProfile();
   }, [auth.authenticate]);
+
+  // Page entrance
+  useLayoutEffect(() => {
+    if (loading || !pageRef.current) return;
+    const ctx = gsap.context(() => {
+      gsap.from('.profile-header', {
+        y: 30,
+        opacity: 0,
+        duration: 0.7,
+        ease: 'power3.out',
+      });
+      gsap.from('.profile-tabs', {
+        y: 20,
+        opacity: 0,
+        duration: 0.6,
+        delay: 0.15,
+        ease: 'power3.out',
+      });
+    }, pageRef);
+    return () => ctx.revert();
+  }, [loading]);
+
+  // Tab switch animation
+  const animateTabContent = useCallback(() => {
+    if (!tabContentRef.current) return;
+    gsap.fromTo(
+      tabContentRef.current,
+      { y: 25, opacity: 0 },
+      { y: 0, opacity: 1, duration: 0.4, ease: 'power3.out' },
+    );
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!loading) animateTabContent();
+  }, [activeTab, loading, animateTabContent]);
 
   const fetchProfile = async () => {
     try {
@@ -93,7 +134,6 @@ const Profile = () => {
       toast.error('Please upload an image file');
       return;
     }
-
     if (file.size > 5 * 1024 * 1024) {
       toast.error('Image must be smaller than 5MB');
       return;
@@ -114,25 +154,37 @@ const Profile = () => {
   };
 
   const handleChangePassword = async () => {
-    if (!currentPassword || !newPassword || !confirmPassword) {
-      toast.error('Please fill in all password fields');
+    // Zod validation
+    const { success, data, errors } = validateForm(changePasswordWithConfirmSchema, {
+      currentPassword,
+      newPassword,
+      confirmPassword,
+    });
+
+    if (!success) {
+      setPasswordErrors(errors);
+
+      // Shake error fields
+      if (tabContentRef.current) {
+        Object.keys(errors).forEach((fieldName) => {
+          const el = tabContentRef.current.querySelector(`[name="${fieldName}"]`);
+          if (el) {
+            gsap.fromTo(el, { x: -8 }, { x: 0, duration: 0.4, ease: 'elastic.out(1, 0.3)' });
+          }
+        });
+      }
       return;
     }
 
-    if (newPassword !== confirmPassword) {
-      toast.error('New password and confirmation must match');
-      return;
-    }
-
-    if (newPassword.length < 8) {
-      toast.error('New password must be at least 8 characters');
-      return;
-    }
-
+    setPasswordErrors({});
     setChangingPassword(true);
+
     try {
-      const data = await changePasswordService({ currentPassword, newPassword });
-      if (data?.success) {
+      const result = await changePasswordService({
+        currentPassword: data.currentPassword,
+        newPassword: data.newPassword,
+      });
+      if (result?.success) {
         toast.success('Password changed successfully');
         setCurrentPassword('');
         setNewPassword('');
@@ -165,6 +217,16 @@ const Profile = () => {
   const getAvatarUrl = () =>
     profile?.profilePicture?.secureUrl || profile?.profilePicture?.url || null;
 
+  const clearPasswordError = (field) => {
+    if (passwordErrors[field]) {
+      setPasswordErrors((prev) => {
+        const next = { ...prev };
+        delete next[field];
+        return next;
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background text-foreground">
@@ -174,14 +236,14 @@ const Profile = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div ref={pageRef} className="min-h-screen bg-background text-foreground">
       <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <div className="mb-8">
+        <div className="profile-header mb-8">
           <h1 className="text-3xl font-bold font-serif">My Profile</h1>
           <p className="text-muted-foreground mt-2">Manage your account settings and preferences</p>
         </div>
 
-        <div className="mb-6">
+        <div className="profile-tabs mb-6">
           <div className="grid grid-cols-3 bg-muted rounded-lg p-1">
             {TABS.map((tab) => {
               const Icon = tab.icon;
@@ -203,181 +265,220 @@ const Profile = () => {
           </div>
         </div>
 
-        {/* PROFILE TAB */}
-        {activeTab === 'profile' && (
-          <div className="space-y-6">
-            <div className="bg-card rounded-lg border border-border shadow-card p-6">
-              <h2 className="text-lg font-semibold mb-1">Profile Picture</h2>
-              <p className="text-sm text-muted-foreground mb-4">
-                Upload a photo to personalise your account
-              </p>
+        {/* Tab Content — animated */}
+        <div ref={tabContentRef}>
+          {/* PROFILE TAB */}
+          {activeTab === 'profile' && (
+            <div className="space-y-6">
+              <div className="bg-card rounded-lg border border-border shadow-card p-6">
+                <h2 className="text-lg font-semibold mb-1">Profile Picture</h2>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Upload a photo to personalise your account
+                </p>
 
-              <div className="flex items-center gap-6">
-                <div className="relative">
-                  {getAvatarUrl() ? (
-                    <img
-                      src={getAvatarUrl()}
-                      alt={fullName}
-                      className="h-24 w-24 rounded-full object-cover"
-                    />
-                  ) : (
-                    <Avatar
-                      name={fullName || auth.user?.email || 'U'}
-                      size="h-24 w-24"
-                      textSize="text-2xl"
-                    />
-                  )}
-                  <label
-                    htmlFor="avatar-upload"
-                    className="absolute bottom-0 right-0 p-2 bg-primary text-primary-foreground rounded-full cursor-pointer"
-                  >
-                    {uploadingAvatar ? (
-                      <Loader className="h-4 w-4 animate-spin" />
+                <div className="flex items-center gap-6">
+                  <div className="relative">
+                    {getAvatarUrl() ? (
+                      <img
+                        src={getAvatarUrl()}
+                        alt={fullName}
+                        className="h-24 w-24 rounded-full object-cover"
+                      />
                     ) : (
-                      <Camera className="h-4 w-4" />
+                      <Avatar
+                        name={fullName || auth.user?.email || 'U'}
+                        size="h-24 w-24"
+                        textSize="text-2xl"
+                      />
                     )}
-                  </label>
-                  <input
-                    id="avatar-upload"
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleAvatarUpload}
-                  />
-                </div>
+                    <label
+                      htmlFor="avatar-upload"
+                      className="absolute bottom-0 right-0 p-2 bg-primary text-primary-foreground rounded-full cursor-pointer hover:bg-primary-dark transition-colors"
+                    >
+                      {uploadingAvatar ? (
+                        <Loader className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Camera className="h-4 w-4" />
+                      )}
+                    </label>
+                    <input
+                      id="avatar-upload"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleAvatarUpload}
+                    />
+                  </div>
 
-                <div>
-                  <p className="font-medium">{fullName || 'No name set'}</p>
-                  <p className="text-sm text-muted-foreground">{auth.user?.email}</p>
+                  <div>
+                    <p className="font-medium">{fullName || 'No name set'}</p>
+                    <p className="text-sm text-muted-foreground">{auth.user?.email}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-card rounded-lg border border-border shadow-card p-6">
+                <h2 className="text-lg font-semibold mb-1">Personal Information</h2>
+                <p className="text-sm text-muted-foreground mb-4">Update your personal details</p>
+
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="flex items-center gap-2 text-sm font-medium">
+                        <User className="h-4 w-4" /> Full Name
+                      </label>
+                      <input
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        className="w-full h-10 px-3 rounded-md bg-muted/50 border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-colors"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="flex items-center gap-2 text-sm font-medium">
+                        <Mail className="h-4 w-4" /> Email
+                      </label>
+                      <input
+                        value={auth.user?.email || ''}
+                        disabled
+                        className="w-full h-10 px-3 rounded-md bg-muted border border-border text-muted-foreground"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="flex items-center gap-2 text-sm font-medium">
+                        <Phone className="h-4 w-4" /> Phone
+                      </label>
+                      <input
+                        value={phoneNum}
+                        onChange={(e) => setPhoneNum(e.target.value)}
+                        className="w-full h-10 px-3 rounded-md bg-muted/50 border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-colors"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="border-t pt-4 flex justify-end">
+                    <button
+                      onClick={handleSaveProfile}
+                      disabled={saving}
+                      className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-md hover:bg-primary-dark transition-colors"
+                    >
+                      {saving ? (
+                        <Loader className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Save className="h-4 w-4" />
+                      )}
+                      Save Changes
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
+          )}
 
-            <div className="bg-card rounded-lg border border-border shadow-card p-6">
-              <h2 className="text-lg font-semibold mb-1">Personal Information</h2>
-              <p className="text-sm text-muted-foreground mb-4">Update your personal details</p>
+          {/* SECURITY TAB */}
+          {activeTab === 'security' && (
+            <div className="bg-card rounded-lg border border-border shadow-card p-6 space-y-4">
+              <h2 className="text-lg font-semibold">Change Password</h2>
 
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="flex items-center gap-2 text-sm font-medium">
-                      <User className="h-4 w-4" /> Full Name
-                    </label>
-                    <input
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      className="w-full h-10 px-3 rounded-md bg-muted/50 border border-border"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="flex items-center gap-2 text-sm font-medium">
-                      <Mail className="h-4 w-4" /> Email
-                    </label>
-                    <input
-                      value={auth.user?.email || ''}
-                      disabled
-                      className="w-full h-10 px-3 rounded-md bg-muted border border-border"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="flex items-center gap-2 text-sm font-medium">
-                      <Phone className="h-4 w-4" /> Phone
-                    </label>
-                    <input
-                      value={phoneNum}
-                      onChange={(e) => setPhoneNum(e.target.value)}
-                      className="w-full h-10 px-3 rounded-md bg-muted/50 border border-border"
-                    />
-                  </div>
-                </div>
-
-                <div className="border-t pt-4 flex justify-end">
-                  <button
-                    onClick={handleSaveProfile}
-                    disabled={saving}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-md"
-                  >
-                    {saving ? (
-                      <Loader className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Save className="h-4 w-4" />
-                    )}
-                    Save Changes
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* SECURITY TAB */}
-        {activeTab === 'security' && (
-          <div className="bg-card rounded-lg border border-border shadow-card p-6 space-y-4">
-            <h2 className="text-lg font-semibold">Change Password</h2>
-
-            <input
-              type="password"
-              placeholder="Current Password"
-              value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
-              className="w-full h-10 px-3 rounded-md bg-muted/50 border border-border"
-            />
-
-            <input
-              type="password"
-              placeholder="New Password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              className="w-full h-10 px-3 rounded-md bg-muted/50 border border-border"
-            />
-
-            <input
-              type="password"
-              placeholder="Confirm Password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full h-10 px-3 rounded-md bg-muted/50 border border-border"
-            />
-
-            <div className="flex justify-end">
-              <button
-                onClick={handleChangePassword}
-                disabled={changingPassword}
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-md"
-              >
-                {changingPassword ? (
-                  <Loader className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Lock className="h-4 w-4" />
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-foreground">Current Password</label>
+                <input
+                  type="password"
+                  name="currentPassword"
+                  placeholder="Current Password"
+                  value={currentPassword}
+                  onChange={(e) => {
+                    setCurrentPassword(e.target.value);
+                    clearPasswordError('currentPassword');
+                  }}
+                  className={`w-full h-10 px-3 rounded-md bg-muted/50 border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-colors ${
+                    passwordErrors.currentPassword ? 'border-destructive' : 'border-border'
+                  }`}
+                />
+                {passwordErrors.currentPassword && (
+                  <p className="text-sm text-destructive">{passwordErrors.currentPassword}</p>
                 )}
-                Change Password
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* DANGER TAB */}
-        {activeTab === 'danger' && (
-          <div className="bg-card rounded-lg border border-destructive/50 shadow-card p-6">
-            <h2 className="text-lg font-semibold text-destructive">Danger Zone</h2>
-
-            <div className="flex justify-between items-center mt-4 p-4 border border-destructive/30 rounded-lg">
-              <div>
-                <h4 className="font-medium">Deactivate Account</h4>
-                <p className="text-sm text-muted-foreground">Contact support to reactivate.</p>
               </div>
-              <button
-                onClick={() => setIsDeleteOpen(true)}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-destructive text-destructive-foreground rounded-md"
-              >
-                <Trash2 className="h-4 w-4" />
-                Deactivate
-              </button>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-foreground">New Password</label>
+                <input
+                  type="password"
+                  name="newPassword"
+                  placeholder="New Password (min 8 characters)"
+                  value={newPassword}
+                  onChange={(e) => {
+                    setNewPassword(e.target.value);
+                    clearPasswordError('newPassword');
+                  }}
+                  className={`w-full h-10 px-3 rounded-md bg-muted/50 border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-colors ${
+                    passwordErrors.newPassword ? 'border-destructive' : 'border-border'
+                  }`}
+                />
+                {passwordErrors.newPassword && (
+                  <p className="text-sm text-destructive">{passwordErrors.newPassword}</p>
+                )}
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-foreground">Confirm Password</label>
+                <input
+                  type="password"
+                  name="confirmPassword"
+                  placeholder="Confirm new password"
+                  value={confirmPassword}
+                  onChange={(e) => {
+                    setConfirmPassword(e.target.value);
+                    clearPasswordError('confirmPassword');
+                  }}
+                  className={`w-full h-10 px-3 rounded-md bg-muted/50 border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-colors ${
+                    passwordErrors.confirmPassword ? 'border-destructive' : 'border-border'
+                  }`}
+                />
+                {passwordErrors.confirmPassword && (
+                  <p className="text-sm text-destructive">{passwordErrors.confirmPassword}</p>
+                )}
+              </div>
+
+              <div className="flex justify-end">
+                <button
+                  onClick={handleChangePassword}
+                  disabled={changingPassword}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-md hover:bg-primary-dark transition-colors"
+                >
+                  {changingPassword ? (
+                    <Loader className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Lock className="h-4 w-4" />
+                  )}
+                  Change Password
+                </button>
+              </div>
             </div>
-          </div>
-        )}
+          )}
+
+          {/* DANGER TAB */}
+          {activeTab === 'danger' && (
+            <div className="bg-card rounded-lg border border-destructive/50 shadow-card p-6">
+              <h2 className="text-lg font-semibold text-destructive">Danger Zone</h2>
+
+              <div className="flex justify-between items-center mt-4 p-4 border border-destructive/30 rounded-lg">
+                <div>
+                  <h4 className="font-medium">Deactivate Account</h4>
+                  <p className="text-sm text-muted-foreground">Contact support to reactivate.</p>
+                </div>
+                <button
+                  onClick={() => setIsDeleteOpen(true)}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-destructive text-destructive-foreground rounded-md hover:bg-destructive/90 transition-colors"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Deactivate
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
 
         <Modal
           isOpen={isDeleteOpen}
@@ -386,14 +487,18 @@ const Profile = () => {
           description="This will deactivate your account."
         >
           <div className="flex justify-end gap-3 pt-4">
-            <button onClick={() => setIsDeleteOpen(false)} className="px-4 py-2 border rounded-md">
+            <button
+              onClick={() => setIsDeleteOpen(false)}
+              className="px-4 py-2 border border-border rounded-md text-foreground hover:bg-muted transition-colors"
+            >
               Cancel
             </button>
             <button
               onClick={handleDeactivateAccount}
-              className="px-4 py-2 bg-destructive text-destructive-foreground rounded-md"
+              disabled={deletingAccount}
+              className="px-4 py-2 bg-destructive text-destructive-foreground rounded-md hover:bg-destructive/90 transition-colors"
             >
-              Deactivate Account
+              {deletingAccount ? 'Deactivating...' : 'Deactivate Account'}
             </button>
           </div>
         </Modal>

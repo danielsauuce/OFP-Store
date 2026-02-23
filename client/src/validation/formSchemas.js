@@ -26,7 +26,7 @@ export const signupSchema = z.object({
   password: z.string().min(8, 'Password must be at least 8 characters'),
 });
 
-// Contact / Support Ticket Schema
+// Support / Contact Schema
 export const contactSchema = z.object({
   name: z
     .string()
@@ -46,13 +46,37 @@ export const contactSchema = z.object({
     .max(2000, 'Message must be under 2000 characters'),
 });
 
+// Checkout/Shipping Schema
+
+export const shippingSchema = z.object({
+  fullName: z.string().trim().min(2, 'Name must be at least 2 characters'),
+  email: z.string().trim().min(1, 'Email is required').email('Please enter a valid email address'),
+  phone: z.string().trim().min(10, 'Phone must be at least 10 digits'),
+  street: z.string().trim().min(5, 'Address must be at least 5 characters'),
+  city: z.string().trim().min(2, 'City is required'),
+  state: z.string().trim().optional().or(z.literal('')),
+  postalCode: z.string().trim().min(3, 'Postal code is required'),
+});
+
 // Change Password Schema
+
 export const changePasswordSchema = z.object({
   currentPassword: z.string().min(8, 'Current password must be at least 8 characters'),
   newPassword: z.string().min(8, 'New password must be at least 8 characters'),
 });
 
-// Helper to return errors
+export const changePasswordWithConfirmSchema = z
+  .object({
+    currentPassword: z.string().min(1, 'Current password is required'),
+    newPassword: z.string().min(8, 'New password must be at least 8 characters'),
+    confirmPassword: z.string().min(1, 'Please confirm your new password'),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: 'Passwords do not match',
+    path: ['confirmPassword'],
+  });
+
+// ─── Helper: parse and return field errors
 export function validateForm(schema, data) {
   const result = schema.safeParse(data);
 
