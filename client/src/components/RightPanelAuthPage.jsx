@@ -5,7 +5,8 @@ import LoginForm from './LoginForm';
 import { useAuth } from '../context/authContext';
 import { useNavigate } from 'react-router-dom';
 
-const RightPanelAuthPage = ({ checkIfSignUpFormIsValid, checkIfSignInFormIsValid }) => {
+// FIX: Removed unused props (checkIfSignUpFormIsValid, checkIfSignInFormIsValid)
+const RightPanelAuthPage = () => {
   const [isLogin, setIsLogin] = useState(true);
   const { signUp, signIn, isLoading } = useAuth();
   const navigate = useNavigate();

@@ -1,57 +1,49 @@
-import { useState } from 'react';
-import { ShoppingCart, Loader } from 'lucide-react';
+import { ShoppingCart } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import toast from 'react-hot-toast';
-import { useAuth } from '../context/authContext';
 import { addToCartService } from '../services/cartService';
+import { useAuth } from '../context/authContext';
+import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
+import { useState } from 'react';
 
 const ProductCard = ({ product }) => {
   const { auth } = useAuth();
-  const [adding, setAdding] = useState(false);
+  const navigate = useNavigate();
+  const [isAdding, setIsAdding] = useState(false);
 
-  // Support both API products (_id, name, primaryImage) and static data (id, title, image)
-  const productId = product._id || product.id;
-  const productName = product.name || product.title;
-  const productImage =
-    product.primaryImage?.secureUrl || product.primaryImage?.url || product.image || '';
-  const categoryName =
-    typeof product.category === 'object' ? product.category.name : product.category;
-  const isApiProduct = !!product._id;
-
-  const handleAddToCart = async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-
+  const handleAddToCart = async () => {
+    // Redirect to auth if not logged in
     if (!auth.authenticate) {
-      toast.error('Please sign in to add items to your cart');
+      toast.error('Please login to add items to cart');
+      navigate('/auth');
       return;
     }
 
-    if (!isApiProduct) {
-      toast.error('This product cannot be added to cart');
-      return;
-    }
-
-    setAdding(true);
+    setIsAdding(true);
     try {
-      const data = await addToCartService(product._id, 1);
+      const data = await addToCartService(product._id || product.id, 1);
+
       if (data?.success) {
-        toast.success(`${productName} added to cart!`);
+        toast.success(`${product.title} added to cart`);
+      } else {
+        toast.error(data?.message || 'Failed to add to cart');
       }
     } catch (error) {
-      toast.error(error?.response?.data?.message || 'Failed to add to cart');
+      const errorMessage =
+        error?.response?.data?.message || error?.message || 'Failed to add to cart';
+      toast.error(errorMessage);
     } finally {
-      setAdding(false);
+      setIsAdding(false);
     }
   };
 
   return (
-    <div className="bg-card rounded-2xl shadow-card overflow-hidden hover:shadow-xl transition duration-300 group border border-border">
+    <div className="bg-card rounded-2xl shadow-md overflow-hidden hover:shadow-xl transition duration-300 group">
       {/* Image */}
-      <Link to={`/product/${productId}`}>
+      <Link to={`/product/${product._id || product.id}`}>
         <img
-          src={productImage}
-          alt={productName}
+          src={product.image}
+          alt={product.title}
           className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-500"
         />
       </Link>
@@ -59,12 +51,12 @@ const ProductCard = ({ product }) => {
       {/* Info */}
       <div className="p-6">
         <p className="text-xs uppercase text-muted-foreground mb-1 tracking-wider">
-          {categoryName}
+          {product.category}
         </p>
 
-        <Link to={`/product/${productId}`}>
-          <h3 className="font-serif font-semibold text-lg mb-2 line-clamp-1 text-foreground hover:underline">
-            {productName}
+        <Link to={`/product/${product._id || product.id}`}>
+          <h3 className="font-serif font-semibold text-lg mb-2 line-clamp-1 hover:underline text-foreground">
+            {product.title}
           </h3>
         </Link>
 
@@ -72,15 +64,13 @@ const ProductCard = ({ product }) => {
 
         <button
           onClick={handleAddToCart}
-          disabled={adding}
-          className="w-full h-10 flex items-center justify-center gap-2 rounded-md bg-primary text-primary-foreground font-medium hover:bg-primary-dark transition disabled:opacity-60"
+          disabled={isAdding}
+          className={`w-full h-10 flex items-center justify-center gap-2 rounded-md bg-primary text-primary-foreground font-medium hover:bg-primary-dark transition ${
+            isAdding ? 'opacity-60 cursor-not-allowed' : ''
+          }`}
         >
-          {adding ? (
-            <Loader className="h-5 w-5 animate-spin" />
-          ) : (
-            <ShoppingCart className="h-5 w-5" />
-          )}
-          {adding ? 'Adding...' : 'Add to Cart'}
+          <ShoppingCart className="h-5 w-5" />
+          {isAdding ? 'Adding...' : 'Add to Cart'}
         </button>
       </div>
     </div>

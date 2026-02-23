@@ -1,40 +1,31 @@
-import { Routes, Route, Outlet } from 'react-router-dom';
-import Navbar from './components/Navbar';
-import Footer from './components/Footer';
+import { Routes, Route } from 'react-router-dom';
 import Home from './views/Home';
 import Shop from './views/Shop';
-import ProductDetails from './views/ProductDetails';
 import About from './views/About';
 import Contact from './views/Contact';
-import Cart from './views/Cart';
-import Checkout from './views/CheckOutPage';
-import Profile from './views/Profile';
 import AuthPage from './views/AuthPage';
+import Cart from './views/Cart';
 import NotFound from './views/NotFound';
 import { Toaster } from 'react-hot-toast';
 import RouteGuard from './components/RouteGuard';
 import { useAuth } from './context/authContext';
 import CommonSideBar from './views/admin/components/CommonSideBar';
-
-// Layout component for pages with Navbar & Footer
-const MainLayout = () => (
-  <>
-    <Navbar />
-    <main>
-      <Outlet />
-    </main>
-    <Footer />
-  </>
-);
+import Dashboard from './views/admin/Dashboard';
+import Products from './views/admin/Products';
+import Orders from './views/admin/Orders';
+import Users from './views/admin/Users';
+import Analytics from './views/admin/Analytics';
+import { Loader } from 'lucide-react';
+import MainLayout from './components/mainLayout';
 
 function App() {
   const { auth, isLoading } = useAuth();
 
+  // Show loading spinner while checking auth
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center flex-col">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mb-3"></div>
-        <div className="font-medium text-primary text-xl mt-2">Loading.....</div>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -53,12 +44,14 @@ function App() {
             boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)',
             fontSize: '0.875rem',
           },
+
           success: {
             iconTheme: {
               primary: 'hsl(150 30% 40%)',
               secondary: 'hsl(0 0% 100%)',
             },
           },
+
           error: {
             style: {
               background: 'hsl(0 72% 51%)',
@@ -71,7 +64,7 @@ function App() {
       />
 
       <Routes>
-        {/* Auth Route */}
+        {/* Auth Route - Redirects if already authenticated */}
         <Route
           path="/auth"
           element={
@@ -79,9 +72,9 @@ function App() {
           }
         />
 
-        {/* Admin Routes */}
+        {/* Admin Routes - Requires admin role */}
         <Route
-          path="/admin/*"
+          path="/admin"
           element={
             <RouteGuard
               authenticated={auth.authenticate}
@@ -91,38 +84,21 @@ function App() {
               requireAdmin={true}
             />
           }
-        />
+        >
+          <Route index element={<Dashboard />} />
+          <Route path="products" element={<Products />} />
+          <Route path="orders" element={<Orders />} />
+          <Route path="users" element={<Users />} />
+          <Route path="analytics" element={<Analytics />} />
+        </Route>
 
-        {/* Public Routes with Navbar and Footer */}
+        {/* Public Routes with Navbar/Footer */}
         <Route element={<MainLayout />}>
           <Route path="/" element={<Home />} />
           <Route path="/shop" element={<Shop />} />
-          <Route path="/product/:id" element={<ProductDetails />} />
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/cart" element={<Cart />} />
-          <Route
-            path="/checkout"
-            element={
-              <RouteGuard
-                authenticated={auth.authenticate}
-                user={auth.user}
-                element={<Checkout />}
-                requireAuth={true}
-              />
-            }
-          />
-          <Route
-            path="/profile"
-            element={
-              <RouteGuard
-                authenticated={auth.authenticate}
-                user={auth.user}
-                element={<Profile />}
-                requireAuth={true}
-              />
-            }
-          />
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>
