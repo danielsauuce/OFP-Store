@@ -155,19 +155,26 @@ export const createOrder = async (req, res) => {
 export const getUserOrders = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { page = 1, limit = 10, status } = req.query;
+
+    const pageNumber = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limitNumber = Math.min(100, parseInt(req.query.limit, 10) || 10);
+
+    const allowedStatuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
 
     const query = { user: userId };
-    if (status) query.orderStatus = status;
 
-    const skip = (Number(page) - 1) * Number(limit);
+    if (typeof req.query.status === 'string' && allowedStatuses.includes(req.query.status)) {
+      query.orderStatus = req.query.status;
+    }
+
+    const skip = (pageNumber - 1) * limitNumber;
 
     const orders = await Order.find(query)
       .populate('items.product', 'name slug primaryImage')
       .populate('payment', 'status amount method')
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(Number(limit));
+      .limit(limitNumber);
 
     const total = await Order.countDocuments(query);
 
@@ -176,9 +183,9 @@ export const getUserOrders = async (req, res) => {
       orders,
       pagination: {
         total,
-        page: Number(page),
-        pages: Math.ceil(total / Number(limit)),
-        limit: Number(limit),
+        page: pageNumber,
+        pages: Math.ceil(total / limitNumber),
+        limit: limitNumber,
       },
     });
   } catch (error) {
@@ -255,13 +262,27 @@ export const cancelOrder = async (req, res) => {
 
 export const getAllOrdersAdmin = async (req, res) => {
   try {
-    const { page = 1, limit = 20, status, paymentStatus } = req.query;
+    const pageNumber = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limitNumber = Math.min(100, parseInt(req.query.limit, 10) || 20);
+
+    const allowedOrderStatuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
+
+    const allowedPaymentStatuses = ['pending', 'paid', 'failed', 'refunded'];
 
     const query = {};
-    if (status) query.orderStatus = status;
-    if (paymentStatus) query.paymentStatus = paymentStatus;
 
-    const skip = (Number(page) - 1) * Number(limit);
+    if (typeof req.query.status === 'string' && allowedOrderStatuses.includes(req.query.status)) {
+      query.orderStatus = req.query.status;
+    }
+
+    if (
+      typeof req.query.paymentStatus === 'string' &&
+      allowedPaymentStatuses.includes(req.query.paymentStatus)
+    ) {
+      query.paymentStatus = req.query.paymentStatus;
+    }
+
+    const skip = (pageNumber - 1) * limitNumber;
 
     const orders = await Order.find(query)
       .populate('user', 'fullName email phone')
@@ -269,7 +290,7 @@ export const getAllOrdersAdmin = async (req, res) => {
       .populate('payment')
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(Number(limit));
+      .limit(limitNumber);
 
     const total = await Order.countDocuments(query);
 
@@ -278,9 +299,9 @@ export const getAllOrdersAdmin = async (req, res) => {
       orders,
       pagination: {
         total,
-        page: Number(page),
-        pages: Math.ceil(total / Number(limit)),
-        limit: Number(limit),
+        page: pageNumber,
+        pages: Math.ceil(total / limitNumber),
+        limit: limitNumber,
       },
     });
   } catch (error) {

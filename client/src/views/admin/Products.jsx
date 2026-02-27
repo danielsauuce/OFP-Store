@@ -18,6 +18,17 @@ const Products = () => {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [formData, setFormData] = useState(emptyProduct);
 
+  const isSafeCloudinaryUrl = (url) => {
+    if (!url || typeof url !== 'string') return false;
+
+    try {
+      const parsed = new URL(url);
+      return parsed.protocol === 'https:' && parsed.hostname.endsWith('cloudinary.com');
+    } catch {
+      return false;
+    }
+  };
+
   // --- Pagination ---
   const totalPages = Math.ceil(productList.length / PRODUCTS_PER_PAGE);
   const startIndex = (currentPage - 1) * PRODUCTS_PER_PAGE;
@@ -159,7 +170,7 @@ const Products = () => {
           >
             <div className="flex gap-6">
               <img
-                src={product.image}
+                src={isSafeCloudinaryUrl(product.image) ? product.image : '/placeholder.jpg'}
                 alt={product.name}
                 className="w-24 h-24 object-cover rounded-lg"
               />

@@ -63,12 +63,20 @@ export const createCategory = async (req, res) => {
     }
 
     // Auto-generate slug if not provided
-    if (!req.body.slug) {
-      req.body.slug = req.body.name
+    const generateSlug = (text) => {
+      if (!text || typeof text !== 'string') return '';
+
+      return text
         .toLowerCase()
         .trim()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '');
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '');
+    };
+
+    if (!req.body.slug) {
+      req.body.slug = generateSlug(req.body.name);
     }
 
     const category = await Category.create(req.body);
