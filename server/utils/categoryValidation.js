@@ -1,5 +1,6 @@
 import Joi from 'joi';
-import { objectId } from './common.js';
+// import { objectId } from './common.js';
+export const objectId = Joi.string().hex().length(24);
 
 export const createCategory = Joi.object({
   name: Joi.string().min(2).max(100).trim().required(),
