@@ -39,6 +39,8 @@ const Features = () => {
   }, []);
 
   useLayoutEffect(() => {
+    const cardHandlers = [];
+
     const ctx = gsap.context(() => {
       // Section header entrance
       const headerTL = gsap.timeline({
@@ -99,7 +101,7 @@ const Features = () => {
         });
       });
 
-      // 3D tilt on hover for each card
+      // 3D tilt on hover for each card — store references for cleanup
       cards.forEach((card) => {
         const handleCardMove = (e) => {
           const rect = card.getBoundingClientRect();
@@ -131,6 +133,7 @@ const Features = () => {
         card.style.transformStyle = 'preserve-3d';
         card.addEventListener('mousemove', handleCardMove);
         card.addEventListener('mouseleave', handleCardLeave);
+        cardHandlers.push({ card, handleCardMove, handleCardLeave });
       });
 
       // Button entrance
@@ -146,7 +149,14 @@ const Features = () => {
       });
     }, sectionRef);
 
-    return () => ctx.revert();
+    return () => {
+      // Clean up manually added event listeners
+      cardHandlers.forEach(({ card, handleCardMove, handleCardLeave }) => {
+        card.removeEventListener('mousemove', handleCardMove);
+        card.removeEventListener('mouseleave', handleCardLeave);
+      });
+      ctx.revert();
+    };
   }, []);
 
   return (

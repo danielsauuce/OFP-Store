@@ -10,6 +10,8 @@ const CTASection = () => {
   const bgRef = useRef(null);
 
   useLayoutEffect(() => {
+    const buttonHandlers = [];
+
     const ctx = gsap.context(() => {
       // Entrance timeline
       const tl = gsap.timeline({
@@ -83,7 +85,7 @@ const CTASection = () => {
         },
       });
 
-      // Button hover effects
+      // Button hover effects — store references for cleanup
       const buttons = gsap.utils.toArray('.cta-button');
       buttons.forEach((btn) => {
         const hoverTL = gsap.timeline({ paused: true });
@@ -94,12 +96,23 @@ const CTASection = () => {
           duration: 0.3,
           ease: 'power2.out',
         });
-        btn.addEventListener('mouseenter', () => hoverTL.play());
-        btn.addEventListener('mouseleave', () => hoverTL.reverse());
+
+        const onEnter = () => hoverTL.play();
+        const onLeave = () => hoverTL.reverse();
+        btn.addEventListener('mouseenter', onEnter);
+        btn.addEventListener('mouseleave', onLeave);
+        buttonHandlers.push({ btn, onEnter, onLeave });
       });
     }, sectionRef);
 
-    return () => ctx.revert();
+    return () => {
+      // Clean up manually added event listeners
+      buttonHandlers.forEach(({ btn, onEnter, onLeave }) => {
+        btn.removeEventListener('mouseenter', onEnter);
+        btn.removeEventListener('mouseleave', onLeave);
+      });
+      ctx.revert();
+    };
   }, []);
 
   // Split heading into words for stagger

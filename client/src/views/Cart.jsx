@@ -1,86 +1,23 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Minus, Plus, Trash2, ShoppingBag, Loader } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/authContext';
-import {
-  getCartService,
-  updateCartItemService,
-  removeCartItemService,
-  clearCartService,
-} from '../services/cartService';
+import { useCart } from '../context/cartContext';
 
 const SHIPPING_THRESHOLD = 500;
 const SHIPPING_COST = 50;
 
 const Cart = () => {
   const { auth } = useAuth();
-  const [cart, setCart] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [updatingId, setUpdatingId] = useState(null);
+  const { cart, loading, updateItem, removeItem, clearCart, fetchCart } = useCart();
 
+  // Ensure cart is loaded when visiting cart page
   useEffect(() => {
-    if (auth.authenticate) {
+    if (auth.authenticate && !cart) {
       fetchCart();
-    } else {
-      setLoading(false);
     }
-  }, [auth.authenticate]);
-
-  const fetchCart = async () => {
-    try {
-      const data = await getCartService();
-      if (data?.success) {
-        setCart(data.cart);
-      }
-    } catch (error) {
-      toast.error('Failed to load cart');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleUpdateQuantity = async (productId, newQuantity) => {
-    if (newQuantity < 1) return;
-    setUpdatingId(productId);
-    try {
-      const data = await updateCartItemService(productId, newQuantity);
-      if (data?.success) {
-        setCart(data.cart);
-      }
-    } catch (error) {
-      toast.error(error?.response?.data?.message || 'Failed to update quantity');
-    } finally {
-      setUpdatingId(null);
-    }
-  };
-
-  const handleRemoveItem = async (productId) => {
-    setUpdatingId(productId);
-    try {
-      const data = await removeCartItemService(productId);
-      if (data?.success) {
-        setCart(data.cart);
-        toast.success('Item removed from cart');
-      }
-    } catch (error) {
-      toast.error('Failed to remove item');
-    } finally {
-      setUpdatingId(null);
-    }
-  };
-
-  const handleClearCart = async () => {
-    try {
-      const data = await clearCartService();
-      if (data?.success) {
-        setCart({ ...cart, items: [] });
-        toast.success('Cart cleared');
-      }
-    } catch (error) {
-      toast.error('Failed to clear cart');
-    }
-  };
+  }, [auth.authenticate, cart, fetchCart]);
 
   // Helper to get image URL from populated product or snapshot
   const getItemImage = (item) => {
@@ -138,7 +75,9 @@ const Cart = () => {
         <div className="text-center">
           <ShoppingBag className="h-24 w-24 mx-auto mb-6 text-muted-foreground" />
           <h2 className="text-3xl font-serif font-bold text-foreground mb-4">Your Cart is Empty</h2>
-          <p className="text-muted-foreground mb-8">Looks like you haven't added any items yet.</p>
+          <p className="text-muted-foreground mb-8">
+            Looks like you haven&apos;t added any items yet.
+          </p>
           <Link
             to="/shop"
             className="inline-flex px-6 py-3 bg-primary text-primary-foreground rounded-md font-medium hover:bg-primary-dark transition-colors"
@@ -156,7 +95,7 @@ const Cart = () => {
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-4xl font-serif font-bold">Shopping Cart</h1>
           <button
-            onClick={handleClearCart}
+            onClick={clearCart}
             className="text-sm text-destructive hover:text-destructive/80 transition-colors"
           >
             Clear Cart
@@ -168,14 +107,11 @@ const Cart = () => {
           <div className="lg:col-span-2 space-y-4">
             {cart.items.map((item) => {
               const productId = getItemId(item);
-              const isUpdating = updatingId === productId;
 
               return (
                 <div
                   key={productId}
-                  className={`bg-card rounded-lg border border-border overflow-hidden shadow-card transition-opacity ${
-                    isUpdating ? 'opacity-60 pointer-events-none' : ''
-                  }`}
+                  className="bg-card rounded-lg border border-border overflow-hidden shadow-card"
                 >
                   <div className="p-6 flex gap-6">
                     {/* Image */}
@@ -207,14 +143,15 @@ const Cart = () => {
                         {/* Quantity */}
                         <div className="flex items-center border border-border rounded-md">
                           <button
-                            onClick={() => handleUpdateQuantity(productId, item.quantity - 1)}
-                            className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                            onClick={() => updateItem(productId, item.quantity - 1)}
+                            disabled={item.quantity <= 1}
+                            className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                           >
                             <Minus className="h-4 w-4" />
                           </button>
                           <span className="w-12 text-center font-medium">{item.quantity}</span>
                           <button
-                            onClick={() => handleUpdateQuantity(productId, item.quantity + 1)}
+                            onClick={() => updateItem(productId, item.quantity + 1)}
                             className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                           >
                             <Plus className="h-4 w-4" />
@@ -227,7 +164,7 @@ const Cart = () => {
                             £{(item.priceSnapshot * item.quantity).toFixed(2)}
                           </p>
                           <button
-                            onClick={() => handleRemoveItem(productId)}
+                            onClick={() => removeItem(productId)}
                             className="p-2 text-destructive hover:bg-destructive/10 rounded-md transition-colors"
                           >
                             <Trash2 className="h-5 w-5" />

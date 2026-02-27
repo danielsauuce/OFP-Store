@@ -3,12 +3,13 @@ import { useParams, Link } from 'react-router-dom';
 import { ShoppingCart, Minus, Plus, ArrowLeft, Loader } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { getProductByIdService } from '../services/productService';
-import { addToCartService } from '../services/cartService';
 import { useAuth } from '../context/authContext';
+import { useCart } from '../context/cartContext';
 
 const ProductDetails = () => {
   const { id } = useParams();
   const { auth } = useAuth();
+  const { addItem } = useCart();
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
@@ -40,12 +41,12 @@ const ProductDetails = () => {
 
     setAdding(true);
     try {
-      const data = await addToCartService(product._id, quantity);
-      if (data?.success) {
+      const result = await addItem(product._id, quantity);
+      if (result?.success) {
         toast.success(`${quantity} x ${product.name} added to cart!`);
       }
     } catch (error) {
-      toast.error(error?.response?.data?.message || 'Failed to add to cart');
+      toast.error(error?.message || 'Failed to add to cart');
     } finally {
       setAdding(false);
     }

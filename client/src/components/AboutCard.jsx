@@ -11,6 +11,10 @@ const AboutCard = () => {
   const imageWrapperRef = useRef(null);
 
   useLayoutEffect(() => {
+    let btnEnter;
+    let btnLeave;
+    let btnEl;
+
     const ctx = gsap.context(() => {
       // Main entrance timeline, scroll-triggered
       const tl = gsap.timeline({
@@ -103,22 +107,31 @@ const AboutCard = () => {
         },
       );
 
-      // Button hover
-      const btn = sectionRef.current.querySelector('.about-button');
-      if (btn) {
+      // Button hover — store references for cleanup
+      btnEl = sectionRef.current.querySelector('.about-button');
+      if (btnEl) {
         const hoverTL = gsap.timeline({ paused: true });
-        hoverTL.to(btn, {
+        hoverTL.to(btnEl, {
           scale: 1.05,
           boxShadow: '0 15px 35px rgba(0,0,0,0.2)',
           duration: 0.3,
           ease: 'power2.out',
         });
-        btn.addEventListener('mouseenter', () => hoverTL.play());
-        btn.addEventListener('mouseleave', () => hoverTL.reverse());
+        btnEnter = () => hoverTL.play();
+        btnLeave = () => hoverTL.reverse();
+        btnEl.addEventListener('mouseenter', btnEnter);
+        btnEl.addEventListener('mouseleave', btnLeave);
       }
     }, sectionRef);
 
-    return () => ctx.revert();
+    return () => {
+      // Clean up manually added event listeners
+      if (btnEl && btnEnter && btnLeave) {
+        btnEl.removeEventListener('mouseenter', btnEnter);
+        btnEl.removeEventListener('mouseleave', btnLeave);
+      }
+      ctx.revert();
+    };
   }, []);
 
   return (

@@ -38,6 +38,10 @@ function Hero() {
   }, []);
 
   useLayoutEffect(() => {
+    let enterHandler;
+    let leaveHandler;
+    const btn = buttonRef.current;
+
     const ctx = gsap.context(() => {
       // Create particles
       createParticles(particleContainerRef.current);
@@ -149,10 +153,10 @@ function Hero() {
         },
       });
 
-      // Button hover animation
+      // Button hover animation — store references for cleanup
       const hoverTL = gsap.timeline({ paused: true });
       hoverTL
-        .to(buttonRef.current, {
+        .to(btn, {
           scale: 1.07,
           boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
           duration: 0.35,
@@ -168,14 +172,20 @@ function Hero() {
           0,
         );
 
-      const btn = buttonRef.current;
-      const enterHandler = () => hoverTL.play();
-      const leaveHandler = () => hoverTL.reverse();
+      enterHandler = () => hoverTL.play();
+      leaveHandler = () => hoverTL.reverse();
       btn.addEventListener('mouseenter', enterHandler);
       btn.addEventListener('mouseleave', leaveHandler);
     }, heroRef);
 
-    return () => ctx.revert();
+    return () => {
+      // Clean up manually added event listeners
+      if (btn && enterHandler && leaveHandler) {
+        btn.removeEventListener('mouseenter', enterHandler);
+        btn.removeEventListener('mouseleave', leaveHandler);
+      }
+      ctx.revert();
+    };
   }, [createParticles]);
 
   // Split text into characters for animation

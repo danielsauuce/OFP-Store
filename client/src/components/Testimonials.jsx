@@ -10,6 +10,8 @@ const Testimonials = () => {
   const sectionRef = useRef(null);
 
   useLayoutEffect(() => {
+    const hoverHandlers = [];
+
     const ctx = gsap.context(() => {
       // Section header entrance
       const headerTL = gsap.timeline({
@@ -112,7 +114,7 @@ const Testimonials = () => {
         );
       });
 
-      // Card hover lift effect
+      // Card hover lift effect — store references for cleanup
       cards.forEach((card) => {
         const hoverTL = gsap.timeline({ paused: true });
         hoverTL.to(card, {
@@ -121,12 +123,23 @@ const Testimonials = () => {
           duration: 0.35,
           ease: 'power2.out',
         });
-        card.addEventListener('mouseenter', () => hoverTL.play());
-        card.addEventListener('mouseleave', () => hoverTL.reverse());
+
+        const onEnter = () => hoverTL.play();
+        const onLeave = () => hoverTL.reverse();
+        card.addEventListener('mouseenter', onEnter);
+        card.addEventListener('mouseleave', onLeave);
+        hoverHandlers.push({ card, onEnter, onLeave });
       });
     }, sectionRef);
 
-    return () => ctx.revert();
+    return () => {
+      // Clean up manually added event listeners
+      hoverHandlers.forEach(({ card, onEnter, onLeave }) => {
+        card.removeEventListener('mouseenter', onEnter);
+        card.removeEventListener('mouseleave', onLeave);
+      });
+      ctx.revert();
+    };
   }, []);
 
   return (
@@ -160,7 +173,7 @@ const Testimonials = () => {
 
               {/* Quote */}
               <p className="testimonial-quote text-muted-foreground italic mb-6 leading-relaxed text-[15px]">
-                "{item.comment}"
+                &ldquo;{item.comment}&rdquo;
               </p>
 
               {/* Author */}
