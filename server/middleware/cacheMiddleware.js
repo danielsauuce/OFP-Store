@@ -1,33 +1,39 @@
 import { cacheHelpers } from '../config/upstashRedis.js';
 import logger from '../utils/logger.js';
 
+/**
+ * Middleware to cache GET requests
+ * @param {number} duration - cache duration in seconds (default 3600 = 1 hour)
+ */
 export const cacheMiddleware = (duration = 3600) => {
   return async (req, res, next) => {
-    if (req.headers.authorization) {
-      return next();
-    }
+    // Only cache GET requests without auth
+    if (req.method !== 'GET' || req.headers.authorization) return next();
 
     const cacheKey = `cache:${req.originalUrl || req.url}`;
 
     try {
-      //getting the cached data
       const cachedData = await cacheHelpers.get(cacheKey);
 
       if (cachedData) {
         logger.info('Cache HIT', { key: cacheKey });
-        return res.status(200).json(cachedData);
+        // Parse JSON back to object
+        return res.status(200).json(JSON.parse(cachedData));
       }
 
       logger.info('Cache MISS', { key: cacheKey });
 
+      // Override res.json to cache successful responses
       const originalJson = res.json.bind(res);
 
-      res.json = (data) => {
-        // Only cache successful responses
-        if (res.statusCode === 200 && data.success) {
-          cacheHelpers.set(cacheKey, data, duration).catch((error) => {
+      res.json = async (data) => {
+        if (res.statusCode === 200 && data?.success !== false) {
+          try {
+            await cacheHelpers.set(cacheKey, JSON.stringify(data), duration);
+            logger.info('Response cached', { key: cacheKey, duration });
+          } catch (error) {
             logger.error('Failed to cache response:', { error: error.message });
-          });
+          }
         }
         return originalJson(data);
       };
@@ -40,7 +46,10 @@ export const cacheMiddleware = (duration = 3600) => {
   };
 };
 
-// Invalidate cache for specific patterns
+/**
+ * Function to invalidate cache by pattern
+ * @param {string} pattern - pattern to match keys (e.g., "cache:/api/products*")
+ */
 export const invalidateCache = async (pattern) => {
   try {
     await cacheHelpers.delPattern(pattern);

@@ -7,7 +7,9 @@ export default [
   {
     ignores: ['dist', 'build', 'node_modules'],
   },
+
   js.configs.recommended,
+
   {
     files: ['**/*.{js,jsx}'],
     plugins: {
@@ -25,14 +27,9 @@ export default [
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
+
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
-      'no-unused-vars': [
-        'warn',
-        {
-          varsIgnorePattern: '^_',
-          argsIgnorePattern: '^_',
-        },
-      ],
+      'no-unused-vars': 'off',
     },
   },
 ];

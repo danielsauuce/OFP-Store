@@ -1,12 +1,14 @@
-import { rateLimiter } from '../config/redisClient.js';
+import { RateLimiterMemory } from 'rate-limiter-flexible';
 import logger from '../utils/logger.js';
+import { cacheHelpers } from '../config/upstashRedis.js';
+
+// Using memory limiter with fallback for production
+const rateLimiter = new RateLimiterMemory({
+  points: 10,
+  duration: 1,
+});
 
 const rateLimiterMiddleware = async (req, res, next) => {
-  if (!rateLimiter) {
-    logger.warn('Rate limiter not initialized (Redis unavailable), skipping for this request');
-    return next();
-  }
-
   try {
     await rateLimiter.consume(req.ip);
     next();

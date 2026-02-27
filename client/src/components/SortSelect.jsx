@@ -9,7 +9,7 @@ const SortSelect = ({ value, onChange }) => {
         id="sort"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="border border-border rounded-lg px-4 py-2 bg-card text-card-foreground focus:outline-none focus:ring-2 focus:ring-[#815331]"
+        className="border border-border rounded-lg px-4 py-2 bg-card text-card-foreground focus:outline-none focus:ring-2 focus:ring-primary"
       >
         <option value="newest">Newest First</option>
         <option value="price-low">Price: Low to High</option>

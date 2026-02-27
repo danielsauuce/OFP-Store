@@ -61,7 +61,7 @@ export function AuthProvider({ children }) {
         });
 
         const userName = data?.user?.fullName || 'User';
-        toast.success(`Welcome Back ${userName} 👏`);
+        toast.success(`Welcome Back ${userName}`);
         return { success: true, data };
       } else {
         toast.error(data?.message || 'Login failed');
@@ -203,7 +203,7 @@ export function AuthProvider({ children }) {
 export function useAuth() {
   const context = useContext(AuthContext);
 
-  if (context === undefined) {
+  if (context === null) {
     throw new Error('useAuth must be used inside AuthProvider');
   }
 

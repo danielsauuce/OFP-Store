@@ -1,15 +1,10 @@
 import Joi from 'joi';
+import { objectId } from './common.js';
 
-export const addToCartValidation = Joi.object({
-  productId: Joi.string().required(),
-  quantity: Joi.number().min(1).default(1),
+export const addItem = Joi.object({
+  product: objectId.required(),
+  variantSku: Joi.string().optional(),
+  quantity: Joi.number().min(1).integer().default(1),
 });
 
-export const updateCartItemValidation = Joi.object({
-  quantity: Joi.number().min(1).required(),
-});
-
-export default {
-  addToCartValidation,
-  updateCartItemValidation,
-};
+export const updateItem = Joi.object({ quantity: Joi.number().min(1).integer().required() });

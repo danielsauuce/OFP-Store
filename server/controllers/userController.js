@@ -1,296 +1,354 @@
-import { deleteMediaFromCloudinary, uploadMediaToCloudinary } from '../config/cloudinary.js';
-import Media from '../models/media.js';
 import User from '../models/user.js';
+import Media from '../models/media.js';
+import { deleteMediaFromCloudinary, uploadMediaToCloudinary } from '../config/cloudinary.js';
 import logger from '../utils/logger.js';
 import { updateProfileValidation } from '../utils/userValidation.js';
+import {
+  addAddress as addAddressValidation,
+  updateAddress as updateAddressValidation,
+} from '../utils/addressValidation.js';
 
+// Get current user profile
 export const getUserProfile = async (req, res) => {
   try {
     const userId = req.user.id;
-
     const user = await User.findById(userId)
-      .populate('profilePicture', 'secureUrl publicId')
-      .select('-password');
+      .populate('profilePicture', 'secureUrl publicId url')
+      .select('-password')
+      .lean();
 
     if (!user) {
-      logger.warn('User not found', { userId });
-      return res.status(404).json({
-        success: false,
-        message: 'User not found',
-      });
+      return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    logger.info('User profile fetched successfully', { userId });
-
-    return res.status(200).json({
+    res.status(200).json({
       success: true,
       user,
     });
   } catch (error) {
-    logger.error('Get user profile error:', {
-      message: error.message,
-      stack: error.stack,
-    });
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch user profile',
-    });
+    logger.error('Get user profile error', { error: error.message, userId: req.user?.id });
+    res.status(500).json({ success: false, message: 'Failed to fetch profile' });
   }
 };
 
-// export const updateUserProfile = async (req, res) => {
-//   logger.info('Update profile endpoint hit');
-
-//   try {
-//     const userId = req.user.id;
-
-//     const { error } = updateProfileValidation.validate(req.body, {
-//       abortEarly: false,
-//     });
-
-//     if (error) {
-//       logger.warn('Validation error', error.details[0].message);
-//       return res.status(400).json({
-//         success: false,
-//         message: 'Validation failed',
-//         errors: errorMessages,
-//       });
-//     }
-
-//     const user = await User.findByIdAndUpdate(userId, req.body, {
-//       new: true,
-//       runValidators: true,
-//     })
-//       .populate('profilePicture', 'secureUrl publicId')
-//       .select('-password');
-
-//     if (!user) {
-//       return res.status(404).json({
-//         success: false,
-//         message: 'User not found',
-//       });
-//     }
-
-//     logger.info('User profile updated successfully', { userId });
-
-//     return res.status(200).json({
-//       success: true,
-//       message: 'Profile updated successfully',
-//       user,
-//     });
-//   } catch (error) {
-//     logger.error('Update user profile error:', {
-//       message: error.message,
-//       stack: error.stack,
-//     });
-//     res.status(500).json({
-//       success: false,
-//       message: 'Failed to update profile',
-//     });
-//   }
-// };
-
+// Update basic profile fields (fullName, phone, preferences)
 export const updateUserProfile = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { error } = updateProfileValidation.validate(req.body, { abortEarly: false });
 
+    const { error } = updateProfileValidation.validate(req.body, { abortEarly: false });
     if (error) {
-      const errorMessages = error.details.map((d) => ({ field: d.path[0], message: d.message }));
-      return res
-        .status(400)
-        .json({ success: false, message: 'Validation failed', errors: errorMessages });
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: error.details.map((d) => d.message),
+      });
     }
 
-    // Mass Assignment Protection: Whitelist fields
-    const allowed = ['fullName', 'email', 'bio'];
-    const updateData = Object.keys(req.body)
-      .filter((key) => allowed.includes(key))
-      .reduce((obj, key) => {
-        obj[key] = req.body[key];
-        return obj;
-      }, {});
+    const allowedFields = ['fullName', 'phone', 'preferences'];
+    const updateData = {};
 
-    const user = await User.findByIdAndUpdate(userId, updateData, {
-      new: true,
-      runValidators: true,
-    })
-      .populate('profilePicture', 'secureUrl')
+    allowedFields.forEach((field) => {
+      if (req.body[field] !== undefined) {
+        updateData[field] = req.body[field];
+      }
+    });
+
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No valid fields provided for update',
+      });
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { $set: updateData },
+      { new: true, runValidators: true },
+    )
+      .populate('profilePicture', 'secureUrl publicId')
       .select('-password');
 
-    logger.info('Profile picture updated', { userId: user._id });
-
-    return res.status(200).json({ success: true, message: 'Profile updated successfully', user });
+    res.status(200).json({
+      success: true,
+      message: 'Profile updated successfully',
+      user: updatedUser,
+    });
   } catch (error) {
-    logger.error('Update user profile error:', {
-      message: error.message,
-      stack: error.stack,
-    });
-    res.status(500).json({
-      success: false,
-      message: 'Failed to update profile',
-    });
+    logger.error('Update profile error', { error: error.message, userId: req.user?.id });
+    res.status(500).json({ success: false, message: 'Failed to update profile' });
   }
 };
 
+// Upload / Update profile picture
 export const uploadProfilePicture = async (req, res) => {
-  logger.info('Upload profile picture endpoint hit');
-
   try {
     const userId = req.user.id;
 
     if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        message: 'No file uploaded',
-      });
+      return res.status(400).json({ success: false, message: 'No file uploaded' });
     }
 
-    //upload to cloudinary
     const cloudinaryResult = await uploadMediaToCloudinary(req.file, 'profile-pictures');
 
-    // save new media record
     const media = new Media({
       publicId: cloudinaryResult.public_id,
-      url: cloudinaryResult.url,
+      url: cloudinaryResult.secure_url,
       secureUrl: cloudinaryResult.secure_url,
-      originalName: req.file.originalname,
       mimeType: req.file.mimetype,
-      format: cloudinaryResult.format,
-      size: cloudinaryResult.bytes,
-      width: cloudinaryResult.width,
-      height: cloudinaryResult.height,
-      folder: 'profile-pictures',
       resourceType: cloudinaryResult.resource_type,
       uploadedBy: userId,
+      folder: 'profile-pictures',
     });
 
     await media.save();
 
-    // fetch old profile pictures from user that upload a picture without deleting previous one
     const user = await User.findById(userId).populate('profilePicture');
 
+    // Delete old picture if exists
     if (user.profilePicture) {
       try {
         await deleteMediaFromCloudinary(user.profilePicture.publicId);
         await Media.findByIdAndDelete(user.profilePicture._id);
-      } catch (deleteError) {
-        logger.warn('Failed to delete old profile picture:', deleteError);
+      } catch (deleteErr) {
+        logger.warn('Failed to delete old profile picture', { error: deleteErr.message });
       }
     }
 
-    // Update user with new profile picture
     user.profilePicture = media._id;
     await user.save();
 
-    await Media.findByIdAndUpdate(media._id, {
-      $push: {
-        usedBy: {
-          modelType: 'User',
-          modelId: userId,
-        },
-      },
-    });
-
     const updatedUser = await User.findById(userId)
-      .populate('profilePicture', 'secureUrl publicId')
+      .populate('profilePicture', 'secureUrl publicId url')
       .select('-password');
 
-    console.log(updatedUser, 'Profile pix updated user');
-
-    logger.info('Profile picture uploaded successfully', { userId });
-
-    return res.status(200).json({
+    res.status(200).json({
       success: true,
-      message: 'Profile picture uploaded successfully',
+      message: 'Profile picture updated successfully',
       user: updatedUser,
     });
   } catch (error) {
-    logger.error('Upload profile picture error:', {
-      message: error.message,
-      stack: error.stack,
-    });
-    res.status(500).json({
-      success: false,
-      message: 'Failed to upload profile picture',
-    });
+    logger.error('Upload profile picture error', { error: error.message });
+    res.status(500).json({ success: false, message: 'Failed to upload profile picture' });
   }
 };
 
+// Delete profile picture
 export const deleteProfilePicture = async (req, res) => {
   try {
     const userId = req.user.id;
-
     const user = await User.findById(userId).populate('profilePicture');
 
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found',
-      });
+      return res.status(404).json({ success: false, message: 'User not found' });
     }
 
     if (!user.profilePicture) {
-      return res.status(400).json({
-        success: false,
-        message: 'No profile picture to delete',
-      });
+      return res.status(400).json({ success: false, message: 'No profile picture to delete' });
     }
 
-    // Delete from Cloudinary
     await deleteMediaFromCloudinary(user.profilePicture.publicId);
-
-    // Delete Media record
     await Media.findByIdAndDelete(user.profilePicture._id);
 
-    // Remove reference from user
     user.profilePicture = null;
     await user.save();
 
-    logger.info('Profile picture deleted successfully', { userId });
-
-    return res.status(200).json({
+    res.status(200).json({
       success: true,
       message: 'Profile picture deleted successfully',
     });
   } catch (error) {
-    logger.error('Delete profile picture error:', {
-      message: error.message,
-      stack: error.stack,
-    });
-    res.status(500).json({
-      success: false,
-      message: 'Failed to delete profile picture',
-    });
+    logger.error('Delete profile picture error', { error: error.message });
+    res.status(500).json({ success: false, message: 'Failed to delete profile picture' });
   }
 };
 
-export const deactivateAccount = async (req, res) => {
-  logger.info('Deactivate Account endpoint hit');
-
+// Get all addresses
+export const getAddresses = async (req, res) => {
   try {
-    const userId = req.user.id;
-
-    const user = await User.findByIdAndUpdate(userId, { isActive: false }, { new: true }).select(
-      '-password',
-    );
-
+    const user = await User.findById(req.user.id).select('addresses');
     if (!user) {
-      logger.warn('User not found');
       return res.status(404).json({ success: false, message: 'User not found' });
     }
-    return res.status(200).json({
+    res.status(200).json({
       success: true,
-      message: 'Account deactivated successfully',
+      addresses: user.addresses || [],
     });
   } catch (error) {
-    logger.error('Deactivate account error:', {
-      message: error.message,
-      stack: error.stack,
+    logger.error('Get addresses error', { error: error.message });
+    res.status(500).json({ success: false, message: 'Failed to fetch addresses' });
+  }
+};
+
+// Add new address
+export const addAddress = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const addressData = req.body;
+
+    const { error } = addAddressValidation.validate(addressData);
+    if (error) return res.status(400).json({ success: false, message: error.details[0].message });
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // If first address or marked as default, unset others
+    if (addressData.isDefault || user.addresses.length === 0) {
+      user.addresses.forEach((addr) => {
+        addr.isDefault = false;
+      });
+      addressData.isDefault = true;
+    }
+
+    // Push new address
+    user.addresses.push(addressData);
+    await user.save();
+
+    // Return addresses with IDs
+    res.status(201).json({
+      success: true,
+      message: 'Address added successfully',
+      addresses: user.addresses.map((addr) => ({
+        _id: addr._id,
+        fullName: addr.fullName,
+        phone: addr.phone,
+        street: addr.street,
+        city: addr.city,
+        state: addr.state,
+        postalCode: addr.postalCode,
+        country: addr.country,
+        type: addr.type,
+        isDefault: addr.isDefault,
+      })),
     });
-    res.status(500).json({
-      success: false,
-      message: 'Failed to deactivate account',
+  } catch (error) {
+    logger.error('Add address error', { error: error.message });
+    res.status(500).json({ success: false, message: 'Failed to add address' });
+  }
+};
+
+// Update existing address
+export const updateAddress = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { addressId } = req.params;
+    const updateData = req.body;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const address = user.addresses.id(addressId);
+    if (!address) {
+      return res.status(404).json({ success: false, message: 'Address not found' });
+    }
+
+    // If setting as default, unset others
+    if (updateData.isDefault) {
+      user.addresses.forEach((addr) => {
+        addr.isDefault = addr._id.toString() === addressId;
+      });
+    }
+
+    Object.assign(address, updateData);
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Address updated successfully',
+      addresses: user.addresses,
     });
+  } catch (error) {
+    logger.error('Update address error', { error: error.message });
+    res.status(500).json({ success: false, message: 'Failed to update address' });
+  }
+};
+
+// Delete address
+export const deleteAddress = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { addressId } = req.params;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const address = user.addresses.id(addressId);
+    if (!address) {
+      return res.status(404).json({ success: false, message: 'Address not found' });
+    }
+
+    // If deleting default address, set first remaining as default
+    const wasDefault = address.isDefault;
+    user.addresses.pull(addressId);
+
+    if (wasDefault && user.addresses.length > 0) {
+      user.addresses[0].isDefault = true;
+    }
+
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Address deleted successfully',
+      addresses: user.addresses,
+    });
+  } catch (error) {
+    logger.error('Delete address error', { error: error.message });
+    res.status(500).json({ success: false, message: 'Failed to delete address' });
+  }
+};
+
+// Set address as default
+export const setDefaultAddress = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { addressId } = req.params;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const addressExists = user.addresses.id(addressId);
+    if (!addressExists) {
+      return res.status(404).json({ success: false, message: 'Address not found' });
+    }
+
+    user.addresses.forEach((addr) => {
+      addr.isDefault = addr._id.toString() === addressId;
+    });
+
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Default address updated successfully',
+      addresses: user.addresses,
+    });
+  } catch (error) {
+    logger.error('Set default address error', { error: error.message });
+    res.status(500).json({ success: false, message: 'Failed to set default address' });
+  }
+};
+
+// Deactivate own account
+export const deactivateAccount = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    await User.findByIdAndUpdate(userId, { isActive: false }, { new: true });
+
+    res.status(200).json({
+      success: true,
+      message: 'Account deactivated successfully. You can reactivate by contacting support.',
+    });
+  } catch (error) {
+    logger.error('Deactivate account error', { error: error.message });
+    res.status(500).json({ success: false, message: 'Failed to deactivate account' });
   }
 };
