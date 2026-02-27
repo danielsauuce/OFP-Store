@@ -36,8 +36,10 @@ app.use(express.urlencoded({ extended: true }));
 
 // logging middleware
 app.use((req, res, next) => {
-  logger.info(`Received ${req.method} request to ${req.url}`);
-  logger.info('Request body', { body: req.body }); // FIX: was logging [object Object]
+  logger.info(`${req.method} ${req.url}`, {
+    contentType: req.headers['content-type'],
+    ip: req.ip,
+  });
   next();
 });
 

@@ -10,17 +10,21 @@ import {
   updateProduct as updateProductValidation,
 } from '../utils/productValidation.js';
 
+// Helper: escape regex special characters to prevent ReDoS
+const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 export const getAllProducts = async (req, res) => {
   try {
     const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
-    const limit = Math.max(parseInt(req.query.limit, 10) || 12, 1);
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 12, 1), 100);
     const skip = (page - 1) * limit;
 
     const query = { isActive: true };
 
     if (req.query.category) {
+      const safeCategoryName = escapeRegex(String(req.query.category));
       const categoryDoc = await Category.findOne({
-        name: { $regex: `^${req.query.category}$`, $options: 'i' },
+        name: { $regex: `^${safeCategoryName}$`, $options: 'i' },
       });
 
       if (!categoryDoc) {
@@ -42,7 +46,7 @@ export const getAllProducts = async (req, res) => {
     }
 
     if (req.query.search) {
-      query.$text = { $search: req.query.search };
+      query.$text = { $search: String(req.query.search) };
     }
 
     if (req.query.minPrice || req.query.maxPrice) {
@@ -121,7 +125,6 @@ export const getProductById = async (req, res) => {
           id,
           error: populateError.message,
         });
-        // Return product without populated fields
       }
     }
 
@@ -144,14 +147,12 @@ export const getProductById = async (req, res) => {
 
 export const createProduct = async (req, res) => {
   try {
-    // Log incoming request for debugging
     logger.info('Creating product', {
       bodyKeys: Object.keys(req.body),
       hasName: !!req.body.name,
       hasCategory: !!req.body.category,
     });
 
-    // Validate request body
     const { error } = createProductValidation.validate(req.body, { abortEarly: false });
     if (error) {
       logger.warn('Product validation failed', {
@@ -164,7 +165,6 @@ export const createProduct = async (req, res) => {
       });
     }
 
-    // Validate category exists and is a valid ObjectId
     if (req.body.category) {
       if (!mongoose.Types.ObjectId.isValid(req.body.category)) {
         logger.warn('Invalid category ID format', { category: req.body.category });
@@ -184,7 +184,6 @@ export const createProduct = async (req, res) => {
       }
     }
 
-    // Validate primaryImage exists
     if (req.body.primaryImage) {
       if (!mongoose.Types.ObjectId.isValid(req.body.primaryImage)) {
         return res.status(400).json({
@@ -202,7 +201,6 @@ export const createProduct = async (req, res) => {
       }
     }
 
-    // Validate additional images if provided
     if (req.body.images && req.body.images.length > 0) {
       const invalidImages = req.body.images.filter((id) => !mongoose.Types.ObjectId.isValid(id));
 
@@ -225,11 +223,9 @@ export const createProduct = async (req, res) => {
       }
     }
 
-    // Create the product
     const product = await Product.create(req.body);
     logger.info('Product created successfully', { productId: product._id });
 
-    // Mark media as used
     if (product.primaryImage) {
       await Media.findByIdAndUpdate(product.primaryImage, {
         $addToSet: { usedBy: { modelType: 'Product', modelId: product._id } },
@@ -243,7 +239,6 @@ export const createProduct = async (req, res) => {
       );
     }
 
-    // Invalidate cache
     await invalidateCache('cache:/api/product*');
     await invalidateCache('cache:/api/products*');
 
@@ -256,10 +251,8 @@ export const createProduct = async (req, res) => {
     logger.error('Create product error', {
       error: err.message,
       stack: err.stack,
-      body: req.body,
     });
 
-    // Handle duplicate key error
     if (err.code === 11000) {
       return res.status(400).json({
         success: false,
@@ -290,7 +283,6 @@ export const updateProduct = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Product not found' });
     }
 
-    // Validate category if being updated
     if (req.body.category && req.body.category.toString() !== product.category.toString()) {
       if (!mongoose.Types.ObjectId.isValid(req.body.category)) {
         return res.status(400).json({
@@ -308,7 +300,6 @@ export const updateProduct = async (req, res) => {
       }
     }
 
-    // Validate primaryImage if being updated
     if (
       req.body.primaryImage &&
       req.body.primaryImage.toString() !== product.primaryImage?.toString()
@@ -329,7 +320,6 @@ export const updateProduct = async (req, res) => {
       }
     }
 
-    // Validate images array if being updated
     if (req.body.images && req.body.images.length > 0) {
       const invalidImages = req.body.images.filter((id) => !mongoose.Types.ObjectId.isValid(id));
 
@@ -355,14 +345,12 @@ export const updateProduct = async (req, res) => {
     const oldPrimary = product.primaryImage?.toString();
     const oldImages = product.images?.map((id) => id.toString()) || [];
 
-    // Apply updates
     Object.assign(product, req.body);
     await product.save();
 
     const newPrimary = product.primaryImage?.toString();
     const newImages = product.images?.map((id) => id.toString()) || [];
 
-    // Handle removed media (only if Media model has usedBy field)
     if (oldPrimary && oldPrimary !== newPrimary) {
       await Media.findByIdAndUpdate(oldPrimary, {
         $pull: { usedBy: { modelId: product._id } },
@@ -381,7 +369,6 @@ export const updateProduct = async (req, res) => {
       });
     }
 
-    // Handle added media
     if (newPrimary && newPrimary !== oldPrimary) {
       await Media.findByIdAndUpdate(newPrimary, {
         $addToSet: { usedBy: { modelType: 'Product', modelId: product._id } },
@@ -427,7 +414,6 @@ export const deleteProduct = async (req, res) => {
 
     const mediaIds = [product.primaryImage, ...(product.images || [])].filter(Boolean);
 
-    // Update media usedBy references (if Media model has usedBy field)
     if (mediaIds.length) {
       await Media.updateMany(
         { _id: { $in: mediaIds } },
@@ -436,7 +422,6 @@ export const deleteProduct = async (req, res) => {
         logger.warn('Failed to update media usedBy references', { error: err.message });
       });
 
-      // Find and delete unused media (if Media model has usedBy field)
       const unused = await Media.find({
         _id: { $in: mediaIds },
         usedBy: { $size: 0 },

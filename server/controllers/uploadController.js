@@ -4,6 +4,8 @@ import logger from '../utils/logger.js';
 
 // Upload single image
 export const uploadImage = async (req, res) => {
+  let cloudinaryResult = null;
+
   try {
     if (!req.file) {
       return res.status(400).json({
@@ -12,9 +14,9 @@ export const uploadImage = async (req, res) => {
       });
     }
 
-    const folder = req.body.folder || 'general';
+    const folder = String(req.body.folder || 'general');
 
-    const cloudinaryResult = await uploadMediaToCloudinary(req.file, folder);
+    cloudinaryResult = await uploadMediaToCloudinary(req.file, folder);
 
     const media = new Media({
       url: cloudinaryResult.secure_url,
@@ -48,9 +50,9 @@ export const uploadImage = async (req, res) => {
   } catch (error) {
     logger.error('Upload single image error', { error: error.message });
 
-    // Attempt cleanup if upload to Cloudinary succeeded but DB failed
-    if (error.cloudinaryResult?.public_id) {
-      await deleteMediaFromCloudinary(error.cloudinaryResult.public_id).catch(() => {});
+    // Attempt cleanup if Cloudinary upload succeeded but DB save failed
+    if (cloudinaryResult?.public_id) {
+      await deleteMediaFromCloudinary(cloudinaryResult.public_id).catch(() => {});
     }
 
     res.status(500).json({
@@ -62,6 +64,8 @@ export const uploadImage = async (req, res) => {
 
 // Upload multiple images
 export const uploadMultipleImages = async (req, res) => {
+  const successfulUploads = [];
+
   try {
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({
@@ -70,7 +74,7 @@ export const uploadMultipleImages = async (req, res) => {
       });
     }
 
-    const folder = req.body.folder || 'general';
+    const folder = String(req.body.folder || 'general');
 
     const uploadPromises = req.files.map((file) => uploadMediaToCloudinary(file, folder));
 
@@ -82,6 +86,7 @@ export const uploadMultipleImages = async (req, res) => {
     results.forEach((result, index) => {
       if (result.status === 'fulfilled') {
         successful.push({ file: req.files[index], result: result.value });
+        successfulUploads.push(result.value);
       } else {
         failed.push({ file: req.files[index], error: result.reason });
       }
@@ -96,6 +101,13 @@ export const uploadMultipleImages = async (req, res) => {
         success: false,
         message: 'Some uploads failed - all rolled back',
         failedCount: failed.length,
+      });
+    }
+
+    if (failed.length > 0 && successful.length === 0) {
+      return res.status(500).json({
+        success: false,
+        message: 'All uploads failed',
       });
     }
 
@@ -133,12 +145,11 @@ export const uploadMultipleImages = async (req, res) => {
   } catch (error) {
     logger.error('Upload multiple images error', { error: error.message });
 
-    // Attempt cleanup on error
-    if (error.results) {
-      const successfulIds = error.results
-        .filter((r) => r.status === 'fulfilled')
-        .map((r) => r.value.public_id);
-      await Promise.all(successfulIds.map((id) => deleteMediaFromCloudinary(id))).catch(() => {});
+    // Cleanup any successful Cloudinary uploads if DB insert failed
+    if (successfulUploads.length > 0) {
+      await Promise.all(successfulUploads.map((r) => deleteMediaFromCloudinary(r.public_id))).catch(
+        () => {},
+      );
     }
 
     res.status(500).json({
@@ -151,16 +162,25 @@ export const uploadMultipleImages = async (req, res) => {
 // Get all media (admin only)
 export const getAllMedia = async (req, res) => {
   try {
-    const { page = 1, limit = 20, folder, uploadedBy } = req.query;
+    const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 20, 1), 50);
 
     const query = {};
-    if (folder) query.folder = folder;
-    if (uploadedBy) query.uploadedBy = uploadedBy;
 
-    const skip = (Number(page) - 1) * Number(limit);
+    // Sanitize folder — only allow alphanumeric and hyphens/underscores
+    if (req.query.folder && /^[a-zA-Z0-9_-]+$/.test(String(req.query.folder))) {
+      query.folder = String(req.query.folder);
+    }
+
+    // Sanitize uploadedBy — must be a valid ObjectId format
+    if (req.query.uploadedBy && /^[a-f0-9]{24}$/i.test(String(req.query.uploadedBy))) {
+      query.uploadedBy = String(req.query.uploadedBy);
+    }
+
+    const skip = (page - 1) * limit;
 
     const [media, total] = await Promise.all([
-      Media.find(query).sort({ createdAt: -1 }).skip(skip).limit(Number(limit)).lean(),
+      Media.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
       Media.countDocuments(query),
     ]);
 
@@ -169,9 +189,9 @@ export const getAllMedia = async (req, res) => {
       media,
       pagination: {
         total,
-        page: Number(page),
-        pages: Math.ceil(total / Number(limit)),
-        limit: Number(limit),
+        page,
+        pages: Math.ceil(total / limit),
+        limit,
       },
     });
   } catch (error) {

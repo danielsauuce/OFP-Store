@@ -26,7 +26,10 @@ export const createProduct = Joi.object({
   metadata: Joi.object(),
 });
 
-export const updateProduct = createProduct.keys({}).min(1);
+// Use .fork() to make required fields optional for updates, then .min(1) to require at least one field
+export const updateProduct = createProduct
+  .fork(['name', 'description', 'price', 'primaryImage', 'category'], (schema) => schema.optional())
+  .min(1);
 
 export const updateStock = Joi.object({ stockQuantity: Joi.number().min(0).integer().required() });
 

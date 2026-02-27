@@ -10,6 +10,6 @@ export const createCategory = Joi.object({
   isActive: Joi.boolean(),
 });
 
-export const updateCategory = createCategory.keys({}).min(1);
+export const updateCategory = createCategory.fork(['name'], (schema) => schema.optional()).min(1);
 
 export const reorder = Joi.object({ order: Joi.number().integer().min(0).required() });

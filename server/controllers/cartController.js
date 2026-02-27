@@ -25,7 +25,6 @@ export const getCart = async (req, res) => {
 
     if (!cart) {
       cart = await Cart.create({ user: userId, items: [] });
-      // .create() returns a Mongoose doc, but send consistent shape
       return res.status(200).json({
         success: true,
         cart: {
@@ -70,6 +69,7 @@ export const addToCart = async (req, res) => {
     }
 
     let itemPrice = product.price;
+    let availableStock;
     let selectedVariant = null;
 
     if (product.variants?.length > 0) {
@@ -82,16 +82,10 @@ export const addToCart = async (req, res) => {
       if (!selectedVariant) {
         return res.status(404).json({ success: false, message: 'Selected variant not found' });
       }
-      if (selectedVariant.stockQuantity < quantity) {
-        return res
-          .status(400)
-          .json({ success: false, message: 'Insufficient stock for this variant' });
-      }
+      availableStock = selectedVariant.stockQuantity;
       itemPrice = selectedVariant.price || product.price;
     } else {
-      if (product.stockQuantity < quantity) {
-        return res.status(400).json({ success: false, message: 'Insufficient stock' });
-      }
+      availableStock = product.stockQuantity;
     }
 
     let cart = await Cart.findOne({ user: userId });
@@ -104,8 +98,19 @@ export const addToCart = async (req, res) => {
     );
 
     if (existingItemIndex !== -1) {
-      cart.items[existingItemIndex].quantity += quantity;
+      // Re-validate total quantity against available stock
+      const newTotalQty = cart.items[existingItemIndex].quantity + quantity;
+      if (newTotalQty > availableStock) {
+        return res.status(400).json({
+          success: false,
+          message: `Insufficient stock. Only ${availableStock} available (you already have ${cart.items[existingItemIndex].quantity} in cart)`,
+        });
+      }
+      cart.items[existingItemIndex].quantity = newTotalQty;
     } else {
+      if (quantity > availableStock) {
+        return res.status(400).json({ success: false, message: 'Insufficient stock' });
+      }
       cart.items.push({
         product: productId,
         variantSku,
@@ -131,7 +136,7 @@ export const addToCart = async (req, res) => {
       cart: {
         _id: cart._id,
         items: cart.items,
-        total: cart.total, // Mongoose doc — virtual works here
+        total: cart.total,
       },
     });
   } catch (error) {
@@ -162,6 +167,27 @@ export const updateCartItem = async (req, res) => {
     const itemIndex = cart.items.findIndex((item) => item.product.toString() === productId);
     if (itemIndex === -1) {
       return res.status(404).json({ success: false, message: 'Item not found in cart' });
+    }
+
+    // Validate stock availability before updating quantity
+    const cartItem = cart.items[itemIndex];
+    const product = await Product.findById(productId).lean();
+
+    if (product) {
+      let availableStock;
+      if (cartItem.variantSku && product.variants?.length) {
+        const variant = product.variants.find((v) => v.sku === cartItem.variantSku);
+        availableStock = variant?.stockQuantity ?? 0;
+      } else {
+        availableStock = product.stockQuantity ?? 0;
+      }
+
+      if (quantity > availableStock) {
+        return res.status(400).json({
+          success: false,
+          message: `Insufficient stock. Only ${availableStock} available`,
+        });
+      }
     }
 
     cart.items[itemIndex].quantity = quantity;
@@ -198,7 +224,17 @@ export const removeCartItem = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Cart not found' });
     }
 
-    cart.items = cart.items.filter((item) => item.product.toString() !== productId);
+    // Filter by both product AND variantSku for proper variant distinction
+    const variantSku = req.query.variantSku || null;
+    cart.items = cart.items.filter((item) => {
+      const productMatch = item.product.toString() === productId;
+      if (!productMatch) return true; // keep items that don't match this product
+      // If variantSku specified, only remove the matching variant
+      if (variantSku) return item.variantSku !== variantSku;
+      // If no variantSku specified, remove all items with this productId
+      return false;
+    });
+
     await cart.save();
 
     await cart.populate({

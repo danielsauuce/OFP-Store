@@ -6,9 +6,12 @@ import {
   updateTicket as updateTicketValidation,
 } from '../utils/ticketValidation.js';
 
+// Allowed enum values for query filtering
+const ALLOWED_STATUSES = ['new', 'open', 'in_progress', 'resolved', 'closed'];
+const ALLOWED_PRIORITIES = ['low', 'medium', 'high', 'urgent'];
+
 // Customer endpoints
 
-// Create new ticket (authenticated or guest)
 export const createTicket = async (req, res) => {
   try {
     const { error } = createTicketValidation.validate(req.body);
@@ -25,8 +28,8 @@ export const createTicket = async (req, res) => {
 
     const ticket = await Ticket.create({
       user: userId,
-      name: userId ? undefined : name, // only for guests
-      email: userId ? undefined : email, // only for guests
+      name: userId ? undefined : name,
+      email: userId ? undefined : email,
       subject,
       message,
       priority: priority || 'medium',
@@ -44,7 +47,6 @@ export const createTicket = async (req, res) => {
   }
 };
 
-// Get my own tickets (authenticated users only)
 export const getMyTickets = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -64,7 +66,6 @@ export const getMyTickets = async (req, res) => {
   }
 };
 
-// Get single ticket (only if owned by the user)
 export const getTicketById = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -90,7 +91,6 @@ export const getTicketById = async (req, res) => {
   }
 };
 
-// Add reply to own ticket
 export const addReply = async (req, res) => {
   try {
     const { error } = addReplyValidation.validate(req.body);
@@ -123,7 +123,6 @@ export const addReply = async (req, res) => {
       author: userId,
     });
 
-    // Optional: update status to 'open' if it was 'new'
     if (ticket.status === 'new') {
       ticket.status = 'open';
     }
@@ -145,13 +144,24 @@ export const addReply = async (req, res) => {
 
 export const getAllTicketsAdmin = async (req, res) => {
   try {
-    const { page = 1, limit = 20, status, priority } = req.query;
+    const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 20, 1), 50);
 
     const query = {};
-    if (status) query.status = status;
-    if (priority) query.priority = priority;
 
-    const skip = (Number(page) - 1) * Number(limit);
+    // Whitelist status values to prevent NoSQL injection
+    const statusParam = String(req.query.status || '');
+    if (statusParam && ALLOWED_STATUSES.includes(statusParam)) {
+      query.status = statusParam;
+    }
+
+    // Whitelist priority values to prevent NoSQL injection
+    const priorityParam = String(req.query.priority || '');
+    if (priorityParam && ALLOWED_PRIORITIES.includes(priorityParam)) {
+      query.priority = priorityParam;
+    }
+
+    const skip = (page - 1) * limit;
 
     const tickets = await Ticket.find(query)
       .populate('user', 'fullName email phone')
@@ -159,7 +169,7 @@ export const getAllTicketsAdmin = async (req, res) => {
       .populate('replies.author', 'fullName role')
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(Number(limit));
+      .limit(limit);
 
     const total = await Ticket.countDocuments(query);
 
@@ -168,9 +178,9 @@ export const getAllTicketsAdmin = async (req, res) => {
       tickets,
       pagination: {
         total,
-        page: Number(page),
-        pages: Math.ceil(total / Number(limit)),
-        limit: Number(limit),
+        page,
+        pages: Math.ceil(total / limit),
+        limit,
       },
     });
   } catch (error) {
@@ -219,15 +229,9 @@ export const updateTicketAdmin = async (req, res) => {
 
     const { status, priority, assignedTo } = req.body;
 
-    if (status) {
-      ticket.status = status;
-    }
-    if (priority) {
-      ticket.priority = priority;
-    }
-    if (assignedTo !== undefined) {
-      ticket.assignedTo = assignedTo || null;
-    }
+    if (status) ticket.status = status;
+    if (priority) ticket.priority = priority;
+    if (assignedTo !== undefined) ticket.assignedTo = assignedTo || null;
 
     await ticket.save();
 
@@ -266,7 +270,6 @@ export const addAdminReply = async (req, res) => {
       author: adminId,
     });
 
-    // Optional: auto-update status when admin replies
     if (ticket.status === 'new') {
       ticket.status = 'in_progress';
     }

@@ -8,9 +8,8 @@ const mediaSchema = new mongoose.Schema(
     mimeType: { type: String, required: true },
     uploadedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     resourceType: { type: String, enum: ['image', 'video'], default: 'image' },
-    folder: { type: String, default: 'general' }, // Add this
+    folder: { type: String, default: 'general' },
     usedBy: [
-      // ← ADD THIS FIELD
       {
         modelType: { type: String, enum: ['Product', 'Category'], required: true },
         modelId: { type: mongoose.Schema.Types.ObjectId, required: true },

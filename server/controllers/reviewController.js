@@ -8,33 +8,42 @@ import {
   approve as approveValidation,
 } from '../utils/reviewValidation.js';
 
+// Whitelist of allowed sort fields
+const ALLOWED_SORT_FIELDS = ['createdAt', 'rating', 'helpfulCount'];
+const MAX_LIMIT = 50;
+
 // Public: Get approved reviews for a product
 export const getProductReviews = async (req, res) => {
   try {
     const { productId } = req.params;
-    const { page = 1, limit = 10, sort = '-createdAt' } = req.query;
+    const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 10, 1), MAX_LIMIT);
+    const sortParam = String(req.query.sort || '-createdAt');
 
     const query = {
       product: productId,
       isApproved: true,
     };
 
-    const skip = (Number(page) - 1) * Number(limit);
+    const skip = (page - 1) * limit;
 
+    // Whitelist sort fields and sanitize direction
     let sortOption = { createdAt: -1 };
-    if (sort === 'helpful') {
+    if (sortParam === 'helpful') {
       sortOption = { helpfulCount: -1, createdAt: -1 };
-    } else if (sort.startsWith('-')) {
-      sortOption = { [sort.slice(1)]: -1 };
     } else {
-      sortOption = { [sort]: 1 };
+      const isDesc = sortParam.startsWith('-');
+      const fieldName = isDesc ? sortParam.slice(1) : sortParam;
+      if (ALLOWED_SORT_FIELDS.includes(fieldName)) {
+        sortOption = { [fieldName]: isDesc ? -1 : 1 };
+      }
     }
 
     const reviews = await Review.find(query)
       .populate('user', 'fullName profilePicture')
       .sort(sortOption)
       .skip(skip)
-      .limit(Number(limit))
+      .limit(limit)
       .lean();
 
     const total = await Review.countDocuments(query);
@@ -44,9 +53,9 @@ export const getProductReviews = async (req, res) => {
       reviews,
       pagination: {
         total,
-        page: Number(page),
-        pages: Math.ceil(total / Number(limit)),
-        limit: Number(limit),
+        page,
+        pages: Math.ceil(total / limit),
+        limit,
       },
     });
   } catch (error) {
@@ -73,28 +82,24 @@ export const createReview = async (req, res) => {
     const { product: productId, rating, content } = req.body;
     const userId = req.user.id;
 
-    // Check if product exists
     const product = await Product.findById(productId);
     if (!product) {
       return res.status(404).json({ success: false, message: 'Product not found' });
     }
 
-    // Check if user has purchased this product
     const hasPurchased = await Order.exists({
       user: userId,
       'items.product': productId,
       orderStatus: { $in: ['delivered'] },
-      paymentStatus: { $in: ['paid', 'pending'] }, // adjust based on your flow
+      paymentStatus: { $in: ['paid', 'pending'] },
     });
 
-    // You can make this check strict or optional
     if (!hasPurchased) {
       return res
         .status(403)
         .json({ success: false, message: 'You can only review products you have purchased' });
     }
 
-    // Check if user already reviewed this product
     const existingReview = await Review.findOne({ product: productId, user: userId });
     if (existingReview) {
       return res
@@ -107,11 +112,9 @@ export const createReview = async (req, res) => {
       user: userId,
       rating,
       content,
-      isVerifiedPurchase: !!hasPurchased, // true if purchased
-      isApproved: false, // requires admin approval
+      isVerifiedPurchase: !!hasPurchased,
+      isApproved: false,
     });
-
-    // Note: averageRating and reviewCount are updated automatically via post-save hook in schema
 
     res.status(201).json({
       success: true,
@@ -146,11 +149,6 @@ export const updateReview = async (req, res) => {
         .json({ success: false, message: 'Review not found or not owned by you' });
     }
 
-    // Optional: prevent update if already approved
-    // if (review.isApproved) {
-    //   return res.status(403).json({ success: false, message: 'Approved reviews cannot be edited' });
-    // }
-
     Object.assign(review, req.body);
     await review.save();
 
@@ -180,8 +178,6 @@ export const deleteReview = async (req, res) => {
 
     await review.deleteOne();
 
-    // Note: averageRating and reviewCount are updated via post-deleteOne hook
-
     res.status(200).json({
       success: true,
       message: 'Review deleted successfully',
@@ -195,20 +191,28 @@ export const deleteReview = async (req, res) => {
 // Admin endpoints
 export const getAllReviewsAdmin = async (req, res) => {
   try {
-    const { page = 1, limit = 20, approved, productId } = req.query;
+    const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 20, 1), MAX_LIMIT);
 
     const query = {};
-    if (approved !== undefined) query.isApproved = approved === 'true';
-    if (productId) query.product = productId;
 
-    const skip = (Number(page) - 1) * Number(limit);
+    // Sanitize approved — only accept 'true' or 'false' strings
+    if (req.query.approved === 'true') query.isApproved = true;
+    else if (req.query.approved === 'false') query.isApproved = false;
+
+    // Sanitize productId — must be a valid ObjectId string
+    if (req.query.productId && /^[a-f0-9]{24}$/i.test(String(req.query.productId))) {
+      query.product = String(req.query.productId);
+    }
+
+    const skip = (page - 1) * limit;
 
     const reviews = await Review.find(query)
       .populate('product', 'name slug')
       .populate('user', 'fullName email')
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(Number(limit));
+      .limit(limit);
 
     const total = await Review.countDocuments(query);
 
@@ -217,9 +221,9 @@ export const getAllReviewsAdmin = async (req, res) => {
       reviews,
       pagination: {
         total,
-        page: Number(page),
-        pages: Math.ceil(total / Number(limit)),
-        limit: Number(limit),
+        page,
+        pages: Math.ceil(total / limit),
+        limit,
       },
     });
   } catch (error) {
@@ -248,8 +252,6 @@ export const approveReview = async (req, res) => {
 
     review.isApproved = isApproved;
     await review.save();
-
-    // Product stats are automatically updated via schema hooks
 
     res.status(200).json({
       success: true,

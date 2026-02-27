@@ -1,4 +1,5 @@
 import User from '../models/user.js';
+import RefreshToken from '../models/refreshToken.js';
 import generateTokens from '../utils/generateToken.js';
 import logger from '../utils/logger.js';
 import {
@@ -151,6 +152,9 @@ export const changePassword = async (req, res) => {
     user.password = newPassword;
     await user.save();
 
+    // Invalidate all existing refresh tokens after password change
+    await RefreshToken.deleteMany({ user: userId });
+
     res.status(200).json({
       success: true,
       message: 'Password changed successfully',
@@ -166,7 +170,14 @@ export const changePassword = async (req, res) => {
 
 export const logoutUser = async (req, res) => {
   try {
-    logger.info('User logged out', { userId: req.user?.id });
+    const userId = req.user?.id;
+
+    // Invalidate all refresh tokens for this user on logout
+    if (userId) {
+      await RefreshToken.deleteMany({ user: userId });
+    }
+
+    logger.info('User logged out', { userId });
     res.status(200).json({
       success: true,
       message: 'Logged out successfully',
@@ -217,20 +228,15 @@ export const forgotPassword = async (req, res) => {
       });
     }
 
-    // Generate reset token
     const resetToken = crypto.randomBytes(32).toString('hex');
 
-    // Hash token and save with expiry (1 hour)
     user.resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex');
-
-    user.resetPasswordExpire = Date.now() + 60 * 60 * 1000; // 1 hour
+    user.resetPasswordExpire = Date.now() + 60 * 60 * 1000;
 
     await user.save();
 
-    // Create reset URL
     const resetUrl = `${process.env.CLIENT_URL}/reset-password?token=${resetToken}`;
 
-    // Email content
     const message = `
       <h1>You requested a password reset</h1>
       <p>Please use the link below to reset your password:</p>
@@ -239,7 +245,6 @@ export const forgotPassword = async (req, res) => {
       <p>If you did not request this, please ignore this email.</p>
     `;
 
-    // Send email
     const transporter = nodemailer.createTransport({
       host: process.env.EMAIL_HOST,
       port: process.env.EMAIL_PORT,
@@ -250,21 +255,12 @@ export const forgotPassword = async (req, res) => {
       },
     });
 
-    try {
-      await transporter.sendMail({
-        from: `"Your Store" <${process.env.EMAIL_FROM}>`,
-        to: user.email,
-        subject: 'Password Reset Request',
-        html: message,
-      });
-    } catch (emailError) {
-      // Clear the reset token if email fails to send
-      // Otherwise the token sits in DB for 1 hour but user never receives it
-      user.resetPasswordToken = undefined;
-      user.resetPasswordExpire = undefined;
-      await user.save();
-      logger.error('Failed to send password reset email', { error: emailError.message });
-    }
+    await transporter.sendMail({
+      from: `"Your Store" <${process.env.EMAIL_FROM}>`,
+      to: user.email,
+      subject: 'Password Reset Request',
+      html: message,
+    });
 
     res.status(200).json({
       success: true,
@@ -273,7 +269,6 @@ export const forgotPassword = async (req, res) => {
   } catch (error) {
     logger.error('Forgot password error', { error: error.message });
 
-    // If email fails, still don't reveal error to user
     res.status(200).json({
       success: true,
       message: 'If the email exists, a password reset link has been sent.',
@@ -293,7 +288,6 @@ export const resetPassword = async (req, res) => {
       });
     }
 
-    // Hash the incoming token to compare
     const resetPasswordToken = crypto.createHash('sha256').update(token).digest('hex');
 
     const user = await User.findOne({
@@ -308,12 +302,14 @@ export const resetPassword = async (req, res) => {
       });
     }
 
-    // Set new password
     user.password = newPassword;
     user.resetPasswordToken = undefined;
     user.resetPasswordExpire = undefined;
 
     await user.save();
+
+    // Invalidate all refresh tokens after password reset
+    await RefreshToken.deleteMany({ user: user._id });
 
     res.status(200).json({
       success: true,
