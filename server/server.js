@@ -7,7 +7,7 @@ import logger from './utils/logger.js';
 import errorHandler from './middleware/errorHandler.js';
 import helmet from 'helmet';
 import cors from 'cors';
-import mongoSanitize from 'express-mongo-sanitize';
+// import mongoSanitize from 'express-mongo-sanitize';
 import corsOptions from './config/corsOptions.js';
 import authRoutes from './routes/authRoutes.js';
 import rateLimiterMiddleware from './middleware/rateLimiter.js';
@@ -47,7 +47,7 @@ app.use((req, res, next) => {
 //Rate limit middleware
 app.use(rateLimiterMiddleware);
 
-app.use(mongoSanitize());
+// app.use(mongoSanitize());
 
 // Routes
 app.use('/api/auth/', authRoutes);
