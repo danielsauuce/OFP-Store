@@ -1,84 +1,45 @@
 import mongoose from 'mongoose';
 import argon2 from 'argon2';
 
+const addressSchema = new mongoose.Schema(
+  {
+    isDefault: { type: Boolean, default: false },
+    fullName: String,
+    phone: String,
+    street: String,
+    city: String,
+    state: String,
+    postalCode: String,
+    country: { type: String, default: 'Nigeria' },
+    type: { type: String, enum: ['home', 'work', 'other'], default: 'home' },
+  },
+  { _id: true },
+);
+
 const userSchema = new mongoose.Schema(
   {
-    email: {
-      type: String,
-      required: true,
-      unique: true,
-      lowercase: true,
-      trim: true,
-      maxlength: 255,
-    },
-    password: {
-      type: String,
-      required: true,
-      select: false,
-    },
-    fullName: {
-      type: String,
-      required: true,
-      trim: true,
-      maxlength: 100,
-    },
-    bio: {
-      type: String,
-      trim: true,
-      maxlength: 500,
-      default: '',
-    },
-    phone: {
-      type: String,
-      trim: true,
-      maxlength: 20,
-    },
-    profilePicture: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Media',
-    },
-    address: {
-      street: String,
-      city: String,
-      state: String,
-      postalCode: String,
-      country: String,
-    },
-    isActive: {
-      type: Boolean,
-      default: true,
-    },
-    role: {
-      type: String,
-      enum: ['user', 'admin'],
-      default: 'user',
-    },
-    lastLogin: {
-      type: Date,
-    },
+    email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+    password: { type: String, required: true, select: false },
+    fullName: { type: String, required: true, trim: true },
+    phone: { type: String, trim: true },
+    profilePicture: { type: mongoose.Schema.Types.ObjectId, ref: 'Media' },
+    addresses: [addressSchema],
+    role: { type: String, enum: ['customer', 'admin'], default: 'customer' },
+    isActive: { type: Boolean, default: true },
+    emailVerified: { type: Boolean, default: false },
+    lastLogin: Date,
+    preferences: { type: Map, of: String },
   },
-  {
-    timestamps: true,
-  },
+  { timestamps: true },
 );
 
 userSchema.pre('save', async function (next) {
-  if (this.isModified('password')) {
-    try {
-      this.password = await argon2.hash(this.password);
-    } catch (error) {
-      return next(error);
-    }
-  }
+  if (this.isModified('password')) this.password = await argon2.hash(this.password);
+  next();
 });
 
-userSchema.methods.comparePassword = async function (candidatePassword) {
-  try {
-    return await argon2.verify(this.password, candidatePassword);
-  } catch (error) {
-    throw error;
-  }
+userSchema.methods.comparePassword = async function (candidate) {
+  return argon2.verify(this.password, candidate);
 };
 
-const User = mongoose.model('User', userSchema);
-export default User;
+export default mongoose.model('User', userSchema);

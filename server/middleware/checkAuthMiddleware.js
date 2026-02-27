@@ -7,7 +7,6 @@ const verifyToken = (token, secretKey) => {
 
 export const authenticate = (req, res, next) => {
   const authHeader = req.headers.authorization;
-  console.log(req.user);
 
   if (!authHeader) {
     logger.warn('No authorization header or invalid format');
@@ -29,7 +28,6 @@ export const authenticate = (req, res, next) => {
 
   try {
     const payload = verifyToken(token, process.env.JWT_SECRET);
-    console.log(payload);
 
     req.user = {
       id: payload.userId,

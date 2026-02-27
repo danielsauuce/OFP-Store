@@ -1,11 +1,28 @@
+import { useLayoutEffect, useRef } from 'react';
+import gsap from 'gsap';
+
 const LoadMoreButton = ({ hasMore, onClick }) => {
+  const btnRef = useRef(null);
+
+  useLayoutEffect(() => {
+    if (!hasMore || !btnRef.current) return;
+
+    // Subtle entrance pulse when the button appears
+    gsap.fromTo(
+      btnRef.current,
+      { opacity: 0, y: 20 },
+      { opacity: 1, y: 0, duration: 0.5, ease: 'power2.out' },
+    );
+  }, [hasMore]);
+
   if (!hasMore) return null;
 
   return (
-    <div className="text-center mt-8">
+    <div className="text-center mt-10">
       <button
+        ref={btnRef}
         onClick={onClick}
-        className="px-6 py-3 bg-white text-[hsl(25_45%_35%)] border-2 border-[hsl(25_45%_35%)] rounded-md shadow hover:bg-[hsl(25_45%_35%)] hover:text-white transition"
+        className="px-7 py-3 bg-card text-primary border-2 border-primary rounded-xl shadow hover:bg-primary hover:text-primary-foreground transition-all duration-300 font-medium"
       >
         View More
       </button>
