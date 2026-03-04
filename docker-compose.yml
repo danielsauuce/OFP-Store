@@ -1,28 +1,57 @@
-version: "3.9"
-
 services:
+
+  mongo:
+    image: mongo:7
+    container_name: ofp-mongo
+    volumes:
+      - mongo_data:/data/db
+
   server:
     build:
       context: ./server
-      dockerfile: Dockerfile
     container_name: ofp-server
-    ports:
-      - "5000:5000"
-    volumes:
-      - ./server:/app
-      - /app/node_modules
-    environment:
-      - NODE_ENV=development
+    env_file:
+      - ./server/.env
+    depends_on:
+      - mongo
+    expose:
+      - "5000"
 
-  client:
+  web:
     build:
       context: ./client
-      dockerfile: Dockerfile
-    container_name: ofp-client
-    ports:
-      - "5173:5173"
-    volumes:
-      - ./client:/app
-      - /app/node_modules
+    container_name: ofp-web
     depends_on:
       - server
+    expose:
+      - "5173"
+
+  uptime-kuma:
+    image: louislam/uptime-kuma:1
+    container_name: ofp-uptime
+    restart: unless-stopped
+    volumes:
+      - kuma_data:/app/data
+    expose:
+      - "3001"
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: ofp-caddy
+    depends_on:
+      - web
+      - server
+      - uptime-kuma
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  mongo_data:
+  kuma_data:
+  caddy_data:
+  caddy_config:

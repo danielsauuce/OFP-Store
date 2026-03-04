@@ -1,0 +1,10 @@
+:80 {
+
+  encode gzip
+
+  reverse_proxy /api/* server:5000
+
+  reverse_proxy /kuma/* uptime-kuma:3001
+
+  reverse_proxy web:5173
+}
