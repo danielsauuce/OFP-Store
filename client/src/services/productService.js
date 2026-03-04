@@ -29,4 +29,3 @@ export async function getProductsByCategoryService(slug, params = {}) {
     throw error;
   }
 }
-9;
