@@ -33,9 +33,9 @@ const Orders = () => {
       </p>
 
       <div className="grid gap-4">
-        {paginatedOrders.map((order) => (
+        {paginatedOrders.map((order, index) => (
           <div
-            key={order.id}
+            key={`${order.id}-${startIndex + index}`}
             className="bg-card p-6 rounded-lg shadow-card border border-border hover:scale-[1.01] transition-transform"
           >
             <div className="flex items-center justify-between">

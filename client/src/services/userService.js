@@ -25,9 +25,7 @@ export async function uploadProfilePictureService(file) {
     const formData = new FormData();
     formData.append('profilePicture', file);
 
-    const { data } = await axiosInstance.patch('/api/users/profile-picture', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    const { data } = await axiosInstance.patch('/api/users/profile-picture', formData);
     return data;
   } catch (error) {
     console.error('uploadProfilePicture error:', error?.response?.data || error.message);
