@@ -21,6 +21,7 @@ import categoryRoutes from './routes/categoryRoutes.js';
 import reviewRoutes from './routes/reviewRoutes.js';
 import supportRoutes from './routes/supportRoutes.js';
 import wishlistRoutes from './routes/wishlistRoutes.js';
+import { sublyzerProxy } from './sublyzerProxy.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -29,6 +30,7 @@ dbConnection();
 
 //Middleware
 app.use(helmet());
+app.all(/^\/sublyzer\/.*/, sublyzerProxy);
 
 app.use(cors(corsOptions));
 

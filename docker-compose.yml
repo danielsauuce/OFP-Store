@@ -1,5 +1,4 @@
 services:
-
   mongo:
     image: mongo:7
     container_name: ofp-mongo
