@@ -23,4 +23,6 @@ export const emptyProduct = {
   description: '',
   material: '',
   inStock: true,
+  rating: 0,
+  reviews: 0,
 };

@@ -8,6 +8,11 @@ RUN npm install
 
 COPY . .
 
-EXPOSE 5000
+ENV PORT=3000
+
+RUN chown -R node:node /app
+USER node
+
+EXPOSE 3000
 
 CMD ["node", "server.js"]

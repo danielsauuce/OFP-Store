@@ -35,7 +35,6 @@ export const registerUser = async (req, res) => {
       fullName,
       email: email.toLowerCase(),
       password,
-      // phone: phone || undefined,
     });
 
     const { accessToken, refreshToken } = await generateTokens(user);

@@ -17,7 +17,9 @@ export async function uploadImageService(file, folder = 'general') {
 export async function uploadMultipleImagesService(files, folder = 'general') {
   try {
     const formData = new FormData();
-    files.forEach((file) => formData.append('images', file));
+    files.forEach((file) => {
+      formData.append('images', file);
+    });
     formData.append('folder', folder);
 
     const { data } = await axiosInstance.post('/api/media/upload/multiple', formData);

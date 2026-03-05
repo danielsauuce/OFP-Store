@@ -1,6 +1,13 @@
 import axiosInstance from './axiosInstance';
 
+export {
+  getAllMediaService,
+  uploadImageService as uploadSingleImageService,
+  uploadMultipleImagesService,
+} from './uploadService';
+
 // Dashboard
+
 export async function getDashboardStatsService() {
   try {
     const { data } = await axiosInstance.get('/api/admin/dashboard/stats');
@@ -12,6 +19,7 @@ export async function getDashboardStatsService() {
 }
 
 // User Management
+
 export async function getAllUsersAdminService(params = {}) {
   try {
     const { data } = await axiosInstance.get('/api/admin/users', { params });
@@ -63,6 +71,7 @@ export async function deleteUserAdminService(userId) {
 }
 
 // Product Management (Admin)
+
 export async function getAllProductsAdminService(params = {}) {
   try {
     const { data } = await axiosInstance.get('/api/admin/products', { params });
@@ -117,6 +126,7 @@ export async function deleteProductService(productId) {
 }
 
 // Order Management (Admin)
+
 export async function getAllOrdersAdminService(params = {}) {
   try {
     const { data } = await axiosInstance.get('/api/orders/admin', { params });
@@ -141,6 +151,7 @@ export async function updateOrderStatusAdminService(orderId, orderStatus, note) 
 }
 
 // Category Management (Admin)
+
 export async function getAllCategoriesAdminService() {
   try {
     const { data } = await axiosInstance.get('/api/categories/admin/all');
@@ -192,6 +203,7 @@ export async function reorderCategoryService(categoryId, orderData) {
 }
 
 // Review Moderation (Admin)
+
 export async function getAllReviewsAdminService(params = {}) {
   try {
     const { data } = await axiosInstance.get('/api/reviews/admin', { params });
@@ -215,6 +227,7 @@ export async function approveReviewService(reviewId, isApproved) {
 }
 
 // Support Ticket Management (Admin)
+
 export async function getAllTicketsAdminService(params = {}) {
   try {
     const { data } = await axiosInstance.get('/api/support/admin', { params });
@@ -251,45 +264,6 @@ export async function addAdminReplyService(ticketId, text) {
     return data;
   } catch (error) {
     console.error('addAdminReply error:', error?.response?.data || error.message);
-    throw error;
-  }
-}
-
-// Media Management (Admin)
-export async function getAllMediaService(params = {}) {
-  try {
-    const { data } = await axiosInstance.get('/api/media/upload/all', { params });
-    return data;
-  } catch (error) {
-    console.error('getAllMedia error:', error?.response?.data || error.message);
-    throw error;
-  }
-}
-
-export async function uploadSingleImageService(file, folder = 'general') {
-  try {
-    const formData = new FormData();
-    formData.append('image', file);
-    formData.append('folder', folder);
-
-    const { data } = await axiosInstance.post('/api/media/upload/single', formData);
-    return data;
-  } catch (error) {
-    console.error('uploadSingleImage error:', error?.response?.data || error.message);
-    throw error;
-  }
-}
-
-export async function uploadMultipleImagesService(files, folder = 'general') {
-  try {
-    const formData = new FormData();
-    files.forEach((file) => formData.append('images', file));
-    formData.append('folder', folder);
-
-    const { data } = await axiosInstance.post('/api/media/upload/multiple', formData);
-    return data;
-  } catch (error) {
-    console.error('uploadMultipleImages error:', error?.response?.data || error.message);
     throw error;
   }
 }

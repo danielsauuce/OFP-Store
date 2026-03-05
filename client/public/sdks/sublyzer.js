@@ -25,18 +25,29 @@
         cfg,
       );
       this.isInitialized = false;
-      this.sessionId = 'session_' + Math.random().toString(36).slice(2, 11) + '_' + Date.now();
+      const createSecureId = (prefix) => {
+        if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+          return `${prefix}_${crypto.randomUUID()}`;
+        }
+        if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
+          const bytes = new Uint8Array(16);
+          crypto.getRandomValues(bytes);
+          return `${prefix}_${Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')}`;
+        }
+        return `${prefix}_${Date.now()}`;
+      };
+      this.sessionId = createSecureId('session');
       this.userId = (function () {
         try {
           const k = 'sublyzer_user_id';
           let v = localStorage.getItem(k);
           if (!v) {
-            v = 'user_' + Math.random().toString(36).slice(2, 11) + '_' + Date.now();
+            v = createSecureId('user');
             localStorage.setItem(k, v);
           }
           return v;
         } catch (e) {
-          return 'user_' + Date.now();
+          return createSecureId('user');
         }
       })();
       this.eventQueue = [];
@@ -60,41 +71,38 @@
         this._log('Invalid integration code', 'error');
         return false;
       }
-      if (true) {
-        // Validar em background sem bloquear a inicialização
-        this._validate().catch(function () {
-          /* ignorar silenciosamente */
-        });
-        this._setupPerformance();
-        this._setupErrors();
-        this._setupUserTracking();
-        this._setupCookieAnalysis && this._setupCookieAnalysis();
-        this._setupDownloadTracking && this._setupDownloadTracking();
-        this._setupDeviceInfo && this._setupDeviceInfo();
-        this._scanForVulnerabilities && this._scanForVulnerabilities();
-        this._startAutoCollection();
-        this._setupAutoFlush();
-        this.isInitialized = true;
-        this.trackEvent('sdk_initialized', {
-          appName: this.config.appName,
-          version: this.config.version,
-          userAgent: navigator.userAgent,
-          ts: new Date().toISOString(),
-          flags: {
-            autoloader: true,
-            autoTracking: true,
-            cookieAnalysis: true,
-            downloadTracking: true,
-            clickTracking: true,
-            formSubmissions: true,
-            pageViews: true,
-            debug: false,
-            templateVersion: 2,
-          },
-        });
-        return true;
-      }
-      return false;
+      // Validar em background sem bloquear a inicialização
+      this._validate().catch(function () {
+        /* ignorar silenciosamente */
+      });
+      this._setupPerformance();
+      this._setupErrors();
+      this._setupUserTracking();
+      this._setupCookieAnalysis && this._setupCookieAnalysis();
+      this._setupDownloadTracking && this._setupDownloadTracking();
+      this._setupDeviceInfo && this._setupDeviceInfo();
+      this._scanForVulnerabilities && this._scanForVulnerabilities();
+      this._startAutoCollection();
+      this._setupAutoFlush();
+      this.isInitialized = true;
+      this.trackEvent('sdk_initialized', {
+        appName: this.config.appName,
+        version: this.config.version,
+        userAgent: navigator.userAgent,
+        ts: new Date().toISOString(),
+        flags: {
+          autoloader: true,
+          autoTracking: true,
+          cookieAnalysis: true,
+          downloadTracking: true,
+          clickTracking: true,
+          formSubmissions: true,
+          pageViews: true,
+          debug: false,
+          templateVersion: 2,
+        },
+      });
+      return true;
     };
     SublyzerSDK.prototype._validate = async function () {
       try {

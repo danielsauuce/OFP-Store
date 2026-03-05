@@ -153,7 +153,7 @@ function Navbar() {
           <Link
             to="/cart"
             className="nav-action-icon hover:text-primary transition-colors relative"
-            aria-label={`Shopping cart${itemCount > 0 ? `, ${itemCount} items` : ''}`}
+            aria-label={`Shopping cart${itemCount > 0 ? `, ${itemCount} ${itemCount === 1 ? 'item' : 'items'}` : ''}`}
           >
             <ShoppingCart size={18} />
             {itemCount > 0 && (
@@ -209,7 +209,7 @@ function Navbar() {
           <Link
             to="/cart"
             className="relative"
-            aria-label={`Shopping cart${itemCount > 0 ? `, ${itemCount} items` : ''}`}
+            aria-label={`Shopping cart${itemCount > 0 ? `, ${itemCount} ${itemCount === 1 ? 'item' : 'items'}` : ''}`}
           >
             <ShoppingCart size={20} />
             {itemCount > 0 && (

@@ -21,9 +21,9 @@ const customerServiceLinks = [
 ];
 
 const socialLinks = [
-  { icon: Facebook, href: '#' },
-  { icon: Instagram, href: '#' },
-  { icon: Twitter, href: '#' },
+  { icon: Facebook, href: '#', label: 'Facebook' },
+  { icon: Instagram, href: '#', label: 'Instagram' },
+  { icon: Twitter, href: '#', label: 'Twitter' },
 ];
 
 const contactInfo = [
@@ -122,7 +122,7 @@ function Footer() {
                   <a
                     key={index}
                     href={link.href}
-                    aria-label={Icon.displayName || 'Social link'}
+                    aria-label={link.label}
                     className="footer-social text-muted-foreground hover:text-primary transition-colors"
                   >
                     <Icon className="h-5 w-5" />
