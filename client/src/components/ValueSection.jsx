@@ -9,6 +9,8 @@ const ValuesSection = () => {
   const sectionRef = useRef(null);
 
   useLayoutEffect(() => {
+    const hoverHandlers = [];
+
     const ctx = gsap.context(() => {
       // Section title entrance
       gsap.from('.values-title', {
@@ -69,12 +71,25 @@ const ValuesSection = () => {
           duration: 0.3,
           ease: 'power2.out',
         });
-        card.addEventListener('mouseenter', () => hoverTL.play());
-        card.addEventListener('mouseleave', () => hoverTL.reverse());
+
+        const onEnter = () => hoverTL.play();
+        const onLeave = () => hoverTL.reverse();
+
+        card.addEventListener('mouseenter', onEnter);
+        card.addEventListener('mouseleave', onLeave);
+
+        // Store references for cleanup
+        hoverHandlers.push({ element: card, onEnter, onLeave });
       });
     }, sectionRef);
 
-    return () => ctx.revert();
+    return () => {
+      hoverHandlers.forEach(({ element, onEnter, onLeave }) => {
+        element.removeEventListener('mouseenter', onEnter);
+        element.removeEventListener('mouseleave', onLeave);
+      });
+      ctx.revert();
+    };
   }, []);
 
   return (

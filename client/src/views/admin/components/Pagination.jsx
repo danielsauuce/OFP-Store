@@ -32,6 +32,7 @@ const Pagination = ({ currentPage, totalPages, onPageChange }) => {
       <button
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage === 1}
+        aria-label="Go to previous page"
         className="p-2 rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
       >
         <ChevronLeft className="h-4 w-4" />
@@ -47,6 +48,8 @@ const Pagination = ({ currentPage, totalPages, onPageChange }) => {
           <button
             key={page}
             onClick={() => onPageChange(page)}
+            aria-label={`Go to page ${page}`}
+            aria-current={currentPage === page ? 'page' : undefined}
             className={`min-w-[36px] h-9 rounded-md text-sm font-medium transition-colors ${
               currentPage === page
                 ? 'bg-primary text-primary-foreground'
@@ -62,6 +65,7 @@ const Pagination = ({ currentPage, totalPages, onPageChange }) => {
       <button
         onClick={() => onPageChange(currentPage + 1)}
         disabled={currentPage === totalPages}
+        aria-label="Go to next page"
         className="p-2 rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
       >
         <ChevronRight className="h-4 w-4" />

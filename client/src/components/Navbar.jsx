@@ -153,6 +153,7 @@ function Navbar() {
           <Link
             to="/cart"
             className="nav-action-icon hover:text-primary transition-colors relative"
+            aria-label={`Shopping cart${itemCount > 0 ? `, ${itemCount} ${itemCount === 1 ? 'item' : 'items'}` : ''}`}
           >
             <ShoppingCart size={18} />
             {itemCount > 0 && (
@@ -170,20 +171,24 @@ function Navbar() {
               <Link
                 to="/profile"
                 className="nav-action-icon hover:text-primary transition-colors"
-                title="My Profile"
+                aria-label="My Profile"
               >
                 <UserCircle size={18} />
               </Link>
               <button
                 onClick={handleLogout}
                 className="nav-action-icon hover:text-destructive transition-colors"
-                title="Logout"
+                aria-label="Logout"
               >
                 <LogOut size={18} />
               </button>
             </>
           ) : (
-            <Link to="/auth" className="nav-action-icon hover:text-primary transition-colors">
+            <Link
+              to="/auth"
+              className="nav-action-icon hover:text-primary transition-colors"
+              aria-label="Login or Sign Up"
+            >
               <Users size={18} />
             </Link>
           )}
@@ -191,6 +196,7 @@ function Navbar() {
           <button
             onClick={handleThemeToggle}
             className="nav-action-icon hover:text-primary transition-colors"
+            aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
           >
             <span ref={themeIconRef} className="inline-block">
               {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
@@ -200,7 +206,11 @@ function Navbar() {
 
         {/* Mobile */}
         <div className="flex md:hidden items-center space-x-8 text-foreground">
-          <Link to="/cart" className="relative">
+          <Link
+            to="/cart"
+            className="relative"
+            aria-label={`Shopping cart${itemCount > 0 ? `, ${itemCount} ${itemCount === 1 ? 'item' : 'items'}` : ''}`}
+          >
             <ShoppingCart size={20} />
             {itemCount > 0 && (
               <span className="absolute -top-2 -right-2.5 bg-primary text-primary-foreground text-[10px] font-bold min-w-[18px] h-[18px] flex items-center justify-center rounded-full">

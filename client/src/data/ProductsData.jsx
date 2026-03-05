@@ -6,9 +6,11 @@ export const initialProducts = furnitureItems.map((item) => ({
   price: item.price,
   image: item.image,
   category: item.category,
-  description: '',
-  material: '',
-  inStock: true,
+  description: item.description || '',
+  material: item.material || '',
+  inStock: item.inStock ?? true,
+  rating: item.rating || 0,
+  reviews: item.reviews || 0,
 }));
 
 export const categories = ['Sofas', 'Tables', 'Chairs', 'Beds', 'Lighting'];
@@ -21,4 +23,6 @@ export const emptyProduct = {
   description: '',
   material: '',
   inStock: true,
+  rating: 0,
+  reviews: 0,
 };

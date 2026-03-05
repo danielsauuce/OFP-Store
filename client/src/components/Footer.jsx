@@ -21,9 +21,9 @@ const customerServiceLinks = [
 ];
 
 const socialLinks = [
-  { icon: Facebook, href: '#' },
-  { icon: Instagram, href: '#' },
-  { icon: Twitter, href: '#' },
+  { icon: Facebook, href: '#', label: 'Facebook' },
+  { icon: Instagram, href: '#', label: 'Instagram' },
+  { icon: Twitter, href: '#', label: 'Twitter' },
 ];
 
 const contactInfo = [
@@ -40,6 +40,8 @@ function Footer() {
   const footerRef = useRef(null);
 
   useLayoutEffect(() => {
+    const hoverHandlers = [];
+
     const ctx = gsap.context(() => {
       // Footer columns stagger up on scroll
       const columns = gsap.utils.toArray('.footer-col');
@@ -79,12 +81,25 @@ function Footer() {
           duration: 0.25,
           ease: 'power2.out',
         });
-        icon.addEventListener('mouseenter', () => hoverTL.play());
-        icon.addEventListener('mouseleave', () => hoverTL.reverse());
+
+        const onEnter = () => hoverTL.play();
+        const onLeave = () => hoverTL.reverse();
+
+        icon.addEventListener('mouseenter', onEnter);
+        icon.addEventListener('mouseleave', onLeave);
+
+        // Store references for cleanup
+        hoverHandlers.push({ element: icon, onEnter, onLeave });
       });
     }, footerRef);
 
-    return () => ctx.revert();
+    return () => {
+      hoverHandlers.forEach(({ element, onEnter, onLeave }) => {
+        element.removeEventListener('mouseenter', onEnter);
+        element.removeEventListener('mouseleave', onLeave);
+      });
+      ctx.revert();
+    };
   }, []);
 
   return (
@@ -107,6 +122,7 @@ function Footer() {
                   <a
                     key={index}
                     href={link.href}
+                    aria-label={link.label}
                     className="footer-social text-muted-foreground hover:text-primary transition-colors"
                   >
                     <Icon className="h-5 w-5" />

@@ -10,7 +10,6 @@ const NotFound = () => {
     const ctx = gsap.context(() => {
       const tl = gsap.timeline({ defaults: { ease: 'power4.out' } });
 
-      // 404 number
       tl.from('.nf-404', {
         y: -120,
         opacity: 0,
@@ -60,11 +59,13 @@ const NotFound = () => {
         <p className="nf-desc mb-8 text-lg text-muted-foreground max-w-md mx-auto">
           The page you're looking for doesn't exist or has been moved.
         </p>
-        <Link to="/">
-          <button className="nf-btn flex items-center justify-center bg-primary text-primary-foreground px-6 py-3 rounded-xl hover:bg-primary-dark transition-colors mx-auto font-medium">
-            <Home className="mr-2 h-5 w-5" />
-            Return to Home
-          </button>
+
+        <Link
+          to="/"
+          className="nf-btn inline-flex items-center justify-center bg-primary text-primary-foreground px-6 py-3 rounded-xl hover:bg-primary-dark transition-colors mx-auto font-medium"
+        >
+          <Home className="mr-2 h-5 w-5" />
+          Return to Home
         </Link>
       </div>
     </div>

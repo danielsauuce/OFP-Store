@@ -21,7 +21,7 @@ export const registerUser = async (req, res) => {
       });
     }
 
-    const { fullName, email, password, phone } = req.body;
+    const { fullName, email, password } = req.body;
 
     const existingUser = await User.findOne({ email: email.toLowerCase() });
     if (existingUser) {
@@ -35,7 +35,6 @@ export const registerUser = async (req, res) => {
       fullName,
       email: email.toLowerCase(),
       password,
-      phone: phone || undefined,
     });
 
     const { accessToken, refreshToken } = await generateTokens(user);

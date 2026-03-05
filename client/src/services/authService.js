@@ -2,13 +2,12 @@ import axiosInstance from './axiosInstance';
 
 export async function registerService(registerFormData) {
   try {
-    const { fullName, email, password, phone } = registerFormData;
+    const { fullName, email, password } = registerFormData;
 
     const { data } = await axiosInstance.post('/api/auth/register', {
       fullName,
       email,
       password,
-      phone,
     });
 
     return data;
@@ -36,7 +35,7 @@ export async function loginService(loginFormData) {
 
 export async function logoutService() {
   try {
-    const { data } = await axiosInstance.get('/api/auth/logout');
+    const { data } = await axiosInstance.post('/api/auth/logout');
     return data;
   } catch (error) {
     console.error('logoutService error:', error?.response?.data || error.message);
