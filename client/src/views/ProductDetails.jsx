@@ -158,7 +158,24 @@ const ProductDetails = () => {
     );
   }
 
-  const imageUrl = product.primaryImage?.secureUrl || product.primaryImage?.url || '';
+  // Resolve image — handle populated primaryImage, raw URL, or stray 'image' field
+  const isObjectId = (val) => typeof val === 'string' && /^[a-f\d]{24}$/i.test(val);
+  const resolveImg = () => {
+    if (product.primaryImage && typeof product.primaryImage === 'object') {
+      return product.primaryImage.secureUrl || product.primaryImage.url || '';
+    }
+    if (typeof product.primaryImage === 'string' && !isObjectId(product.primaryImage)) {
+      return product.primaryImage;
+    }
+    if (product.image && typeof product.image === 'object') {
+      return product.image.secureUrl || product.image.url || '';
+    }
+    if (typeof product.image === 'string' && !isObjectId(product.image)) {
+      return product.image;
+    }
+    return '';
+  };
+  const imageUrl = resolveImg();
   const categoryName =
     typeof product.category === 'object' ? product.category.name : product.category;
 
