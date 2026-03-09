@@ -6,9 +6,7 @@ export async function uploadImageService(file, folder = 'general') {
     formData.append('image', file);
     formData.append('folder', folder);
 
-    const { data } = await axiosInstance.post('/api/media/upload/single', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    const { data } = await axiosInstance.post('/api/media/upload/single', formData);
     return data;
   } catch (error) {
     console.error('uploadImage error:', error?.response?.data || error.message);
