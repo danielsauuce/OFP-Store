@@ -1,17 +1,35 @@
-import { useLayoutEffect, useRef, useCallback } from 'react';
-import { useState } from 'react';
+import { useLayoutEffect, useRef, useCallback, useState, useEffect } from 'react';
 import ProductCard from './ProductCard';
 import { Link } from 'react-router-dom';
-import { furnitureItems } from '../data/FurnitureItems';
+import { getAllProductsService } from '../services/productService';
+import { Loader } from 'lucide-react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
 gsap.registerPlugin(ScrollTrigger);
 
 const Features = () => {
-  const [products] = useState(furnitureItems.slice(0, 6));
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
   const sectionRef = useRef(null);
   const buttonRef = useRef(null);
+
+  useEffect(() => {
+    fetchFeaturedProducts();
+  }, []);
+
+  const fetchFeaturedProducts = async () => {
+    try {
+      const data = await getAllProductsService({ limit: 6 });
+      if (data?.success) {
+        setProducts(data.data?.products || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch featured products:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Magnetic button effect
   const handleMouseMove = useCallback((e) => {
@@ -39,6 +57,8 @@ const Features = () => {
   }, []);
 
   useLayoutEffect(() => {
+    if (loading) return;
+
     const cardHandlers = [];
 
     const ctx = gsap.context(() => {
@@ -101,7 +121,7 @@ const Features = () => {
         });
       });
 
-      // 3D tilt on hover for each card — store references for cleanup
+      // 3D tilt on hover for each card
       cards.forEach((card) => {
         const handleCardMove = (e) => {
           const rect = card.getBoundingClientRect();
@@ -150,14 +170,13 @@ const Features = () => {
     }, sectionRef);
 
     return () => {
-      // Clean up manually added event listeners
       cardHandlers.forEach(({ card, handleCardMove, handleCardLeave }) => {
         card.removeEventListener('mousemove', handleCardMove);
         card.removeEventListener('mouseleave', handleCardLeave);
       });
       ctx.revert();
     };
-  }, []);
+  }, [loading]);
 
   return (
     <section ref={sectionRef} className="bg-gradient-to-b from-secondary to-muted py-24">
@@ -174,13 +193,23 @@ const Features = () => {
         </div>
 
         {/* Product Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {products.map((product) => (
-            <div key={product.id} className="feature-card">
-              <ProductCard product={product} />
-            </div>
-          ))}
-        </div>
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <Loader className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : products.length === 0 ? (
+          <div className="text-center py-20">
+            <p className="text-muted-foreground text-lg">No featured products available.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {products.map((product) => (
+              <div key={product._id || product.id} className="feature-card">
+                <ProductCard product={product} />
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Magnetic Button */}
         <div className="features-btn-wrapper text-center mt-14">

@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useLayoutEffect, useRef } from 'react';
 import { Loader } from 'lucide-react';
 import { getAllProductsService } from '../services/productService';
+import { getAllCategoriesService } from '../services/categoryService';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
@@ -14,6 +15,7 @@ gsap.registerPlugin(ScrollTrigger);
 
 const Shop = () => {
   const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState(['All']);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [priceRange, setPriceRange] = useState([0, 5000]);
@@ -25,28 +27,36 @@ const Shop = () => {
   const headerRef = useRef(null);
 
   useEffect(() => {
-    fetchProducts();
+    fetchData();
   }, []);
 
-  const fetchProducts = async () => {
+  const fetchData = async () => {
     try {
-      const data = await getAllProductsService({ limit: 100 });
-      if (data?.success) {
-        setProducts(data.data?.products || []);
+      const [productsRes, categoriesRes] = await Promise.all([
+        getAllProductsService({ limit: 100 }),
+        getAllCategoriesService(),
+      ]);
+
+      if (productsRes?.success) {
+        setProducts(productsRes.data?.products || []);
+      }
+
+      if (categoriesRes?.success && categoriesRes.categories) {
+        const catNames = categoriesRes.categories.map((c) => c.name);
+        setCategories(['All', ...catNames]);
       }
     } catch (error) {
-      console.error('Failed to fetch products:', error);
+      console.error('Failed to fetch shop data:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  // GSAP entrance animations — runs once after loading completes
+  // GSAP entrance animations
   useLayoutEffect(() => {
     if (loading) return;
 
     const ctx = gsap.context(() => {
-      // Page header entrance
       gsap.from(headerRef.current, {
         y: 40,
         opacity: 0,
@@ -54,7 +64,6 @@ const Shop = () => {
         ease: 'power3.out',
       });
 
-      // Sidebar slides in from left
       gsap.from(sidebarRef.current, {
         x: -60,
         opacity: 0,
@@ -63,7 +72,6 @@ const Shop = () => {
         ease: 'power3.out',
       });
 
-      // Product cards stagger entrance
       const cards = gsap.utils.toArray('.shop-product-card');
       gsap.from(cards, {
         y: 60,
@@ -76,7 +84,6 @@ const Shop = () => {
         clearProps: 'transform',
       });
 
-      // Sort bar fade in
       gsap.from('.shop-toolbar', {
         y: 20,
         opacity: 0,
@@ -88,16 +95,6 @@ const Shop = () => {
 
     return () => ctx.revert();
   }, [loading]);
-
-  // Build category list from fetched products
-  const categories = useMemo(() => {
-    const cats = new Set();
-    products.forEach((p) => {
-      const name = typeof p.category === 'object' ? p.category.name : p.category;
-      if (name) cats.add(name);
-    });
-    return ['All', ...Array.from(cats).sort()];
-  }, [products]);
 
   const filteredAndSortedProducts = useMemo(() => {
     let result = products;
