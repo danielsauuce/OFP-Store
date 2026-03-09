@@ -10,17 +10,6 @@ import {
   updateProduct as updateProductValidation,
 } from '../utils/productValidation.js';
 
-/**
- * Safely resolves category, primaryImage, and images references on lean product objects.
- *
- * Problem: Some products in the DB were seeded with:
- *  - category as a string name (e.g. "Decor") instead of an ObjectId ref
- *  - image field (string ObjectId) instead of the schema's primaryImage field
- *  - primaryImage as a raw ObjectId string that didn't get populated
- *
- * This function batch-fetches all needed Media and Category docs in 2 queries max,
- * then patches each product in-place.
- */
 const resolveProductRefs = async (products) => {
   if (!products || products.length === 0) return;
 
@@ -30,39 +19,50 @@ const resolveProductRefs = async (products) => {
 
   for (const product of products) {
     // --- Collect media IDs that need resolving ---
-    // primaryImage: could be ObjectId, string ObjectId, or already populated
+    // With .lean(), ObjectId fields are BSON ObjectId objects (typeof === 'object'),
+    // not strings. We need to handle both cases.
     const primaryVal = product.primaryImage;
-    if (primaryVal && typeof primaryVal !== 'object') {
-      const id = primaryVal.toString();
-      if (mongoose.Types.ObjectId.isValid(id)) mediaIdSet.add(id);
+    if (primaryVal) {
+      // Skip if already a populated doc (has secureUrl or url)
+      if (typeof primaryVal === 'object' && (primaryVal.secureUrl || primaryVal.url)) {
+        // already populated
+      } else {
+        const id = primaryVal.toString();
+        if (mongoose.Types.ObjectId.isValid(id)) mediaIdSet.add(id);
+      }
     }
-    // Stray 'image' field (string ObjectId from legacy seeding)
-    if (
-      product.image &&
-      typeof product.image === 'string' &&
-      mongoose.Types.ObjectId.isValid(product.image)
-    ) {
-      mediaIdSet.add(product.image);
+    // Stray 'image' field (ObjectId or string from legacy seeding)
+    if (product.image) {
+      if (typeof product.image === 'object' && (product.image.secureUrl || product.image.url)) {
+        // already populated
+      } else {
+        const id = product.image.toString();
+        if (mongoose.Types.ObjectId.isValid(id)) mediaIdSet.add(id);
+      }
     }
     // images array: collect any that are raw IDs
     if (Array.isArray(product.images)) {
       for (const img of product.images) {
-        if (img && typeof img !== 'object') {
-          const id = img.toString();
-          if (mongoose.Types.ObjectId.isValid(id)) mediaIdSet.add(id);
-        }
+        if (!img) continue;
+        if (typeof img === 'object' && (img.secureUrl || img.url)) continue; // populated
+        const id = img.toString();
+        if (mongoose.Types.ObjectId.isValid(id)) mediaIdSet.add(id);
       }
     }
 
     // --- Collect category refs that need resolving ---
     const catVal = product.category;
-    if (catVal && typeof catVal !== 'object') {
-      const catStr = catVal.toString();
-      if (mongoose.Types.ObjectId.isValid(catStr)) {
-        categoryIdSet.add(catStr);
+    if (catVal) {
+      if (typeof catVal === 'object' && catVal.name) {
+        // Already a populated category doc, skip
       } else {
-        // It's a string name like "Decor"
-        categoryNameSet.add(catStr);
+        const catStr = catVal.toString();
+        if (mongoose.Types.ObjectId.isValid(catStr)) {
+          categoryIdSet.add(catStr);
+        } else {
+          // It's a string name like "Decor"
+          categoryNameSet.add(catStr);
+        }
       }
     }
   }
@@ -111,14 +111,22 @@ const resolveProductRefs = async (products) => {
   for (const product of products) {
     // --- Resolve primaryImage ---
     const primaryVal = product.primaryImage;
-    if (primaryVal && typeof primaryVal === 'object' && primaryVal.secureUrl) {
-      // Already populated, keep it
-    } else {
+    const primaryPopulated =
+      primaryVal && typeof primaryVal === 'object' && (primaryVal.secureUrl || primaryVal.url);
+
+    if (!primaryPopulated) {
       // Try primaryImage ID, then fall back to stray 'image' field
-      const primaryId = primaryVal && typeof primaryVal !== 'object' ? primaryVal.toString() : null;
-      const imageId = product.image && typeof product.image === 'string' ? product.image : null;
-      const resolvedId = primaryId && mediaMap.has(primaryId) ? primaryId : imageId;
-      if (resolvedId && mediaMap.has(resolvedId)) {
+      const primaryId = primaryVal ? primaryVal.toString() : null;
+      const imageId = product.image ? product.image.toString() : null;
+
+      const resolvedId =
+        primaryId && mongoose.Types.ObjectId.isValid(primaryId) && mediaMap.has(primaryId)
+          ? primaryId
+          : imageId && mongoose.Types.ObjectId.isValid(imageId) && mediaMap.has(imageId)
+            ? imageId
+            : null;
+
+      if (resolvedId) {
         product.primaryImage = mediaMap.get(resolvedId);
       }
     }
@@ -126,7 +134,7 @@ const resolveProductRefs = async (products) => {
     // --- Resolve images array ---
     if (Array.isArray(product.images)) {
       product.images = product.images.map((img) => {
-        if (img && typeof img === 'object' && img.secureUrl) return img;
+        if (img && typeof img === 'object' && (img.secureUrl || img.url)) return img;
         const id = img ? img.toString() : null;
         return id && mediaMap.has(id) ? mediaMap.get(id) : img;
       });
@@ -143,7 +151,7 @@ const resolveProductRefs = async (products) => {
         product.category = resolved;
       } else {
         // Keep the string name as a fallback object so frontend doesn't break
-        product.category = { name: catStr, slug: catStr.toLowerCase().replace(/\s+/g, '-') };
+        product.category = { name: catStr, slug: catStr.toLowerCase().replace(/[^a-z0-9]+/g, '-') };
       }
     }
   }
