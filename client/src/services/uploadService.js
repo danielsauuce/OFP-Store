@@ -6,7 +6,9 @@ export async function uploadImageService(file, folder = 'general') {
     formData.append('image', file);
     formData.append('folder', folder);
 
-    const { data } = await axiosInstance.post('/api/media/upload/single', formData);
+    const { data } = await axiosInstance.post('/api/media/upload/single', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
     return data;
   } catch (error) {
     console.error('uploadImage error:', error?.response?.data || error.message);
@@ -22,7 +24,9 @@ export async function uploadMultipleImagesService(files, folder = 'general') {
     });
     formData.append('folder', folder);
 
-    const { data } = await axiosInstance.post('/api/media/upload/multiple', formData);
+    const { data } = await axiosInstance.post('/api/media/upload/multiple', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
     return data;
   } catch (error) {
     console.error('uploadMultipleImages error:', error?.response?.data || error.message);

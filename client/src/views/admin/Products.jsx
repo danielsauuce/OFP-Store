@@ -157,7 +157,8 @@ const Products = () => {
     try {
       const data = await uploadImageService(imageFile, 'products');
       if (data?.success && data.media) {
-        return data.media._id;
+        // Controller returns media.id (not _id)
+        return data.media.id || data.media._id;
       }
       return null;
     } catch (error) {
@@ -173,15 +174,28 @@ const Products = () => {
       return;
     }
 
+    if (!imageFile) {
+      toast.error('Please select a product image');
+      return;
+    }
+
     setSubmitting(true);
     try {
-      let primaryImage = null;
-      if (imageFile) {
-        primaryImage = await uploadImage();
+      const primaryImage = await uploadImage();
+      if (!primaryImage) {
+        toast.error('Image upload failed — cannot create product without an image');
+        setSubmitting(false);
+        return;
       }
 
-      const payload = { ...formData };
-      if (primaryImage) payload.primaryImage = primaryImage;
+      // Build payload — exclude inStock (auto-calculated from stockQuantity in pre-save hook)
+      const { inStock, ...rest } = formData;
+      const payload = {
+        ...rest,
+        primaryImage,
+        price: Number(rest.price),
+        stockQuantity: Number(rest.stockQuantity) || 0,
+      };
 
       const data = await createProductService(payload);
       if (data?.success) {
@@ -211,7 +225,13 @@ const Products = () => {
         primaryImage = await uploadImage();
       }
 
-      const payload = { ...formData };
+      // Build payload — exclude inStock (auto-calculated from stockQuantity in pre-save hook)
+      const { inStock, ...rest } = formData;
+      const payload = {
+        ...rest,
+        price: Number(rest.price),
+        stockQuantity: Number(rest.stockQuantity) || 0,
+      };
       if (primaryImage) payload.primaryImage = primaryImage;
 
       const data = await updateProductService(selectedProduct._id, payload);
