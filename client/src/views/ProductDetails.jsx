@@ -56,7 +56,10 @@ const ProductDetails = () => {
     try {
       const data = await getProductReviewsService(id, { page, limit: 5 });
       if (data?.success) {
-        setReviews(page === 1 ? data.reviews : [...reviews, ...data.reviews]);
+        // Use functional updater to avoid stale closure over reviews
+        setReviews((prevReviews) =>
+          page === 1 ? data.reviews : [...prevReviews, ...data.reviews],
+        );
         setReviewPagination(data.pagination);
       }
     } catch (error) {
@@ -207,52 +210,41 @@ const ProductDetails = () => {
                   {categoryName}
                 </span>
               )}
-              <h1 className="text-4xl font-serif font-bold mb-4 text-foreground">{product.name}</h1>
-              <p className="text-3xl font-bold text-primary mb-6">£{product.price.toFixed(2)}</p>
+              <h1 className="text-3xl font-serif font-bold text-foreground mb-2">{product.name}</h1>
             </div>
 
-            <div className="space-y-4">
-              {/* Description */}
-              <div>
-                <h3 className="font-semibold text-foreground mb-2">Description</h3>
-                <p className="text-muted-foreground">
-                  {product.description || product.shortDescription}
-                </p>
-              </div>
+            <p className="text-3xl font-bold text-primary">£{product.price?.toFixed(2)}</p>
 
-              {product.material && (
-                <div>
-                  <h3 className="font-semibold text-foreground mb-2">Material</h3>
-                  <p className="text-muted-foreground">{product.material}</p>
-                </div>
-              )}
+            {product.description && (
+              <p className="text-muted-foreground leading-relaxed">{product.description}</p>
+            )}
 
-              {product.dimensions && (
-                <div>
-                  <h3 className="font-semibold text-foreground mb-2">Dimensions</h3>
-                  <p className="text-muted-foreground">
-                    {product.dimensions.width && `${product.dimensions.width}cm (W)`}
-                    {product.dimensions.height && ` × ${product.dimensions.height}cm (H)`}
-                    {product.dimensions.depth && ` × ${product.dimensions.depth}cm (D)`}
-                  </p>
-                </div>
-              )}
+            {product.material && (
+              <p className="text-sm text-muted-foreground">
+                <span className="font-semibold text-foreground">Material:</span> {product.material}
+              </p>
+            )}
 
-              <div>
-                <h3 className="font-semibold text-foreground mb-2">Availability</h3>
-                <span
-                  className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                    product.inStock ? 'bg-accent/20 text-accent' : 'bg-muted text-muted-foreground'
-                  }`}
-                >
-                  {product.inStock ? 'In Stock' : 'Out of Stock'}
+            <div className="flex items-center gap-2">
+              <span
+                className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
+                  product.inStock
+                    ? 'bg-accent/20 text-accent'
+                    : 'bg-destructive/20 text-destructive'
+                }`}
+              >
+                {product.inStock ? 'In Stock' : 'Out of Stock'}
+              </span>
+              {product.stockQuantity != null && product.inStock && (
+                <span className="text-sm text-muted-foreground">
+                  ({product.stockQuantity} available)
                 </span>
-              </div>
+              )}
             </div>
 
-            {/* Quantity Selector */}
-            <div className="space-y-4">
-              <div className="flex items-center space-x-4">
+            <div className="space-y-4 pt-2">
+              {/* Quantity */}
+              <div className="flex items-center gap-4">
                 <span className="font-semibold text-foreground">Quantity:</span>
                 <div className="flex items-center border border-border rounded-md">
                   <button

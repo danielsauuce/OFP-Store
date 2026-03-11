@@ -15,6 +15,11 @@ import { uploadImageService } from '../../services/uploadService';
 const PRODUCTS_PER_PAGE = 8;
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
+// Explicit raster image MIME allowlist — no SVGs
+const ALLOWED_IMAGE_MIMES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/avif'];
+
+const isAllowedImageType = (file) => ALLOWED_IMAGE_MIMES.includes(file.type);
+
 const Products = () => {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -45,6 +50,7 @@ const Products = () => {
 
   const [imageFile, setImageFile] = useState(null);
 
+  // Use a safe object URL — only created from validated raster files
   const previewUrl = useMemo(() => {
     if (!imageFile) return null;
     return URL.createObjectURL(imageFile);
@@ -124,8 +130,8 @@ const Products = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.type.startsWith('image/')) {
-      toast.error('Please select an image file');
+    if (!isAllowedImageType(file)) {
+      toast.error('Please select an image file (PNG, JPEG, GIF, or WebP)');
       return;
     }
 
@@ -173,6 +179,12 @@ const Products = () => {
 
   const uploadImage = async () => {
     if (!imageFile) return null;
+
+    // Re-validate MIME before uploading
+    if (!isAllowedImageType(imageFile)) {
+      toast.error('Invalid image type. Please select PNG, JPEG, GIF, or WebP.');
+      return null;
+    }
 
     try {
       const data = await uploadImageService(imageFile, 'products');
@@ -249,6 +261,13 @@ const Products = () => {
 
       if (imageFile) {
         primaryImage = await uploadImage();
+
+        // Abort if the user selected an image but the upload failed
+        if (!primaryImage) {
+          toast.error('Image upload failed — update aborted');
+          setSubmitting(false);
+          return;
+        }
       }
 
       const { inStock, ...rest } = formData;
@@ -287,7 +306,11 @@ const Products = () => {
       if (data?.success) {
         toast.success(`Product "${selectedProduct.name}" deleted`);
         setIsDeleteOpen(false);
-        fetchProducts(currentPage);
+
+        // If this was the only product on the current page, step back a page
+        const newPage = products.length === 1 && currentPage > 1 ? currentPage - 1 : currentPage;
+        setCurrentPage(newPage);
+        fetchProducts(newPage);
       }
     } catch (err) {
       toast.error(err?.response?.data?.message || 'Failed to delete product');
@@ -312,7 +335,7 @@ const Products = () => {
     );
   }
 
-  const renderFormFields = () => (
+  const renderFormFields = (readOnly = false) => (
     <div className="grid gap-4 py-2">
       <input
         name="name"
@@ -320,6 +343,7 @@ const Products = () => {
         onChange={handleInputChange}
         placeholder="Product Name"
         className="input"
+        readOnly={readOnly}
       />
 
       <input
@@ -329,9 +353,15 @@ const Products = () => {
         onChange={handleInputChange}
         placeholder="Price"
         className="input"
+        readOnly={readOnly}
       />
 
-      <select name="category" value={formData.category} onChange={handleInputChange}>
+      <select
+        name="category"
+        value={formData.category}
+        onChange={handleInputChange}
+        disabled={readOnly}
+      >
         <option value="">Select category</option>
         {categories.map((cat) => (
           <option key={cat._id} value={cat._id}>
@@ -340,10 +370,14 @@ const Products = () => {
         ))}
       </select>
 
-      <input type="file" accept="image/*" onChange={handleImageChange} />
+      {!readOnly && (
+        <>
+          <input type="file" accept={ALLOWED_IMAGE_MIMES.join(',')} onChange={handleImageChange} />
 
-      {previewUrl && (
-        <img src={previewUrl} alt="Preview" className="w-24 h-24 object-cover rounded-lg" />
+          {previewUrl && (
+            <img src={previewUrl} alt="Preview" className="w-24 h-24 object-cover rounded-lg" />
+          )}
+        </>
       )}
 
       <textarea
@@ -351,6 +385,7 @@ const Products = () => {
         value={formData.description}
         onChange={handleInputChange}
         placeholder="Description"
+        readOnly={readOnly}
       />
     </div>
   );
@@ -368,6 +403,13 @@ const Products = () => {
           Add Product
         </button>
       </div>
+
+      {/* Inline loader for subsequent page fetches */}
+      {loading && products.length > 0 && (
+        <div className="flex items-center justify-center py-6">
+          <Loader className="h-6 w-6 animate-spin text-primary" />
+        </div>
+      )}
 
       {products.map((product) => (
         <div key={product._id} className="border p-4 rounded flex gap-4">
@@ -404,6 +446,7 @@ const Products = () => {
         onPageChange={handlePageChange}
       />
 
+      {/* Add Product Modal */}
       <Modal isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} title="Add Product">
         {renderFormFields()}
 
@@ -412,6 +455,7 @@ const Products = () => {
         </button>
       </Modal>
 
+      {/* Edit Product Modal */}
       <Modal isOpen={isEditOpen} onClose={() => setIsEditOpen(false)} title="Edit Product">
         {renderFormFields()}
 
@@ -420,10 +464,90 @@ const Products = () => {
         </button>
       </Modal>
 
+      {/* View Product Modal */}
+      <Modal isOpen={isViewOpen} onClose={() => setIsViewOpen(false)} title="View Product">
+        {selectedProduct && (
+          <div className="space-y-4 py-2">
+            {selectedProduct.primaryImage?.secureUrl && (
+              <img
+                src={selectedProduct.primaryImage.secureUrl}
+                alt={selectedProduct.name}
+                className="w-full h-48 object-cover rounded-lg"
+              />
+            )}
+
+            <div className="grid gap-3">
+              <div>
+                <span className="text-sm font-medium text-muted-foreground">Name</span>
+                <p className="text-foreground font-semibold">{selectedProduct.name}</p>
+              </div>
+
+              <div>
+                <span className="text-sm font-medium text-muted-foreground">Price</span>
+                <p className="text-foreground">£{Number(selectedProduct.price).toFixed(2)}</p>
+              </div>
+
+              <div>
+                <span className="text-sm font-medium text-muted-foreground">Category</span>
+                <p className="text-foreground">{getCategoryName(selectedProduct)}</p>
+              </div>
+
+              <div>
+                <span className="text-sm font-medium text-muted-foreground">Stock</span>
+                <p className="text-foreground">
+                  {selectedProduct.stockQuantity ?? 0} units
+                  {selectedProduct.inStock === false && ' (Out of stock)'}
+                </p>
+              </div>
+
+              {selectedProduct.material && (
+                <div>
+                  <span className="text-sm font-medium text-muted-foreground">Material</span>
+                  <p className="text-foreground">{selectedProduct.material}</p>
+                </div>
+              )}
+
+              {selectedProduct.description && (
+                <div>
+                  <span className="text-sm font-medium text-muted-foreground">Description</span>
+                  <p className="text-foreground text-sm">{selectedProduct.description}</p>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <button
+                onClick={() => setIsViewOpen(false)}
+                className="px-4 py-2 border border-border rounded-md text-foreground hover:bg-muted transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Delete Product Modal */}
       <Modal isOpen={isDeleteOpen} onClose={() => setIsDeleteOpen(false)} title="Delete Product">
-        <button onClick={handleDelete} disabled={submitting}>
-          {submitting ? 'Deleting...' : 'Delete Product'}
-        </button>
+        <p className="text-muted-foreground py-2">
+          Are you sure you want to delete &quot;{selectedProduct?.name}&quot;? This action cannot be
+          undone.
+        </p>
+        <div className="flex justify-end gap-3 pt-2">
+          <button
+            onClick={() => setIsDeleteOpen(false)}
+            className="px-4 py-2 border border-border rounded-md text-foreground hover:bg-muted transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleDelete}
+            disabled={submitting}
+            className="px-4 py-2 bg-destructive text-destructive-foreground rounded-md font-medium hover:bg-destructive/90 transition-colors disabled:opacity-60"
+          >
+            {submitting ? 'Deleting...' : 'Delete Product'}
+          </button>
+        </div>
       </Modal>
     </div>
   );

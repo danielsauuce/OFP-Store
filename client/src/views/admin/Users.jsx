@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Loader, RefreshCw, Search, Shield, Ban, CheckCircle } from 'lucide-react';
+import { Loader, RefreshCw, Search, Shield, Ban, CheckCircle, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Avatar from './components/Avatar';
 import StatusBadge from './components/StatusBadge';
@@ -269,6 +269,17 @@ const Users = () => {
                     ) : (
                       <CheckCircle className="h-4 w-4" />
                     )}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setActionUser(user);
+                      setIsDeleteOpen(true);
+                    }}
+                    title="Delete user"
+                    disabled={actionLoading}
+                    className="p-2 rounded-md border border-destructive/50 text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-60"
+                  >
+                    <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
               </div>

@@ -20,7 +20,7 @@ const Features = () => {
 
   const fetchFeaturedProducts = async () => {
     try {
-      const data = await getAllProductsService({ limit: 6 });
+      const data = await getAllProductsService({ limit: 6, isFeatured: true });
       if (data?.success) {
         setProducts(data.data?.products || []);
       }

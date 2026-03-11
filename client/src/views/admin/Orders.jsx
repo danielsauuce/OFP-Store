@@ -104,7 +104,7 @@ const Orders = () => {
 
   const startIndex = (currentPage - 1) * ORDERS_PER_PAGE;
 
-  if (loading) {
+  if (loading && orders.length === 0) {
     return (
       <div className="flex items-center justify-center py-20">
         <Loader className="h-8 w-8 animate-spin text-primary" />
@@ -135,7 +135,14 @@ const Orders = () => {
           : 'No orders to display'}
       </p>
 
-      {orders.length === 0 ? (
+      {/* Inline loader for subsequent page fetches */}
+      {loading && orders.length > 0 && (
+        <div className="flex items-center justify-center py-6">
+          <Loader className="h-6 w-6 animate-spin text-primary" />
+        </div>
+      )}
+
+      {!loading && orders.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground">
           <p className="text-lg">No orders found</p>
         </div>
