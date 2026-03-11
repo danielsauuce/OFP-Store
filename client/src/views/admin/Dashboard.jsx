@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { DollarSign, Package, ShoppingCart, Users, Loader } from 'lucide-react';
+import { Package, ShoppingCart, Users, Loader } from 'lucide-react';
 import MetricCard from './components/MetricCard';
 import StatusBadge from './components/StatusBadge';
 import { getDashboardStatsService } from '../../services/adminService';
@@ -10,12 +10,6 @@ const statusStyles = {
   processing: 'bg-primary/20 text-primary',
   shipped: 'bg-accent/20 text-accent',
   cancelled: 'bg-destructive/20 text-destructive',
-};
-
-const iconMap = {
-  totalUsers: Users,
-  totalOrders: ShoppingCart,
-  totalProducts: Package,
 };
 
 const Dashboard = () => {

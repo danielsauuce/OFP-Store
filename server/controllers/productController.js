@@ -18,6 +18,9 @@ const resolveProductRefs = async (products) => {
   const categoryNameSet = new Set();
 
   for (const product of products) {
+    // --- Collect media IDs that need resolving ---
+    // With .lean(), ObjectId fields are BSON ObjectId objects (typeof === 'object'),
+    // not strings. We need to handle both cases.
     const primaryVal = product.primaryImage;
     if (primaryVal) {
       // Skip if already a populated doc (has secureUrl or url)
@@ -186,7 +189,12 @@ export const getAllProducts = async (req, res) => {
     }
 
     if (req.query.search) {
-      query.$text = { $search: req.query.search };
+      // Sanitize: trim, limit length, strip control characters
+      const rawSearch = String(req.query.search).trim().slice(0, 200);
+      const safeSearch = rawSearch.replace(/[\x00-\x1f\x7f]/g, '');
+      if (safeSearch) {
+        query.$text = { $search: safeSearch };
+      }
     }
 
     if (req.query.minPrice || req.query.maxPrice) {
@@ -353,18 +361,25 @@ export const createProduct = async (req, res) => {
     const product = await Product.create(req.body);
     logger.info('Product created successfully', { productId: product._id });
 
-    // Mark media as used
-    if (product.primaryImage) {
-      await Media.findByIdAndUpdate(product.primaryImage, {
-        $addToSet: { usedBy: { modelType: 'Product', modelId: product._id } },
-      });
-    }
+    // Best-effort: mark media as used (don't fail the request if this throws)
+    try {
+      if (product.primaryImage) {
+        await Media.findByIdAndUpdate(product.primaryImage, {
+          $addToSet: { usedBy: { modelType: 'Product', modelId: product._id } },
+        });
+      }
 
-    if (product.images?.length) {
-      await Media.updateMany(
-        { _id: { $in: product.images } },
-        { $addToSet: { usedBy: { modelType: 'Product', modelId: product._id } } },
-      );
+      if (product.images?.length) {
+        await Media.updateMany(
+          { _id: { $in: product.images } },
+          { $addToSet: { usedBy: { modelType: 'Product', modelId: product._id } } },
+        );
+      }
+    } catch (mediaErr) {
+      logger.warn('Failed to update media usedBy after product creation', {
+        productId: product._id,
+        error: mediaErr.message,
+      });
     }
 
     // Invalidate cache
@@ -538,40 +553,43 @@ export const deleteProduct = async (req, res) => {
 
     const mediaIds = [product.primaryImage, ...(product.images || [])].filter(Boolean);
 
-    // Update media usedBy references (if Media model has usedBy field)
-    if (mediaIds.length) {
-      await Media.updateMany(
-        { _id: { $in: mediaIds } },
-        { $pull: { usedBy: { modelId: product._id } } },
-      ).catch((err) => {
-        logger.warn('Failed to update media usedBy references', { error: err.message });
-      });
-
-      // Find and delete unused media (if Media model has usedBy field)
-      const unused = await Media.find({
-        _id: { $in: mediaIds },
-        usedBy: { $size: 0 },
-      }).catch((err) => {
-        logger.warn('Failed to find unused media', { error: err.message });
-        return [];
-      });
-
-      for (const m of unused) {
-        try {
-          await deleteMediaFromCloudinary(m.publicId);
-          await m.deleteOne();
-          logger.info('Deleted unused media', { mediaId: m._id, publicId: m.publicId });
-        } catch (e) {
-          logger.warn('Failed to delete unused media', { mediaId: m._id, error: e.message });
-        }
-      }
-    }
-
+    // Delete the product FIRST — this is the critical operation.
+    // Media cleanup is best-effort and should not block deletion.
     await product.deleteOne();
     logger.info('Product deleted successfully', { productId: req.params.id });
 
     await invalidateCache('cache:/api/product*');
     await invalidateCache(`cache:/api/product/${req.params.id}`);
+
+    // Best-effort media cleanup after product is already gone
+    if (mediaIds.length) {
+      try {
+        await Media.updateMany(
+          { _id: { $in: mediaIds } },
+          { $pull: { usedBy: { modelId: product._id } } },
+        );
+
+        const unused = await Media.find({
+          _id: { $in: mediaIds },
+          usedBy: { $size: 0 },
+        });
+
+        for (const m of unused) {
+          try {
+            await deleteMediaFromCloudinary(m.publicId);
+            await m.deleteOne();
+            logger.info('Deleted unused media', { mediaId: m._id, publicId: m.publicId });
+          } catch (e) {
+            logger.warn('Failed to delete unused media', { mediaId: m._id, error: e.message });
+          }
+        }
+      } catch (err) {
+        logger.warn('Failed to clean up media after product deletion', {
+          productId: req.params.id,
+          error: err.message,
+        });
+      }
+    }
 
     res.status(200).json({
       success: true,

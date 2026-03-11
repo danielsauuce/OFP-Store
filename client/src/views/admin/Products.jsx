@@ -48,6 +48,7 @@ const Products = () => {
     fetchProducts(currentPage);
   }, [currentPage]);
 
+  // Categories rarely change — fetch only on mount
   useEffect(() => {
     fetchCategories();
   }, []);
@@ -127,6 +128,15 @@ const Products = () => {
     }
     setImagePreview(URL.createObjectURL(file));
   };
+
+  // Only allow safe protocols in image preview src to prevent XSS
+  const safeImagePreview =
+    imagePreview &&
+    (imagePreview.startsWith('blob:') ||
+      imagePreview.startsWith('https://') ||
+      imagePreview.startsWith('http://'))
+      ? imagePreview
+      : '';
 
   // Open modals
   const openAdd = () => {
@@ -349,9 +359,9 @@ const Products = () => {
           onChange={handleImageChange}
           className="w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary file:text-primary-foreground hover:file:bg-primary-dark"
         />
-        {imagePreview && (
+        {safeImagePreview && (
           <img
-            src={imagePreview}
+            src={safeImagePreview}
             alt="Preview"
             className="w-24 h-24 object-cover rounded-lg mt-2"
           />
