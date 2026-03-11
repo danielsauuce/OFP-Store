@@ -2,12 +2,12 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 import express from 'express';
+import mongoSanitize from 'express-mongo-sanitize';
 import dbConnection from './config/db.js';
 import logger from './utils/logger.js';
 import errorHandler from './middleware/errorHandler.js';
 import helmet from 'helmet';
 import cors from 'cors';
-import mongoSanitize from 'express-mongo-sanitize';
 import corsOptions from './config/corsOptions.js';
 import authRoutes from './routes/authRoutes.js';
 import rateLimiterMiddleware from './middleware/rateLimiter.js';
@@ -21,14 +21,13 @@ import categoryRoutes from './routes/categoryRoutes.js';
 import reviewRoutes from './routes/reviewRoutes.js';
 import supportRoutes from './routes/supportRoutes.js';
 import wishlistRoutes from './routes/wishlistRoutes.js';
-import { sublyzerProxy } from './config/sublyzerProxy.js';
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3000;
 
 dbConnection();
 
-//Middleware
+// Middleware
 app.use(helmet());
 
 app.use(cors(corsOptions));
@@ -36,30 +35,30 @@ app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Sublyzer proxy
-app.all(/^\/sublyzer\/.*/, sublyzerProxy);
-
-// logging middleware
+// Sanitize all incoming input to prevent NoSQL injection
 app.use((req, res, next) => {
-  logger.info(`${req.method} ${req.url}`, {
-    contentType: req.headers['content-type'],
-    ip: req.ip,
-  });
+  mongoSanitize.sanitize(req.body);
+  mongoSanitize.sanitize(req.query);
+  mongoSanitize.sanitize(req.params);
   next();
 });
 
-//Rate limit middleware
-app.use(rateLimiterMiddleware);
+// Logging middleware
+app.use((req, res, next) => {
+  logger.info(`${req.method} ${req.url}`);
+  next();
+});
 
-// NoSQL injection protection
-app.use(mongoSanitize());
+// Rate limit middleware
+app.use(rateLimiterMiddleware);
 
 // Routes
 app.use('/api/auth/', authRoutes);
-app.use('/api/product', productRoutes);
-app.use('/api/admin', adminRoutes);
+app.use('/api/product', productRoutes); // routes fetch products for both admin and user
+app.use('/api/admin/product', adminRoutes); // routes fetch products for admin only
 app.use('/api/media/upload', uploadRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/admin', adminRoutes); // for user management in admin routes
 app.use('/api/cart', cartRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/categories', categoryRoutes);

@@ -10,21 +10,175 @@ import {
   updateProduct as updateProductValidation,
 } from '../utils/productValidation.js';
 
-// Helper: escape regex special characters to prevent ReDoS
-const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const resolveProductRefs = async (products) => {
+  if (!products || products.length === 0) return;
+
+  const mediaIdSet = new Set();
+  const categoryIdSet = new Set();
+  const categoryNameSet = new Set();
+
+  for (const product of products) {
+    // --- Collect media IDs that need resolving ---
+    // With .lean(), ObjectId fields are BSON ObjectId objects (typeof === 'object'),
+    // not strings. We need to handle both cases.
+    const primaryVal = product.primaryImage;
+    if (primaryVal) {
+      // Skip if already a populated doc (has secureUrl or url)
+      if (typeof primaryVal === 'object' && (primaryVal.secureUrl || primaryVal.url)) {
+        // already populated
+      } else {
+        const id = primaryVal.toString();
+        if (mongoose.Types.ObjectId.isValid(id)) mediaIdSet.add(id);
+      }
+    }
+    // Stray 'image' field (ObjectId or string from legacy seeding)
+    if (product.image) {
+      if (typeof product.image === 'object' && (product.image.secureUrl || product.image.url)) {
+        // already populated
+      } else {
+        const id = product.image.toString();
+        if (mongoose.Types.ObjectId.isValid(id)) mediaIdSet.add(id);
+      }
+    }
+    // images array: collect any that are raw IDs
+    if (Array.isArray(product.images)) {
+      for (const img of product.images) {
+        if (!img) continue;
+        if (typeof img === 'object' && (img.secureUrl || img.url)) continue; // populated
+        const id = img.toString();
+        if (mongoose.Types.ObjectId.isValid(id)) mediaIdSet.add(id);
+      }
+    }
+
+    // --- Collect category refs that need resolving ---
+    const catVal = product.category;
+    if (catVal) {
+      if (typeof catVal === 'object' && catVal.name) {
+        // Already a populated category doc, skip
+      } else {
+        const catStr = catVal.toString();
+        if (mongoose.Types.ObjectId.isValid(catStr)) {
+          categoryIdSet.add(catStr);
+        } else {
+          // It's a string name like "Decor"
+          categoryNameSet.add(catStr);
+        }
+      }
+    }
+  }
+
+  // Batch-fetch Media docs
+  const mediaMap = new Map();
+  if (mediaIdSet.size > 0) {
+    try {
+      const mediaDocs = await Media.find({ _id: { $in: Array.from(mediaIdSet) } })
+        .select('secureUrl publicId url')
+        .lean();
+      for (const doc of mediaDocs) {
+        mediaMap.set(doc._id.toString(), doc);
+      }
+    } catch (err) {
+      console.error('resolveProductRefs media fetch warning:', err.message);
+    }
+  }
+
+  // Batch-fetch Category docs (by ID and by name)
+  const categoryMap = new Map(); // key = ObjectId string or lowercase name → category doc
+  const categoryQueries = [];
+  if (categoryIdSet.size > 0) {
+    categoryQueries.push({ _id: { $in: Array.from(categoryIdSet) } });
+  }
+  if (categoryNameSet.size > 0) {
+    categoryQueries.push({ name: { $in: Array.from(categoryNameSet) } });
+  }
+  if (categoryQueries.length > 0) {
+    try {
+      const catDocs = await Category.find(
+        categoryQueries.length === 1 ? categoryQueries[0] : { $or: categoryQueries },
+      )
+        .select('name slug description')
+        .lean();
+      for (const doc of catDocs) {
+        categoryMap.set(doc._id.toString(), doc);
+        categoryMap.set(doc.name, doc); // also map by name for legacy lookups
+      }
+    } catch (err) {
+      console.error('resolveProductRefs category fetch warning:', err.message);
+    }
+  }
+
+  // Patch each product in-place
+  for (const product of products) {
+    // --- Resolve primaryImage ---
+    const primaryVal = product.primaryImage;
+    const primaryPopulated =
+      primaryVal && typeof primaryVal === 'object' && (primaryVal.secureUrl || primaryVal.url);
+
+    if (!primaryPopulated) {
+      // Try primaryImage ID, then fall back to stray 'image' field
+      const primaryId = primaryVal ? primaryVal.toString() : null;
+      const imageId = product.image ? product.image.toString() : null;
+
+      const resolvedId =
+        primaryId && mongoose.Types.ObjectId.isValid(primaryId) && mediaMap.has(primaryId)
+          ? primaryId
+          : imageId && mongoose.Types.ObjectId.isValid(imageId) && mediaMap.has(imageId)
+            ? imageId
+            : null;
+
+      if (resolvedId) {
+        product.primaryImage = mediaMap.get(resolvedId);
+      }
+    }
+
+    // --- Resolve images array ---
+    if (Array.isArray(product.images)) {
+      product.images = product.images.map((img) => {
+        if (img && typeof img === 'object' && (img.secureUrl || img.url)) return img;
+        const id = img ? img.toString() : null;
+        return id && mediaMap.has(id) ? mediaMap.get(id) : img;
+      });
+    }
+
+    // --- Resolve category ---
+    const catVal = product.category;
+    if (catVal && typeof catVal === 'object' && catVal.name) {
+      // Already populated, keep it
+    } else if (catVal) {
+      const catStr = catVal.toString();
+      const resolved = categoryMap.get(catStr);
+      if (resolved) {
+        product.category = resolved;
+      } else {
+        // Keep the string name as a fallback object so frontend doesn't break
+        product.category = { name: catStr, slug: catStr.toLowerCase().replace(/[^a-z0-9]+/g, '-') };
+      }
+    }
+  }
+};
+
+const MAX_LIMIT = 100;
 
 export const getAllProducts = async (req, res) => {
   try {
     const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
-    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 12, 1), 100);
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 12, 1), MAX_LIMIT);
     const skip = (page - 1) * limit;
 
     const query = { isActive: true };
 
     if (req.query.category) {
-      const safeCategoryName = escapeRegex(String(req.query.category));
+      // Escape regex special characters to prevent ReDoS / pattern broadening
+      const escapedCategory = req.query.category.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      // Normalise slug for exact match (lowercase, hyphens for spaces)
+      const normalizedSlug = req.query.category.trim().toLowerCase().replace(/\s+/g, '-');
+
+      // Try to find the category by name OR slug
       const categoryDoc = await Category.findOne({
-        name: { $regex: `^${safeCategoryName}$`, $options: 'i' },
+        $or: [
+          { name: { $regex: `^${escapedCategory}$`, $options: 'i' } },
+          { slug: normalizedSlug },
+        ],
       });
 
       if (!categoryDoc) {
@@ -32,12 +186,7 @@ export const getAllProducts = async (req, res) => {
           success: true,
           data: {
             products: [],
-            pagination: {
-              total: 0,
-              page,
-              pages: 0,
-              limit,
-            },
+            pagination: { total: 0, page, pages: 0, limit },
           },
         });
       }
@@ -46,7 +195,13 @@ export const getAllProducts = async (req, res) => {
     }
 
     if (req.query.search) {
-      query.$text = { $search: String(req.query.search) };
+      // Sanitize: trim, limit length, strip control characters
+      const rawSearch = String(req.query.search).trim().slice(0, 200);
+      const controlCharsRegExp = new RegExp('[\\x00-\\x1f\\x7f]', 'g');
+      const safeSearch = rawSearch.replace(controlCharsRegExp, '');
+      if (safeSearch) {
+        query.$text = { $search: safeSearch };
+      }
     }
 
     if (req.query.minPrice || req.query.maxPrice) {
@@ -55,21 +210,19 @@ export const getAllProducts = async (req, res) => {
       if (req.query.maxPrice) query.price.$lte = Number(req.query.maxPrice);
     }
 
-    const [products, total] = await Promise.all([
-      Product.find(query)
-        .populate('category', 'name slug')
-        .populate('primaryImage')
-        .populate('images')
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit),
+    // Fetch WITHOUT populate to avoid CastError on string category/image values
+    const [rawProducts, total] = await Promise.all([
+      Product.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
       Product.countDocuments(query),
     ]);
+
+    // Resolve references manually so string values don't crash populate
+    await resolveProductRefs(rawProducts);
 
     res.status(200).json({
       success: true,
       data: {
-        products,
+        products: rawProducts,
         pagination: {
           total,
           page,
@@ -98,6 +251,7 @@ export const getProductById = async (req, res) => {
       });
     }
 
+    // Fetch without populate to avoid CastError on string category/image values
     const product = await Product.findById(id).lean();
 
     if (!product) {
@@ -107,26 +261,8 @@ export const getProductById = async (req, res) => {
       });
     }
 
-    // Validate category is a valid ObjectId before populating
-    if (product.category && mongoose.Types.ObjectId.isValid(product.category)) {
-      try {
-        const populatedProduct = await Product.findById(id)
-          .populate('primaryImage', 'secureUrl publicId url')
-          .populate('images', 'secureUrl publicId url')
-          .populate('category', 'name slug description')
-          .lean();
-
-        return res.status(200).json({
-          success: true,
-          product: populatedProduct,
-        });
-      } catch (populateError) {
-        logger.warn('Failed to populate product references', {
-          id,
-          error: populateError.message,
-        });
-      }
-    }
+    // Resolve all refs (category, primaryImage, images) safely
+    await resolveProductRefs([product]);
 
     res.status(200).json({
       success: true,
@@ -147,12 +283,14 @@ export const getProductById = async (req, res) => {
 
 export const createProduct = async (req, res) => {
   try {
+    // Log incoming request for debugging
     logger.info('Creating product', {
       bodyKeys: Object.keys(req.body),
       hasName: !!req.body.name,
       hasCategory: !!req.body.category,
     });
 
+    // Validate request body
     const { error } = createProductValidation.validate(req.body, { abortEarly: false });
     if (error) {
       logger.warn('Product validation failed', {
@@ -165,6 +303,7 @@ export const createProduct = async (req, res) => {
       });
     }
 
+    // Validate category exists and is a valid ObjectId
     if (req.body.category) {
       if (!mongoose.Types.ObjectId.isValid(req.body.category)) {
         logger.warn('Invalid category ID format', { category: req.body.category });
@@ -184,6 +323,7 @@ export const createProduct = async (req, res) => {
       }
     }
 
+    // Validate primaryImage exists
     if (req.body.primaryImage) {
       if (!mongoose.Types.ObjectId.isValid(req.body.primaryImage)) {
         return res.status(400).json({
@@ -201,6 +341,7 @@ export const createProduct = async (req, res) => {
       }
     }
 
+    // Validate additional images if provided
     if (req.body.images && req.body.images.length > 0) {
       const invalidImages = req.body.images.filter((id) => !mongoose.Types.ObjectId.isValid(id));
 
@@ -223,22 +364,32 @@ export const createProduct = async (req, res) => {
       }
     }
 
+    // Create the product
     const product = await Product.create(req.body);
     logger.info('Product created successfully', { productId: product._id });
 
-    if (product.primaryImage) {
-      await Media.findByIdAndUpdate(product.primaryImage, {
-        $addToSet: { usedBy: { modelType: 'Product', modelId: product._id } },
+    // Best-effort: mark media as used (don't fail the request if this throws)
+    try {
+      if (product.primaryImage) {
+        await Media.findByIdAndUpdate(product.primaryImage, {
+          $addToSet: { usedBy: { modelType: 'Product', modelId: product._id } },
+        });
+      }
+
+      if (product.images?.length) {
+        await Media.updateMany(
+          { _id: { $in: product.images } },
+          { $addToSet: { usedBy: { modelType: 'Product', modelId: product._id } } },
+        );
+      }
+    } catch (mediaErr) {
+      logger.warn('Failed to update media usedBy after product creation', {
+        productId: product._id,
+        error: mediaErr.message,
       });
     }
 
-    if (product.images?.length) {
-      await Media.updateMany(
-        { _id: { $in: product.images } },
-        { $addToSet: { usedBy: { modelType: 'Product', modelId: product._id } } },
-      );
-    }
-
+    // Invalidate cache
     await invalidateCache('cache:/api/product*');
     await invalidateCache('cache:/api/products*');
 
@@ -251,8 +402,10 @@ export const createProduct = async (req, res) => {
     logger.error('Create product error', {
       error: err.message,
       stack: err.stack,
+      body: req.body,
     });
 
+    // Handle duplicate key error
     if (err.code === 11000) {
       return res.status(400).json({
         success: false,
@@ -283,6 +436,7 @@ export const updateProduct = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Product not found' });
     }
 
+    // Validate category if being updated
     if (req.body.category && req.body.category.toString() !== product.category.toString()) {
       if (!mongoose.Types.ObjectId.isValid(req.body.category)) {
         return res.status(400).json({
@@ -300,6 +454,7 @@ export const updateProduct = async (req, res) => {
       }
     }
 
+    // Validate primaryImage if being updated
     if (
       req.body.primaryImage &&
       req.body.primaryImage.toString() !== product.primaryImage?.toString()
@@ -320,6 +475,7 @@ export const updateProduct = async (req, res) => {
       }
     }
 
+    // Validate images array if being updated
     if (req.body.images && req.body.images.length > 0) {
       const invalidImages = req.body.images.filter((id) => !mongoose.Types.ObjectId.isValid(id));
 
@@ -345,45 +501,35 @@ export const updateProduct = async (req, res) => {
     const oldPrimary = product.primaryImage?.toString();
     const oldImages = product.images?.map((id) => id.toString()) || [];
 
+    // Apply updates
     Object.assign(product, req.body);
     await product.save();
 
     const newPrimary = product.primaryImage?.toString();
     const newImages = product.images?.map((id) => id.toString()) || [];
 
-    if (oldPrimary && oldPrimary !== newPrimary) {
-      await Media.findByIdAndUpdate(oldPrimary, {
-        $pull: { usedBy: { modelId: product._id } },
-      }).catch((err) => {
-        logger.warn('Failed to update old primary image usedBy', { error: err.message });
-      });
-    }
+    // Use Set-based diff across ALL media refs (primary + gallery) so an asset
+    // moving from primaryImage into images (or vice versa) isn't wrongly removed.
+    const oldMediaIds = new Set([oldPrimary, ...oldImages].filter(Boolean));
+    const newMediaIds = new Set([newPrimary, ...newImages].filter(Boolean));
 
-    const removed = oldImages.filter((id) => !newImages.includes(id));
+    const removed = [...oldMediaIds].filter((id) => !newMediaIds.has(id));
     if (removed.length) {
       await Media.updateMany(
         { _id: { $in: removed } },
         { $pull: { usedBy: { modelId: product._id } } },
       ).catch((err) => {
-        logger.warn('Failed to update removed images usedBy', { error: err.message });
+        logger.warn('Failed to update removed media usedBy', { error: err.message });
       });
     }
 
-    if (newPrimary && newPrimary !== oldPrimary) {
-      await Media.findByIdAndUpdate(newPrimary, {
-        $addToSet: { usedBy: { modelType: 'Product', modelId: product._id } },
-      }).catch((err) => {
-        logger.warn('Failed to update new primary image usedBy', { error: err.message });
-      });
-    }
-
-    const added = newImages.filter((id) => !oldImages.includes(id));
+    const added = [...newMediaIds].filter((id) => !oldMediaIds.has(id));
     if (added.length) {
       await Media.updateMany(
         { _id: { $in: added } },
         { $addToSet: { usedBy: { modelType: 'Product', modelId: product._id } } },
       ).catch((err) => {
-        logger.warn('Failed to update added images usedBy', { error: err.message });
+        logger.warn('Failed to update added media usedBy', { error: err.message });
       });
     }
 
@@ -414,38 +560,70 @@ export const deleteProduct = async (req, res) => {
 
     const mediaIds = [product.primaryImage, ...(product.images || [])].filter(Boolean);
 
-    if (mediaIds.length) {
-      await Media.updateMany(
-        { _id: { $in: mediaIds } },
-        { $pull: { usedBy: { modelId: product._id } } },
-      ).catch((err) => {
-        logger.warn('Failed to update media usedBy references', { error: err.message });
-      });
-
-      const unused = await Media.find({
-        _id: { $in: mediaIds },
-        usedBy: { $size: 0 },
-      }).catch((err) => {
-        logger.warn('Failed to find unused media', { error: err.message });
-        return [];
-      });
-
-      for (const m of unused) {
-        try {
-          await deleteMediaFromCloudinary(m.publicId);
-          await m.deleteOne();
-          logger.info('Deleted unused media', { mediaId: m._id, publicId: m.publicId });
-        } catch (e) {
-          logger.warn('Failed to delete unused media', { mediaId: m._id, error: e.message });
-        }
-      }
-    }
-
+    // Delete the product FIRST — this is the critical operation.
+    // Media cleanup is best-effort and should not block deletion.
     await product.deleteOne();
     logger.info('Product deleted successfully', { productId: req.params.id });
 
     await invalidateCache('cache:/api/product*');
     await invalidateCache(`cache:/api/product/${req.params.id}`);
+
+    // Best-effort media cleanup after product is already gone
+    if (mediaIds.length) {
+      try {
+        await Media.updateMany(
+          { _id: { $in: mediaIds } },
+          { $pull: { usedBy: { modelId: product._id } } },
+        );
+
+        const unused = await Media.find({
+          _id: { $in: mediaIds },
+          usedBy: { $size: 0 },
+        });
+
+        for (const m of unused) {
+          try {
+            // Re-check authoritatively: re-fetch the live doc and verify
+            // no other model references this media before deleting
+            const liveMedia = await Media.findById(m._id);
+            if (!liveMedia || liveMedia.usedBy.length > 0) {
+              logger.info('Skipping media deletion — concurrent reference detected', {
+                mediaId: m._id,
+              });
+              continue;
+            }
+
+            // Check if any Product or Category still references this media
+            const [productRef, categoryRef] = await Promise.all([
+              Product.exists({
+                $or: [{ primaryImage: m._id }, { images: m._id }],
+              }),
+              Category.exists({ image: m._id }),
+            ]);
+
+            if (productRef || categoryRef) {
+              logger.info('Skipping media deletion — still referenced by another document', {
+                mediaId: m._id,
+                productRef: !!productRef,
+                categoryRef: !!categoryRef,
+              });
+              continue;
+            }
+
+            await deleteMediaFromCloudinary(m.publicId);
+            await liveMedia.deleteOne();
+            logger.info('Deleted unused media', { mediaId: m._id, publicId: m.publicId });
+          } catch (e) {
+            logger.warn('Failed to delete unused media', { mediaId: m._id, error: e.message });
+          }
+        }
+      } catch (err) {
+        logger.warn('Failed to clean up media after product deletion', {
+          productId: req.params.id,
+          error: err.message,
+        });
+      }
+    }
 
     res.status(200).json({
       success: true,

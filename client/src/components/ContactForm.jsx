@@ -3,6 +3,7 @@ import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import toast from 'react-hot-toast';
 import { contactSchema, validateForm } from '../validation/formSchemas';
+import { createTicketService } from '../services/supportService';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -86,22 +87,34 @@ const ContactForm = () => {
     setIsSending(true);
 
     try {
-      // TODO: Replace with actual API call e.g. supportService.createTicket(data)
-      await new Promise((resolve) => setTimeout(resolve, 800));
+      const response = await createTicketService({
+        name: data.name,
+        email: data.email,
+        subject: data.subject,
+        message: data.message,
+      });
 
-      toast.success("Message sent successfully! We'll get back to you soon.");
-      setFormData(initialFormData);
+      if (response?.success) {
+        toast.success("Message sent successfully! We'll get back to you soon.");
+        setFormData(initialFormData);
 
-      // Button success bounce
-      if (buttonRef.current) {
-        gsap.fromTo(
-          buttonRef.current,
-          { scale: 0.95 },
-          { scale: 1, duration: 0.4, ease: 'elastic.out(1, 0.4)' },
-        );
+        // Button success bounce
+        if (buttonRef.current) {
+          gsap.fromTo(
+            buttonRef.current,
+            { scale: 0.95 },
+            { scale: 1, duration: 0.4, ease: 'elastic.out(1, 0.4)' },
+          );
+        }
+      } else {
+        toast.error(response?.message || 'Failed to send message');
       }
     } catch (error) {
-      toast.error('Failed to send message. Please try again.');
+      const errorMessage =
+        error?.response?.data?.message ||
+        error?.message ||
+        'Failed to send message. Please try again.';
+      toast.error(errorMessage);
     } finally {
       setIsSending(false);
     }

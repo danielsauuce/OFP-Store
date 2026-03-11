@@ -2,7 +2,7 @@
 
   encode gzip
 
-  reverse_proxy /api/* server:5000
+  reverse_proxy /api/* server:3000
 
   reverse_proxy /kuma/* uptime-kuma:3001
 

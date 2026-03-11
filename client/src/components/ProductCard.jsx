@@ -5,22 +5,61 @@ import { useCart } from '../context/cartContext';
 import toast from 'react-hot-toast';
 import { useState } from 'react';
 
+const isObjectId = (val) => typeof val === 'string' && /^[a-f\d]{24}$/i.test(val);
+
+const isSafeUrl = (url) => {
+  if (typeof url !== 'string' || !url) return false;
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+};
+
+const resolveImage = (product) => {
+  if (product.primaryImage && typeof product.primaryImage === 'object') {
+    const url = product.primaryImage.secureUrl || product.primaryImage.url;
+    if (url && isSafeUrl(url)) {
+      return url;
+    }
+  }
+
+  if (typeof product.primaryImage === 'string' && !isObjectId(product.primaryImage)) {
+    if (isSafeUrl(product.primaryImage)) {
+      return product.primaryImage;
+    }
+  }
+
+  if (product.image && typeof product.image === 'object') {
+    const url = product.image.secureUrl || product.image.url;
+    if (url && isSafeUrl(url)) {
+      return url;
+    }
+  }
+
+  if (typeof product.image === 'string') {
+    if (isSafeUrl(product.image)) {
+      return product.image;
+    }
+  }
+
+  return '';
+};
+
 const ProductCard = ({ product }) => {
   const { auth } = useAuth();
   const { addItem } = useCart();
   const navigate = useNavigate();
   const [isAdding, setIsAdding] = useState(false);
 
-  // Support both API products (name) and static data (title)
   const productName = product.name || product.title || 'Product';
   const productId = product._id || product.id;
-  const productImage =
-    product.primaryImage?.secureUrl || product.primaryImage?.url || product.image || '';
+  const productImage = resolveImage(product);
   const categoryName =
     typeof product.category === 'object' ? product.category.name : product.category;
 
   const handleAddToCart = async () => {
-    // Redirect to auth if not logged in
     if (!auth.authenticate) {
       toast.error('Please login to add items to cart');
       navigate('/auth');
@@ -48,11 +87,17 @@ const ProductCard = ({ product }) => {
     <div className="bg-card rounded-2xl shadow-md overflow-hidden hover:shadow-xl transition duration-300 group">
       {/* Image */}
       <Link to={`/product/${productId}`}>
-        <img
-          src={productImage}
-          alt={productName}
-          className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-500"
-        />
+        {productImage ? (
+          <img
+            src={productImage}
+            alt={productName}
+            className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-500"
+          />
+        ) : (
+          <div className="w-full h-64 bg-muted flex items-center justify-center">
+            <span className="text-muted-foreground text-sm">No image</span>
+          </div>
+        )}
       </Link>
 
       {/* Info */}
