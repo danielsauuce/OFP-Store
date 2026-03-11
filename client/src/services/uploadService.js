@@ -22,9 +22,7 @@ export async function uploadMultipleImagesService(files, folder = 'general') {
     });
     formData.append('folder', folder);
 
-    const { data } = await axiosInstance.post('/api/media/upload/multiple', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    const { data } = await axiosInstance.post('/api/media/upload/multiple', formData);
     return data;
   } catch (error) {
     console.error('uploadMultipleImages error:', error?.response?.data || error.message);
