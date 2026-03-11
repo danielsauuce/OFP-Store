@@ -48,7 +48,6 @@ const Products = () => {
     fetchProducts(currentPage);
   }, [currentPage]);
 
- 
   useEffect(() => {
     fetchCategories();
   }, []);
