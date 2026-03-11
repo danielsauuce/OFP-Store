@@ -17,7 +17,7 @@ import {
 import toast from 'react-hot-toast';
 import gsap from 'gsap';
 import { useAuth } from '../context/authContext';
-import { useWishlist } from '../../src/context/wishlistContext';
+import { useWishlist } from '../context/wishlistContext';
 import Modal from '../views/admin/components/Modal';
 import Avatar from '../views/admin/components/Avatar';
 import StatusBadge from '../views/admin/components/StatusBadge';

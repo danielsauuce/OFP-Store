@@ -5,7 +5,6 @@ import axiosInstance from './axiosInstance';
 export async function getAllProductsService(params = {}) {
   try {
     const { data } = await axiosInstance.get('/api/product', { params });
-    console.log(data);
     return data;
   } catch (error) {
     console.error('getAllProducts error:', error?.response?.data || error.message);
