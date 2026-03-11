@@ -114,23 +114,30 @@ const Users = () => {
     }
   };
 
-  const handleDeleteUser = async (id) => {
+  const handleDeleteUser = async () => {
+    if (!actionUser) return;
+    setActionLoading(true);
     try {
-      await deleteUserService(id);
-
-      const newTotal = totalUsers - 1;
-      const newTotalPages = Math.max(1, Math.ceil(newTotal / USERS_PER_PAGE));
-
-      const targetPage = Math.min(currentPage, newTotalPages);
-
-      setTotalUsers(newTotal);
-      setTotalPages(newTotalPages);
-
-      setIsDeleteOpen(false);
-
-      setCurrentPage(targetPage); // triggers refetch
-    } catch (err) {
-      toast.error('Failed to delete user');
+      const data = await deleteUserAdminService(actionUser._id);
+      if (data?.success) {
+        toast.success('User deleted successfully');
+        setUsers((prev) => prev.filter((u) => u._id !== actionUser._id));
+        const newTotal = totalUsers - 1;
+        setTotalUsers(newTotal);
+        const newTotalPages = Math.max(1, Math.ceil(newTotal / USERS_PER_PAGE));
+        setTotalPages(newTotalPages);
+        // If current page is now beyond total pages, go to last page
+        if (currentPage > newTotalPages) {
+          setCurrentPage(newTotalPages);
+        }
+        setIsDeleteOpen(false);
+      } else {
+        toast.error(data?.message || 'Failed to delete user');
+      }
+    } catch (error) {
+      toast.error(error?.response?.data?.message || 'Failed to delete user');
+    } finally {
+      setActionLoading(false);
     }
   };
 
