@@ -89,29 +89,35 @@ const ProductDetails = () => {
   };
 
   const handleToggleWishlist = async () => {
-    if (!auth.authenticate) {
-      toast.error('Please sign in to use your wishlist');
-      return;
-    }
-    setWishlistLoading(true);
     try {
-      if (isInWishlist(product._id)) {
+      setWishlistLoading(true);
+
+      if (inWishlist) {
         await removeFromWishlist(product._id);
       } else {
         await addToWishlist(product._id);
       }
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to update wishlist: ' + err.message);
     } finally {
       setWishlistLoading(false);
     }
   };
 
   const handleSubmitReview = async () => {
+    const trimmedContent = reviewContent.trim();
     if (!auth.authenticate) {
       toast.error('Please sign in to leave a review');
       return;
     }
     if (!reviewContent.trim()) {
       toast.error('Please write a review');
+      return;
+    }
+
+    if (trimmedContent.length < 10) {
+      toast.error('Review must be at least 10 characters');
       return;
     }
 

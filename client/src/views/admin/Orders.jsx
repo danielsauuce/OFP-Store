@@ -80,25 +80,17 @@ const Orders = () => {
     setIsStatusOpen(true);
   };
 
-  const handleUpdateStatus = async () => {
-    if (!statusOrder || !newStatus) return;
-    setUpdatingStatus(true);
+  const handleStatusUpdate = async () => {
+    if (newStatus === statusOrder.orderStatus) {
+      return;
+    }
+
     try {
-      const data = await updateOrderStatusAdminService(statusOrder._id, newStatus, statusNote);
-      if (data?.success) {
-        toast.success(`Order status updated to ${newStatus}`);
-        // Update local state
-        setOrders((prev) =>
-          prev.map((o) => (o._id === statusOrder._id ? { ...o, orderStatus: newStatus } : o)),
-        );
-        setIsStatusOpen(false);
-      } else {
-        toast.error(data?.message || 'Failed to update status');
-      }
-    } catch (error) {
-      toast.error(error?.response?.data?.message || 'Failed to update status');
-    } finally {
-      setUpdatingStatus(false);
+      await updateOrderStatus(statusOrder._id, newStatus);
+      fetchOrders();
+      setIsStatusOpen(false);
+    } catch (err) {
+      toast.error('Failed to update status');
     }
   };
 
@@ -308,12 +300,8 @@ const Orders = () => {
             >
               Cancel
             </button>
-            <button
-              onClick={handleUpdateStatus}
-              disabled={updatingStatus}
-              className="px-4 py-2 bg-primary text-primary-foreground rounded-md font-medium hover:bg-primary-dark transition-colors disabled:opacity-60"
-            >
-              {updatingStatus ? 'Updating...' : 'Update Status'}
+            <button disabled={newStatus === statusOrder.orderStatus} onClick={handleStatusUpdate}>
+              Update Status
             </button>
           </div>
         </div>

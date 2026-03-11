@@ -425,15 +425,27 @@ const Products = () => {
           </div>
 
           <div className="flex gap-2">
-            <button onClick={() => openView(product)}>
+            <button
+              aria-label={`View product ${product.name}`}
+              title={`View product ${product.name}`}
+              onClick={() => openView(product)}
+            >
               <Eye />
             </button>
 
-            <button onClick={() => openEdit(product)}>
+            <button
+              aria-label={`Edit product ${product.name}`}
+              title={`Edit product ${product.name}`}
+              onClick={() => openEdit(product)}
+            >
               <Edit />
             </button>
 
-            <button onClick={() => openDelete(product)}>
+            <button
+              aria-label={`Delete product ${product.name}`}
+              title={`Delete product ${product.name}`}
+              onClick={() => openDelete(product)}
+            >
               <Trash2 />
             </button>
           </div>

@@ -18,26 +18,30 @@ const isSafeUrl = (url) => {
 };
 
 const resolveImage = (product) => {
-  // 1. Populated primaryImage object
   if (product.primaryImage && typeof product.primaryImage === 'object') {
-    const url = product.primaryImage.secureUrl || product.primaryImage.url || '';
-    return isSafeUrl(url) ? url : '';
+    const url = product.primaryImage.secureUrl || product.primaryImage.url;
+    if (url && isSafeUrl(url)) {
+      return url;
+    }
   }
 
-  // 2. primaryImage as a direct URL string (not an ObjectId)
   if (typeof product.primaryImage === 'string' && !isObjectId(product.primaryImage)) {
-    return isSafeUrl(product.primaryImage) ? product.primaryImage : '';
+    if (isSafeUrl(product.primaryImage)) {
+      return product.primaryImage;
+    }
   }
 
-  // 3. Stray 'image' field — populated object
   if (product.image && typeof product.image === 'object') {
-    const url = product.image.secureUrl || product.image.url || '';
-    return isSafeUrl(url) ? url : '';
+    const url = product.image.secureUrl || product.image.url;
+    if (url && isSafeUrl(url)) {
+      return url;
+    }
   }
 
-  // 4. image as a direct URL string (not an ObjectId)
-  if (typeof product.image === 'string' && !isObjectId(product.image)) {
-    return isSafeUrl(product.image) ? product.image : '';
+  if (typeof product.image === 'string') {
+    if (isSafeUrl(product.image)) {
+      return product.image;
+    }
   }
 
   return '';
