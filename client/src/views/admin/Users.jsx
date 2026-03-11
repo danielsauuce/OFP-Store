@@ -82,6 +82,8 @@ const Users = () => {
           prev.map((u) => (u._id === actionUser._id ? { ...u, isActive: newStatus } : u)),
         );
         setIsStatusOpen(false);
+      } else {
+        toast.error(data?.message || 'Failed to update user status');
       }
     } catch (error) {
       toast.error(error?.response?.data?.message || 'Failed to update user status');
@@ -102,6 +104,8 @@ const Users = () => {
           prev.map((u) => (u._id === actionUser._id ? { ...u, role: newRole } : u)),
         );
         setIsRoleOpen(false);
+      } else {
+        toast.error(data?.message || 'Failed to update role');
       }
     } catch (error) {
       toast.error(error?.response?.data?.message || 'Failed to update role');
@@ -118,8 +122,17 @@ const Users = () => {
       if (data?.success) {
         toast.success('User deleted successfully');
         setUsers((prev) => prev.filter((u) => u._id !== actionUser._id));
-        setTotalUsers((prev) => prev - 1);
+        const newTotal = totalUsers - 1;
+        setTotalUsers(newTotal);
+        const newTotalPages = Math.max(1, Math.ceil(newTotal / USERS_PER_PAGE));
+        setTotalPages(newTotalPages);
+        // If current page is now beyond total pages, go to last page
+        if (currentPage > newTotalPages) {
+          setCurrentPage(newTotalPages);
+        }
         setIsDeleteOpen(false);
+      } else {
+        toast.error(data?.message || 'Failed to delete user');
       }
     } catch (error) {
       toast.error(error?.response?.data?.message || 'Failed to delete user');
@@ -190,8 +203,9 @@ const Users = () => {
 
       {/* Pagination Info */}
       <p className="text-sm text-muted-foreground">
-        Showing {Math.min(startIndex + 1, totalUsers)}–
-        {Math.min(startIndex + USERS_PER_PAGE, totalUsers)} of {totalUsers} users
+        {totalUsers > 0
+          ? `Showing ${Math.min(startIndex + 1, totalUsers)}–${Math.min(startIndex + USERS_PER_PAGE, totalUsers)} of ${totalUsers} users`
+          : 'No users to display'}
       </p>
 
       {loading ? (

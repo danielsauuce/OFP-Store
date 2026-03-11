@@ -64,4 +64,6 @@ productSchema.index({ price: 1 });
 productSchema.index({ isFeatured: 1 });
 productSchema.index({ name: 'text', description: 'text' });
 
+productSchema.index({ isActive: 1, createdAt: -1 });
+
 export default mongoose.model('Product', productSchema);

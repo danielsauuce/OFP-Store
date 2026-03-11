@@ -15,14 +15,7 @@ export function WishlistProvider({ children }) {
   const [wishlist, setWishlist] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (auth.authenticate) {
-      fetchWishlist();
-    } else {
-      setWishlist(null);
-    }
-  }, [auth.authenticate]);
-
+  // Declare fetchWishlist ABOVE the useEffect so it can be in the dependency array
   const fetchWishlist = useCallback(async () => {
     setLoading(true);
     try {
@@ -37,6 +30,14 @@ export function WishlistProvider({ children }) {
     }
   }, []);
 
+  useEffect(() => {
+    if (auth.authenticate) {
+      fetchWishlist();
+    } else {
+      setWishlist(null);
+    }
+  }, [auth.authenticate, fetchWishlist]);
+
   const addToWishlist = useCallback(async (productId) => {
     try {
       const data = await addToWishlistService(productId);
@@ -45,7 +46,7 @@ export function WishlistProvider({ children }) {
         toast.success('Added to wishlist');
         return { success: true };
       }
-      return { success: false, message: data?.message };
+      return { success: false, message: data?.message || 'Failed to add to wishlist' };
     } catch (error) {
       const message = error?.response?.data?.message || 'Failed to add to wishlist';
       toast.error(message);
@@ -61,8 +62,11 @@ export function WishlistProvider({ children }) {
         toast.success('Removed from wishlist');
         return { success: true };
       }
+      return { success: false, message: data?.message || 'Failed to remove from wishlist' };
     } catch (error) {
-      toast.error('Failed to remove from wishlist');
+      const message = error?.response?.data?.message || 'Failed to remove from wishlist';
+      toast.error(message);
+      return { success: false, message };
     }
   }, []);
 
@@ -74,8 +78,11 @@ export function WishlistProvider({ children }) {
         toast.success('Wishlist cleared');
         return { success: true };
       }
+      return { success: false, message: data?.message || 'Failed to clear wishlist' };
     } catch (error) {
-      toast.error('Failed to clear wishlist');
+      const message = error?.response?.data?.message || 'Failed to clear wishlist';
+      toast.error(message);
+      return { success: false, message };
     }
   }, []);
 

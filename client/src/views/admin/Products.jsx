@@ -46,8 +46,12 @@ const Products = () => {
 
   useEffect(() => {
     fetchProducts(currentPage);
-    fetchCategories();
   }, [currentPage]);
+
+ 
+  useEffect(() => {
+    fetchCategories();
+  }, []);
 
   const fetchProducts = async (page) => {
     setLoading(true);
@@ -84,6 +88,10 @@ const Products = () => {
 
   // Form handlers
   const resetForm = () => {
+    // Revoke previous blob URL to prevent memory leak
+    if (imagePreview && imagePreview.startsWith('blob:')) {
+      URL.revokeObjectURL(imagePreview);
+    }
     setFormData({
       name: '',
       price: '',
@@ -114,6 +122,10 @@ const Products = () => {
       return;
     }
     setImageFile(file);
+    // Revoke previous blob URL to prevent memory leak
+    if (imagePreview && imagePreview.startsWith('blob:')) {
+      URL.revokeObjectURL(imagePreview);
+    }
     setImagePreview(URL.createObjectURL(file));
   };
 
@@ -372,24 +384,23 @@ const Products = () => {
         </div>
 
         <div className="flex items-end pb-1">
-          <label className="flex items-center gap-3 cursor-pointer">
-            <button
-              type="button"
-              role="switch"
-              aria-checked={formData.inStock}
-              onClick={() => setFormData((prev) => ({ ...prev, inStock: !prev.inStock }))}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                formData.inStock ? 'bg-primary' : 'bg-muted'
+          <div className="flex items-center gap-3">
+            <span
+              className={`inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                Number(formData.stockQuantity) > 0 ? 'bg-primary' : 'bg-muted'
               }`}
             >
               <span
                 className={`inline-block h-4 w-4 rounded-full bg-white shadow transform transition-transform ${
-                  formData.inStock ? 'translate-x-6' : 'translate-x-1'
+                  Number(formData.stockQuantity) > 0 ? 'translate-x-6' : 'translate-x-1'
                 }`}
               />
-            </button>
-            <span className="text-sm font-medium text-foreground">In Stock</span>
-          </label>
+            </span>
+            <span className="text-sm font-medium text-foreground">
+              {Number(formData.stockQuantity) > 0 ? 'In Stock' : 'Out of Stock'}
+            </span>
+          </div>
+          <span className="text-xs text-muted-foreground ml-2">(derived from quantity)</span>
         </div>
       </div>
 
@@ -447,8 +458,9 @@ const Products = () => {
 
       {/* Pagination Info */}
       <p className="text-sm text-muted-foreground">
-        Showing {Math.min(startIndex + 1, totalProducts)}–
-        {Math.min(startIndex + PRODUCTS_PER_PAGE, totalProducts)} of {totalProducts} products
+        {totalProducts > 0
+          ? `Showing ${Math.min(startIndex + 1, totalProducts)}–${Math.min(startIndex + PRODUCTS_PER_PAGE, totalProducts)} of ${totalProducts} products`
+          : 'No products to display'}
       </p>
 
       {loading ? (

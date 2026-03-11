@@ -32,17 +32,21 @@ const Shop = () => {
 
   const fetchData = async () => {
     try {
-      const [productsRes, categoriesRes] = await Promise.all([
+      const [productsRes, categoriesRes] = await Promise.allSettled([
         getAllProductsService({ limit: 100 }),
         getAllCategoriesService(),
       ]);
 
-      if (productsRes?.success) {
-        setProducts(productsRes.data?.products || []);
+      if (productsRes.status === 'fulfilled' && productsRes.value?.success) {
+        setProducts(productsRes.value.data?.products || []);
       }
 
-      if (categoriesRes?.success && categoriesRes.categories) {
-        const catNames = categoriesRes.categories.map((c) => c.name);
+      if (
+        categoriesRes.status === 'fulfilled' &&
+        categoriesRes.value?.success &&
+        categoriesRes.value.categories
+      ) {
+        const catNames = categoriesRes.value.categories.map((c) => c.name);
         setCategories(['All', ...catNames]);
       }
     } catch (error) {

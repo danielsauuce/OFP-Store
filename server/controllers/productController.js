@@ -18,9 +18,6 @@ const resolveProductRefs = async (products) => {
   const categoryNameSet = new Set();
 
   for (const product of products) {
-    // --- Collect media IDs that need resolving ---
-    // With .lean(), ObjectId fields are BSON ObjectId objects (typeof === 'object'),
-    // not strings. We need to handle both cases.
     const primaryVal = product.primaryImage;
     if (primaryVal) {
       // Skip if already a populated doc (has secureUrl or url)
@@ -157,18 +154,22 @@ const resolveProductRefs = async (products) => {
   }
 };
 
+const MAX_LIMIT = 100;
+
 export const getAllProducts = async (req, res) => {
   try {
     const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
-    const limit = Math.max(parseInt(req.query.limit, 10) || 12, 1);
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 12, 1), MAX_LIMIT);
     const skip = (page - 1) * limit;
 
     const query = { isActive: true };
 
     if (req.query.category) {
+      // Escape regex special characters to prevent ReDoS / pattern broadening
+      const escapedCategory = req.query.category.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       // Try to find the category by name first
       const categoryDoc = await Category.findOne({
-        name: { $regex: `^${req.query.category}$`, $options: 'i' },
+        name: { $regex: `^${escapedCategory}$`, $options: 'i' },
       });
 
       if (!categoryDoc) {
@@ -485,41 +486,28 @@ export const updateProduct = async (req, res) => {
     const newPrimary = product.primaryImage?.toString();
     const newImages = product.images?.map((id) => id.toString()) || [];
 
-    // Handle removed media (only if Media model has usedBy field)
-    if (oldPrimary && oldPrimary !== newPrimary) {
-      await Media.findByIdAndUpdate(oldPrimary, {
-        $pull: { usedBy: { modelId: product._id } },
-      }).catch((err) => {
-        logger.warn('Failed to update old primary image usedBy', { error: err.message });
-      });
-    }
+    // Use Set-based diff across ALL media refs (primary + gallery) so an asset
+    // moving from primaryImage into images (or vice versa) isn't wrongly removed.
+    const oldMediaIds = new Set([oldPrimary, ...oldImages].filter(Boolean));
+    const newMediaIds = new Set([newPrimary, ...newImages].filter(Boolean));
 
-    const removed = oldImages.filter((id) => !newImages.includes(id));
+    const removed = [...oldMediaIds].filter((id) => !newMediaIds.has(id));
     if (removed.length) {
       await Media.updateMany(
         { _id: { $in: removed } },
         { $pull: { usedBy: { modelId: product._id } } },
       ).catch((err) => {
-        logger.warn('Failed to update removed images usedBy', { error: err.message });
+        logger.warn('Failed to update removed media usedBy', { error: err.message });
       });
     }
 
-    // Handle added media
-    if (newPrimary && newPrimary !== oldPrimary) {
-      await Media.findByIdAndUpdate(newPrimary, {
-        $addToSet: { usedBy: { modelType: 'Product', modelId: product._id } },
-      }).catch((err) => {
-        logger.warn('Failed to update new primary image usedBy', { error: err.message });
-      });
-    }
-
-    const added = newImages.filter((id) => !oldImages.includes(id));
+    const added = [...newMediaIds].filter((id) => !oldMediaIds.has(id));
     if (added.length) {
       await Media.updateMany(
         { _id: { $in: added } },
         { $addToSet: { usedBy: { modelType: 'Product', modelId: product._id } } },
       ).catch((err) => {
-        logger.warn('Failed to update added images usedBy', { error: err.message });
+        logger.warn('Failed to update added media usedBy', { error: err.message });
       });
     }
 

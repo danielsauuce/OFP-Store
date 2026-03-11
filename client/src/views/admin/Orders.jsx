@@ -92,6 +92,8 @@ const Orders = () => {
           prev.map((o) => (o._id === statusOrder._id ? { ...o, orderStatus: newStatus } : o)),
         );
         setIsStatusOpen(false);
+      } else {
+        toast.error(data?.message || 'Failed to update status');
       }
     } catch (error) {
       toast.error(error?.response?.data?.message || 'Failed to update status');
@@ -128,8 +130,9 @@ const Orders = () => {
 
       {/* Pagination Info */}
       <p className="text-sm text-muted-foreground">
-        Showing {startIndex + 1}–{Math.min(startIndex + ORDERS_PER_PAGE, totalOrders)} of{' '}
-        {totalOrders} orders
+        {totalOrders > 0
+          ? `Showing ${startIndex + 1}–${Math.min(startIndex + ORDERS_PER_PAGE, totalOrders)} of ${totalOrders} orders`
+          : 'No orders to display'}
       </p>
 
       {orders.length === 0 ? (
