@@ -170,9 +170,15 @@ export const getAllProducts = async (req, res) => {
     if (req.query.category) {
       // Escape regex special characters to prevent ReDoS / pattern broadening
       const escapedCategory = req.query.category.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      // Try to find the category by name first
+      // Normalise slug for exact match (lowercase, hyphens for spaces)
+      const normalizedSlug = req.query.category.trim().toLowerCase().replace(/\s+/g, '-');
+
+      // Try to find the category by name OR slug
       const categoryDoc = await Category.findOne({
-        name: { $regex: `^${escapedCategory}$`, $options: 'i' },
+        $or: [
+          { name: { $regex: `^${escapedCategory}$`, $options: 'i' } },
+          { slug: normalizedSlug },
+        ],
       });
 
       if (!categoryDoc) {
@@ -191,7 +197,8 @@ export const getAllProducts = async (req, res) => {
     if (req.query.search) {
       // Sanitize: trim, limit length, strip control characters
       const rawSearch = String(req.query.search).trim().slice(0, 200);
-      const safeSearch = rawSearch.replace(/[\x00-\x1f\x7f]/g, '');
+      const controlCharsRegExp = new RegExp('[\\x00-\\x1f\\x7f]', 'g');
+      const safeSearch = rawSearch.replace(controlCharsRegExp, '');
       if (safeSearch) {
         query.$text = { $search: safeSearch };
       }
@@ -576,8 +583,35 @@ export const deleteProduct = async (req, res) => {
 
         for (const m of unused) {
           try {
+            // Re-check authoritatively: re-fetch the live doc and verify
+            // no other model references this media before deleting
+            const liveMedia = await Media.findById(m._id);
+            if (!liveMedia || liveMedia.usedBy.length > 0) {
+              logger.info('Skipping media deletion — concurrent reference detected', {
+                mediaId: m._id,
+              });
+              continue;
+            }
+
+            // Check if any Product or Category still references this media
+            const [productRef, categoryRef] = await Promise.all([
+              Product.exists({
+                $or: [{ primaryImage: m._id }, { images: m._id }],
+              }),
+              Category.exists({ image: m._id }),
+            ]);
+
+            if (productRef || categoryRef) {
+              logger.info('Skipping media deletion — still referenced by another document', {
+                mediaId: m._id,
+                productRef: !!productRef,
+                categoryRef: !!categoryRef,
+              });
+              continue;
+            }
+
             await deleteMediaFromCloudinary(m.publicId);
-            await m.deleteOne();
+            await liveMedia.deleteOne();
             logger.info('Deleted unused media', { mediaId: m._id, publicId: m.publicId });
           } catch (e) {
             logger.warn('Failed to delete unused media', { mediaId: m._id, error: e.message });

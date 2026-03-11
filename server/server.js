@@ -35,8 +35,11 @@ app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Sanitize all incoming input to prevent NoSQL injection
 app.use((req, res, next) => {
-  req.body = mongoSanitize.sanitize(req.body);
+  mongoSanitize.sanitize(req.body);
+  mongoSanitize.sanitize(req.query);
+  mongoSanitize.sanitize(req.params);
   next();
 });
 
