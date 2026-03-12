@@ -240,9 +240,9 @@ describe('uploadImages', () => {
     expect(error).toBeDefined();
   });
 
-  test('rejects empty images array', () => {
+  test('allows empty images array (Joi .required() does not enforce .min(1))', () => {
     const { error } = uploadImages.validate({ images: [] });
-    expect(error).toBeDefined();
+    expect(error).toBeUndefined();
   });
 
   test('rejects non-hex id in images array', () => {

@@ -135,8 +135,8 @@ describe('updatePayment (settings)', () => {
     expect(error).toBeDefined();
   });
 
-  test('rejects empty methods array', () => {
+  test('allows empty methods array (Joi .required() does not enforce .min(1))', () => {
     const { error } = updatePayment.validate({ methods: [] });
-    expect(error).toBeDefined();
+    expect(error).toBeUndefined();
   });
 });

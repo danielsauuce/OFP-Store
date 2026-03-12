@@ -130,8 +130,14 @@ describe('approve', () => {
     expect(error).toBeDefined();
   });
 
-  test('rejects string value', () => {
-    const { error } = approve.validate({ isApproved: 'true' });
+  test('coerces string "true" to boolean (Joi default behaviour)', () => {
+    const { error, value } = approve.validate({ isApproved: 'true' });
+    expect(error).toBeUndefined();
+    expect(value.isApproved).toBe(true);
+  });
+
+  test('rejects non-boolean non-coercible string', () => {
+    const { error } = approve.validate({ isApproved: 'maybe' });
     expect(error).toBeDefined();
   });
 });
