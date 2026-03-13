@@ -1,16 +1,15 @@
-const mockUser = {
-  findOne: jest.fn(),
-  findById: jest.fn(),
-  create: jest.fn(),
-};
-jest.mock('../../models/user.js', () => ({ default: mockUser, __esModule: true }));
+jest.mock('../../models/user.js', () => ({
+  default: { findOne: jest.fn(), findById: jest.fn(), create: jest.fn() },
+  __esModule: true,
+}));
 
-const mockRefreshToken = { deleteMany: jest.fn(), create: jest.fn() };
-jest.mock('../../models/refreshToken.js', () => ({ default: mockRefreshToken, __esModule: true }));
+jest.mock('../../models/refreshToken.js', () => ({
+  default: { deleteMany: jest.fn(), create: jest.fn() },
+  __esModule: true,
+}));
 
-const mockGenerateTokens = jest.fn();
 jest.mock('../../utils/generateToken.js', () => ({
-  default: mockGenerateTokens,
+  default: jest.fn(),
   __esModule: true,
 }));
 
@@ -34,6 +33,15 @@ import {
   forgotPassword,
   resetPassword,
 } from '../../controllers/authController.js';
+
+// Get references to the mocked modules AFTER import
+import User from '../../models/user.js';
+import RefreshToken from '../../models/refreshToken.js';
+import generateTokens from '../../utils/generateToken.js';
+
+const mockUser = User;
+const mockRefreshToken = RefreshToken;
+const mockGenerateTokens = generateTokens;
 
 // helpers
 const mockRes = () => {
@@ -236,7 +244,7 @@ describe('loginUser', () => {
   });
 });
 
-// changePassword
+// change password
 describe('changePassword', () => {
   beforeEach(() => jest.clearAllMocks());
 
@@ -314,7 +322,7 @@ describe('changePassword', () => {
   });
 });
 
-// logout User
+// logout user
 describe('logoutUser', () => {
   beforeEach(() => jest.clearAllMocks());
 
@@ -387,7 +395,7 @@ describe('getCurrentUser', () => {
   });
 });
 
-// forget password
+// forgot password
 describe('forgotPassword', () => {
   beforeEach(() => jest.clearAllMocks());
 
