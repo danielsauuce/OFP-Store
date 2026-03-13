@@ -51,7 +51,6 @@ const mockOrder = Order;
 const mockProduct = Product;
 const mockMedia = Media;
 
-// helpers
 const mockRes = () => {
   const res = {};
   res.status = jest.fn().mockReturnValue(res);
@@ -69,7 +68,7 @@ const mockReq = (overrides = {}) => ({
 
 const validObjectId = 'a'.repeat(24);
 
-// getAllUsers
+// get all users
 describe('getAllUsers', () => {
   beforeEach(() => jest.clearAllMocks());
 
@@ -203,10 +202,11 @@ describe('updateUserStatus', () => {
   });
 
   test('returns 403 when trying to change own status', async () => {
+    const selfId = 'b'.repeat(24); // valid ObjectId format
     const req = mockReq({
-      params: { id: 'admin1' },
+      params: { id: selfId },
       body: { isActive: false },
-      user: { id: 'admin1' },
+      user: { id: selfId },
     });
     const res = mockRes();
 
@@ -260,10 +260,11 @@ describe('updateUserRole', () => {
   beforeEach(() => jest.clearAllMocks());
 
   test('returns 403 when trying to change own role', async () => {
+    const selfId = 'b'.repeat(24);
     const req = mockReq({
-      params: { id: 'admin1' },
+      params: { id: selfId },
       body: { role: 'user' },
-      user: { id: 'admin1' },
+      user: { id: selfId },
     });
     const res = mockRes();
 
@@ -313,9 +314,10 @@ describe('deleteUser', () => {
   beforeEach(() => jest.clearAllMocks());
 
   test('returns 403 when trying to delete self', async () => {
+    const selfId = 'b'.repeat(24);
     const req = mockReq({
-      params: { id: 'admin1' },
-      user: { id: 'admin1' },
+      params: { id: selfId },
+      user: { id: selfId },
     });
     const res = mockRes();
 

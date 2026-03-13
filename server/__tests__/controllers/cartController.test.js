@@ -1,3 +1,4 @@
+/* ───────────────────────── Module Mocks ───────────────────────── */
 jest.mock('../../models/cart.js', () => ({
   default: { findOne: jest.fn(), create: jest.fn(), findOneAndUpdate: jest.fn() },
   __esModule: true,
@@ -13,6 +14,7 @@ jest.mock('../../utils/logger.js', () => ({
   __esModule: true,
 }));
 
+/* ───────────────────────── Imports ───────────────────────── */
 import {
   getCart,
   addToCart,
@@ -26,7 +28,7 @@ import Product from '../../models/product.js';
 const mockCart = Cart;
 const mockProduct = Product;
 
-// helpers
+/* ───────────────────────── Helpers ───────────────────────── */
 const mockRes = () => {
   const res = {};
   res.status = jest.fn().mockReturnValue(res);
@@ -44,7 +46,7 @@ const mockReq = (overrides = {}) => ({
 
 const validObjectId = 'a'.repeat(24);
 
-// get cart
+// getCart
 describe('getCart', () => {
   beforeEach(() => jest.clearAllMocks());
 
@@ -96,7 +98,7 @@ describe('getCart', () => {
   });
 });
 
-// add to cart
+// addToCart
 describe('addToCart', () => {
   beforeEach(() => jest.clearAllMocks());
 
@@ -169,7 +171,14 @@ describe('addToCart', () => {
         variants: [],
       }),
     });
-    mockCart.findOne.mockResolvedValue(null);
+    // Provide an existing cart so the controller doesn't call `new Cart()`
+    mockCart.findOne.mockResolvedValue({
+      _id: 'cart1',
+      user: 'user1',
+      items: [],
+      save: jest.fn(),
+      populate: jest.fn().mockResolvedValue(true),
+    });
 
     const req = mockReq({ body: { product: validObjectId, quantity: 5 } });
     const res = mockRes();
@@ -222,7 +231,7 @@ describe('addToCart', () => {
   });
 });
 
-// update cart item
+// updateCartItem
 describe('updateCartItem', () => {
   beforeEach(() => jest.clearAllMocks());
 
@@ -298,7 +307,7 @@ describe('updateCartItem', () => {
   });
 });
 
-// clear cart
+// clearCar
 describe('clearCart', () => {
   beforeEach(() => jest.clearAllMocks());
 
