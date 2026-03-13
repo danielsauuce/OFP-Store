@@ -1,12 +1,12 @@
-const mockCart = {
-  findOne: jest.fn(),
-  create: jest.fn(),
-  findOneAndUpdate: jest.fn(),
-};
-jest.mock('../../models/cart.js', () => ({ default: mockCart, __esModule: true }));
+jest.mock('../../models/cart.js', () => ({
+  default: { findOne: jest.fn(), create: jest.fn(), findOneAndUpdate: jest.fn() },
+  __esModule: true,
+}));
 
-const mockProduct = { findById: jest.fn() };
-jest.mock('../../models/product.js', () => ({ default: mockProduct, __esModule: true }));
+jest.mock('../../models/product.js', () => ({
+  default: { findById: jest.fn() },
+  __esModule: true,
+}));
 
 jest.mock('../../utils/logger.js', () => ({
   default: { info: jest.fn(), error: jest.fn(), warn: jest.fn() },
@@ -20,6 +20,11 @@ import {
   removeCartItem,
   clearCart,
 } from '../../controllers/cartController.js';
+
+import Cart from '../../models/cart.js';
+import Product from '../../models/product.js';
+const mockCart = Cart;
+const mockProduct = Product;
 
 // helpers
 const mockRes = () => {
@@ -91,7 +96,7 @@ describe('getCart', () => {
   });
 });
 
-// addToCart
+// add to cart
 describe('addToCart', () => {
   beforeEach(() => jest.clearAllMocks());
 
@@ -217,7 +222,7 @@ describe('addToCart', () => {
   });
 });
 
-// updateCartItem
+// update cart item
 describe('updateCartItem', () => {
   beforeEach(() => jest.clearAllMocks());
 
@@ -293,7 +298,7 @@ describe('updateCartItem', () => {
   });
 });
 
-// clearCart
+// clear cart
 describe('clearCart', () => {
   beforeEach(() => jest.clearAllMocks());
 

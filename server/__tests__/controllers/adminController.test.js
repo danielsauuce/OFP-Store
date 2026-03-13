@@ -1,23 +1,28 @@
-const mockUser = {
-  find: jest.fn(),
-  findById: jest.fn(),
-  findByIdAndUpdate: jest.fn(),
-  findByIdAndDelete: jest.fn(),
-  countDocuments: jest.fn(),
-};
-jest.mock('../../models/user.js', () => ({ default: mockUser, __esModule: true }));
+jest.mock('../../models/user.js', () => ({
+  default: {
+    find: jest.fn(),
+    findById: jest.fn(),
+    findByIdAndUpdate: jest.fn(),
+    findByIdAndDelete: jest.fn(),
+    countDocuments: jest.fn(),
+  },
+  __esModule: true,
+}));
 
-const mockOrder = {
-  find: jest.fn(),
-  countDocuments: jest.fn(),
-};
-jest.mock('../../models/order.js', () => ({ default: mockOrder, __esModule: true }));
+jest.mock('../../models/order.js', () => ({
+  default: { find: jest.fn(), countDocuments: jest.fn() },
+  __esModule: true,
+}));
 
-const mockProduct = { countDocuments: jest.fn() };
-jest.mock('../../models/product.js', () => ({ default: mockProduct, __esModule: true }));
+jest.mock('../../models/product.js', () => ({
+  default: { countDocuments: jest.fn() },
+  __esModule: true,
+}));
 
-const mockMedia = { findByIdAndDelete: jest.fn() };
-jest.mock('../../models/media.js', () => ({ default: mockMedia, __esModule: true }));
+jest.mock('../../models/media.js', () => ({
+  default: { findByIdAndDelete: jest.fn() },
+  __esModule: true,
+}));
 
 jest.mock('../../config/cloudinary.js', () => ({
   deleteMediaFromCloudinary: jest.fn().mockResolvedValue(true),
@@ -37,6 +42,15 @@ import {
   getDashboardStats,
 } from '../../controllers/adminController.js';
 
+import User from '../../models/user.js';
+import Order from '../../models/order.js';
+import Product from '../../models/product.js';
+import Media from '../../models/media.js';
+const mockUser = User;
+const mockOrder = Order;
+const mockProduct = Product;
+const mockMedia = Media;
+
 // helpers
 const mockRes = () => {
   const res = {};
@@ -55,7 +69,7 @@ const mockReq = (overrides = {}) => ({
 
 const validObjectId = 'a'.repeat(24);
 
-// get all users
+// getAllUsers
 describe('getAllUsers', () => {
   beforeEach(() => jest.clearAllMocks());
 
@@ -114,7 +128,8 @@ describe('getAllUsers', () => {
     expect(res.status).toHaveBeenCalledWith(500);
   });
 });
-// get user by ID
+
+// getUserById
 describe('getUserById', () => {
   beforeEach(() => jest.clearAllMocks());
 
@@ -162,7 +177,7 @@ describe('getUserById', () => {
   });
 });
 
-// update user status
+// updateUserStatus
 describe('updateUserStatus', () => {
   beforeEach(() => jest.clearAllMocks());
 
@@ -240,7 +255,7 @@ describe('updateUserStatus', () => {
   });
 });
 
-// update user role
+// updateUserRole
 describe('updateUserRole', () => {
   beforeEach(() => jest.clearAllMocks());
 
@@ -293,7 +308,7 @@ describe('updateUserRole', () => {
   });
 });
 
-// delete user
+// deleteUser
 describe('deleteUser', () => {
   beforeEach(() => jest.clearAllMocks());
 
@@ -347,7 +362,7 @@ describe('deleteUser', () => {
   });
 });
 
-// get dashboard stats
+// getDashboardStats
 describe('getDashboardStats', () => {
   beforeEach(() => jest.clearAllMocks());
 

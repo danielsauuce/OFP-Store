@@ -1,12 +1,12 @@
-const mockWishlist = {
-  findOne: jest.fn(),
-  create: jest.fn(),
-  findOneAndUpdate: jest.fn(),
-};
-jest.mock('../../models/wishlist.js', () => ({ default: mockWishlist, __esModule: true }));
+jest.mock('../../models/wishlist.js', () => ({
+  default: { findOne: jest.fn(), create: jest.fn(), findOneAndUpdate: jest.fn() },
+  __esModule: true,
+}));
 
-const mockProduct = { findById: jest.fn() };
-jest.mock('../../models/product.js', () => ({ default: mockProduct, __esModule: true }));
+jest.mock('../../models/product.js', () => ({
+  default: { findById: jest.fn() },
+  __esModule: true,
+}));
 
 jest.mock('../../utils/logger.js', () => ({
   default: { info: jest.fn(), error: jest.fn(), warn: jest.fn() },
@@ -19,6 +19,11 @@ import {
   removeFromWishlist,
   clearWishlist,
 } from '../../controllers/wishlistController.js';
+
+import Wishlist from '../../models/wishlist.js';
+import Product from '../../models/product.js';
+const mockWishlist = Wishlist;
+const mockProduct = Product;
 
 // helpers
 const mockRes = () => {
@@ -87,7 +92,7 @@ describe('getWishlist', () => {
   });
 });
 
-// add product to wishlist
+// addProductToWishlist
 describe('addProductToWishlist', () => {
   beforeEach(() => jest.clearAllMocks());
 
@@ -174,7 +179,7 @@ describe('addProductToWishlist', () => {
   });
 });
 
-// remove from wishlist
+// removeFromWishlist
 describe('removeFromWishlist', () => {
   beforeEach(() => jest.clearAllMocks());
 
@@ -232,7 +237,7 @@ describe('removeFromWishlist', () => {
   });
 });
 
-// clear whishlist
+// clearWishlist
 describe('clearWishlist', () => {
   beforeEach(() => jest.clearAllMocks());
 

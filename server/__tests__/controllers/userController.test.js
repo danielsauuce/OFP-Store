@@ -1,12 +1,10 @@
-/* ───────────────────────── Module Mocks ───────────────────────── */
-const mockUser = {
-  findById: jest.fn(),
-  findByIdAndUpdate: jest.fn(),
-};
-jest.mock('../../models/user.js', () => ({ default: mockUser, __esModule: true }));
+jest.mock('../../models/user.js', () => ({
+  default: { findById: jest.fn(), findByIdAndUpdate: jest.fn() },
+  __esModule: true,
+}));
 
 jest.mock('../../models/media.js', () => ({
-  default: jest.fn(), // constructor
+  default: jest.fn(),
   __esModule: true,
 }));
 
@@ -28,7 +26,10 @@ import {
   deleteAddress,
   setDefaultAddress,
   deactivateAccount,
-} from '../../controllers/userController';
+} from '../../controllers/userController.js';
+
+import User from '../../models/user.js';
+const mockUser = User;
 
 // helpers
 const mockRes = () => {
@@ -46,7 +47,7 @@ const mockReq = (overrides = {}) => ({
   ...overrides,
 });
 
-// getUserProfile
+// get user profile
 describe('getUserProfile', () => {
   beforeEach(() => jest.clearAllMocks());
 
@@ -106,7 +107,7 @@ describe('getUserProfile', () => {
   });
 });
 
-// updateUserProfile
+// update user profile
 describe('updateUserProfile', () => {
   beforeEach(() => jest.clearAllMocks());
 
@@ -179,7 +180,7 @@ describe('updateUserProfile', () => {
   });
 });
 
-// getAddresses
+// get address
 describe('getAddresses', () => {
   beforeEach(() => jest.clearAllMocks());
 
@@ -229,7 +230,7 @@ describe('getAddresses', () => {
   });
 });
 
-// addAddress
+// add address
 describe('addAddress', () => {
   beforeEach(() => jest.clearAllMocks());
 
@@ -288,7 +289,7 @@ describe('addAddress', () => {
   });
 });
 
-// deactivateAccount
+// deactivate account
 describe('deactivateAccount', () => {
   beforeEach(() => jest.clearAllMocks());
 
