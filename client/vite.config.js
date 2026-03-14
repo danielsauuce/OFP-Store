@@ -4,7 +4,11 @@ import { analyzer } from 'vite-bundle-analyzer';
 
 export default defineConfig({
   plugins: [
-    react(),
+    react({
+      babel: {
+        plugins: ['babel-plugin-react-compiler'],
+      },
+    }),
     analyzer({
       openAnalyzer: true,
       summary: true,
