@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ProductCard from '../../src/components/ProductCard';
+import toast from 'react-hot-toast';
 
 /* ── Mocks ────────────────────────────────────────────────── */
 jest.mock('../../src/services/axiosInstance', () => ({
@@ -31,23 +32,8 @@ jest.mock('../../src/context/cartContext', () => ({
   useCart: () => ({ addItem: mockAddItem }),
 }));
 
-/* ── Toast mock ───────────────────────────────────────────
-   Variables prefixed with `mock` are allowed inside hoisted
-   jest.mock factories. We define them here so both the factory
-   AND our test assertions reference the exact same jest.fn(). */
-const mockToastSuccess = jest.fn();
-const mockToastError = jest.fn();
-const mockToastLoading = jest.fn();
-const mockToastDismiss = jest.fn();
-
-jest.mock('react-hot-toast', () => {
-  const t = (...args) => mockToastSuccess(...args);
-  t.success = mockToastSuccess;
-  t.error = mockToastError;
-  t.loading = mockToastLoading;
-  t.dismiss = mockToastDismiss;
-  return { __esModule: true, default: t };
-});
+// Use the __mocks__/react-hot-toast.js auto-mock (no factory needed)
+jest.mock('react-hot-toast');
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -156,7 +142,7 @@ describe('ProductCard', () => {
     await user.click(screen.getByRole('button', { name: /add to cart/i }));
 
     await waitFor(() => {
-      expect(mockToastSuccess).toHaveBeenCalledWith('Modern Sofa added to cart');
+      expect(toast.success).toHaveBeenCalledWith('Modern Sofa added to cart');
     });
   });
 
@@ -178,7 +164,7 @@ describe('ProductCard', () => {
     render(<ProductCard product={baseProduct} />);
     await user.click(screen.getByRole('button', { name: /add to cart/i }));
 
-    expect(mockToastError).toHaveBeenCalledWith('Please login to add items to cart');
+    expect(toast.error).toHaveBeenCalledWith('Please login to add items to cart');
     expect(mockNavigate).toHaveBeenCalledWith('/auth');
     expect(mockAddItem).not.toHaveBeenCalled();
   });

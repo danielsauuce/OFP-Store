@@ -1,6 +1,7 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ContactForm from '../../src/components/ContactForm';
+import toast from 'react-hot-toast';
 
 /* ── Mocks ────────────────────────────────────────────────── */
 jest.mock('../../src/services/axiosInstance', () => ({
@@ -40,23 +41,8 @@ jest.mock('../../src/services/supportService', () => ({
   createTicketService: (...args) => mockCreateTicket(...args),
 }));
 
-/* ── Toast mock ───────────────────────────────────────────
-   Variables prefixed with `mock` are allowed inside hoisted
-   jest.mock factories. We define them here so both the factory
-   AND our test assertions reference the exact same jest.fn(). */
-const mockToastSuccess = jest.fn();
-const mockToastError = jest.fn();
-const mockToastLoading = jest.fn();
-const mockToastDismiss = jest.fn();
-
-jest.mock('react-hot-toast', () => {
-  const t = (...args) => mockToastSuccess(...args);
-  t.success = mockToastSuccess;
-  t.error = mockToastError;
-  t.loading = mockToastLoading;
-  t.dismiss = mockToastDismiss;
-  return { __esModule: true, default: t };
-});
+// Use the __mocks__/react-hot-toast.js auto-mock (no factory needed)
+jest.mock('react-hot-toast');
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -170,7 +156,7 @@ describe('ContactForm', () => {
     });
 
     await waitFor(() => {
-      expect(mockToastSuccess).toHaveBeenCalled();
+      expect(toast.success).toHaveBeenCalled();
     });
   });
 
@@ -201,7 +187,7 @@ describe('ContactForm', () => {
     await user.click(screen.getByRole('button', { name: /send message/i }));
 
     await waitFor(() => {
-      expect(mockToastError).toHaveBeenCalledWith('Server error');
+      expect(toast.error).toHaveBeenCalledWith('Server error');
     });
   });
 });

@@ -2,7 +2,7 @@ import { ShoppingCart } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/authContext';
 import { useCart } from '../context/cartContext';
-import toast from 'react-hot-toast';
+import { toast } from 'react-hot-toast';
 import { useState } from 'react';
 
 const isObjectId = (val) => typeof val === 'string' && /^[a-f\d]{24}$/i.test(val);

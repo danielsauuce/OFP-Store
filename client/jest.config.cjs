@@ -12,4 +12,7 @@ module.exports = {
   setupFiles: ['<rootDir>/jest.polyfills.cjs'],
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
   silent: true,
+
+  // Reclaim memory between test files to prevent OOM
+  workerIdleMemoryLimit: '512MB',
 };
