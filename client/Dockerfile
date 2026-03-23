@@ -8,6 +8,8 @@ RUN npm install
 
 COPY . .
 
+COPY .env.docker .env.production
+
 RUN npm run build
 
 RUN npm install -g serve

@@ -1,10 +1,57 @@
-:80 {
+{$CADDY_DOMAIN:localhost} {
 
+  # ── Compression ──────────────────────────────────────────
   encode gzip
 
-  reverse_proxy /api/* server:3000
+  # ── Security headers ─────────────────────────────────────
+  header {
+    X-Content-Type-Options "nosniff"
+    X-Frame-Options "SAMEORIGIN"
+    Referrer-Policy "strict-origin-when-cross-origin"
+    # Remove Caddy's Server header
+    -Server
+  }
 
-  reverse_proxy /kuma/* uptime-kuma:3001
+  # ── API → Express server ──────────────────────────────────
+  handle /api/* {
+    reverse_proxy server:3000 {
+      header_up Host {upstream_hostport}
+      header_up X-Real-IP {remote_host}
+      header_up X-Forwarded-For {remote_host}
+      header_up X-Forwarded-Proto {scheme}
+    }
+  }
 
-  reverse_proxy web:5173
+  # ── Sublyzer analytics proxy → Express server ────────────
+  handle /sublyzer/* {
+    reverse_proxy server:3000 {
+      header_up Host {upstream_hostport}
+      header_up X-Real-IP {remote_host}
+      header_up X-Forwarded-For {remote_host}
+      header_up X-Forwarded-Proto {scheme}
+    }
+  }
+
+  # ── Uptime Kuma dashboard ─────────────────────────────────
+  handle /kuma/* {
+    reverse_proxy uptime-kuma:3001 {
+      header_up Host {upstream_hostport}
+      # Uptime Kuma uses WebSockets — enable upgrade support
+      header_up Connection {>Connection}
+      header_up Upgrade {>Upgrade}
+    }
+  }
+
+  # ── React SPA (everything else) ───────────────────────────
+  # The client container runs `serve -s dist` which handles
+  # static files. Caddy must try files first, then fall back
+  # to index.html so React Router works on page reload.
+  handle {
+    reverse_proxy web:5173 {
+      header_up Host {upstream_hostport}
+      header_up X-Real-IP {remote_host}
+      header_up X-Forwarded-For {remote_host}
+      header_up X-Forwarded-Proto {scheme}
+    }
+  }
 }
