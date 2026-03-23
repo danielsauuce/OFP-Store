@@ -5,10 +5,10 @@
  * are public routes — no auth required. They go through helmet,
  * mongo-sanitize, rate limiter, and the cache middleware.
  */
-import '../setup.js';
+import './setup.js';
 import request from 'supertest';
 import app from '../../app.js';
-import { adminToken, customerToken, authHeader } from '../helpers.js';
+import { adminToken, customerToken, authHeader } from './helpers.js';
 
 /* ── Mock models & external deps ──────────────────────────── */
 jest.mock('../../models/user.js');
@@ -66,6 +66,9 @@ describe('GET /api/product (public)', () => {
         }),
       }),
     });
+    jest.mock('../../config/sublyzerProxy.js', () => ({
+      sublyzerProxy: jest.fn((req, res) => res.status(200).json({ ok: true })),
+    }));
     Product.countDocuments.mockResolvedValue(1);
 
     // Media/Category resolution mocks (resolveProductRefs)

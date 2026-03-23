@@ -6,10 +6,10 @@
  * every middleware (helmet, CORS, mongo-sanitize, rate-limiter,
  * JSON parsing, auth middleware) runs for real.
  */
-import '../setup.js';
+import './setup.js';
 import request from 'supertest';
 import app from '../../app.js';
-import { customerToken, authHeader } from '../helpers.js';
+import { customerToken, authHeader } from './helpers.js';
 
 /* ── Mock all Mongoose models & external deps ─────────────── */
 jest.mock('../../models/user.js');
@@ -42,6 +42,9 @@ describe('POST /api/auth/register', () => {
 
   test('returns 400 when required fields are missing', async () => {
     const res = await request(app).post('/api/auth/register').send({});
+    jest.mock('../../config/sublyzerProxy.js', () => ({
+      sublyzerProxy: jest.fn((req, res) => res.status(200).json({ ok: true })),
+    }));
 
     expect(res.status).toBe(400);
     expect(res.body.success).toBe(false);

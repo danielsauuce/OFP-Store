@@ -4,10 +4,10 @@
  * Verifies that cart endpoints work correctly through the
  * full middleware chain with a valid JWT.
  */
-import '../setup.js';
+import './setup.js';
 import request from 'supertest';
 import app from '../../app.js';
-import { customerToken, authHeader } from '../helpers.js';
+import { customerToken, authHeader } from './helpers.js';
 
 /* ── Mock models & external deps ──────────────────────────── */
 jest.mock('../../models/user.js');
@@ -50,6 +50,9 @@ describe('GET /api/cart', () => {
     const res = await request(app).get('/api/cart');
     expect(res.status).toBe(401);
   });
+  jest.mock('../../config/sublyzerProxy.js', () => ({
+    sublyzerProxy: jest.fn((req, res) => res.status(200).json({ ok: true })),
+  }));
 
   test('returns empty cart when none exists', async () => {
     Cart.findOne.mockReturnValue({

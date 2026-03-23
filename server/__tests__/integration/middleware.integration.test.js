@@ -5,10 +5,10 @@
  * end-to-end: helmet headers, mongo-sanitize, rate limiting,
  * and authentication enforcement.
  */
-import '../setup.js';
+import './setup.js';
 import request from 'supertest';
 import app from '../../app.js';
-import { customerToken, adminToken, authHeader } from '../helpers.js';
+import { customerToken, adminToken, authHeader } from './helpers.js';
 
 /* ── Mock external deps ───────────────────────────────────── */
 jest.mock('../../models/user.js');
@@ -49,6 +49,9 @@ describe('Helmet security headers', () => {
     expect(res.headers['x-dns-prefetch-control']).toBeDefined();
     expect(res.headers['strict-transport-security']).toBeDefined();
   });
+  jest.mock('../../config/sublyzerProxy.js', () => ({
+    sublyzerProxy: jest.fn((req, res) => res.status(200).json({ ok: true })),
+  }));
 
   test('X-Powered-By header is removed', async () => {
     const res = await request(app).get('/api/auth/me');

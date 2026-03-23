@@ -4,10 +4,10 @@
  * Both are fully protected (require auth). Orders also have
  * admin-only sub-routes.
  */
-import '../setup.js';
+import './setup.js';
 import request from 'supertest';
 import app from '../../app.js';
-import { customerToken, adminToken, authHeader } from '../helpers.js';
+import { customerToken, adminToken, authHeader } from './helpers.js';
 
 /* ── Mock models & external deps ──────────────────────────── */
 jest.mock('../../models/user.js');
@@ -50,6 +50,9 @@ describe('Wishlist routes', () => {
     const res = await request(app).get('/api/wishlist');
     expect(res.status).toBe(401);
   });
+  jest.mock('../../config/sublyzerProxy.js', () => ({
+    sublyzerProxy: jest.fn((req, res) => res.status(200).json({ ok: true })),
+  }));
 
   test('GET /api/wishlist returns wishlist for authenticated user', async () => {
     Wishlist.findOne.mockReturnValue({

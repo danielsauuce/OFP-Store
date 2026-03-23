@@ -24,10 +24,7 @@ const app = express();
 app.use(helmet());
 app.use(cors(corsOptions));
 
-// ── Sublyzer analytics proxy ────────────────────────────────
-// Mounted BEFORE express.json() — the proxy reads the raw body
-// itself via fetch() and forwards it to the Sublyzer backend.
-app.use('/sublyzer/*', sublyzerProxy);
+app.use('/sublyzer', sublyzerProxy);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

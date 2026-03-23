@@ -6,10 +6,10 @@
  * - GET  /api/support/my-tickets requires authentication
  * - Admin endpoints require both auth + admin role
  */
-import '../setup.js';
+import './setup.js';
 import request from 'supertest';
 import app from '../../app.js';
-import { customerToken, adminToken, authHeader } from '../helpers.js';
+import { customerToken, adminToken, authHeader } from './helpers.js';
 
 /* ── Mock models & external deps ──────────────────────────── */
 jest.mock('../../models/user.js');
@@ -47,6 +47,9 @@ beforeEach(() => jest.clearAllMocks());
 describe('POST /api/support (public ticket creation)', () => {
   test('returns 400 with invalid body', async () => {
     const res = await request(app).post('/api/support').send({});
+    jest.mock('../../config/sublyzerProxy.js', () => ({
+      sublyzerProxy: jest.fn((req, res) => res.status(200).json({ ok: true })),
+    }));
 
     expect(res.status).toBe(400);
     expect(res.body.success).toBe(false);

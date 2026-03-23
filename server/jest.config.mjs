@@ -7,7 +7,10 @@ const config = {
     '^.+\\.m?js$': 'babel-jest',
   },
 
-  // Set env vars before integration tests import app.js
+  transformIgnorePatterns: ['/node_modules/'],
+
+  testMatch: ['**/__tests__/**/*.test.js'],
+
   setupFiles: ['./__tests__/integration/setup.js'],
 };
 
