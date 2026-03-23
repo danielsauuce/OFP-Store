@@ -17,8 +17,9 @@ export const cacheMiddleware = (duration = 3600) => {
 
       if (cachedData) {
         logger.info('Cache HIT', { key: cacheKey });
-        // Parse JSON back to object
-        return res.status(200).json(JSON.parse(cachedData));
+        // @upstash/redis automatically deserializes JSON on get(),
+        // so cachedData is already a plain object — no JSON.parse() needed.
+        return res.status(200).json(cachedData);
       }
 
       logger.info('Cache MISS', { key: cacheKey });
@@ -29,7 +30,9 @@ export const cacheMiddleware = (duration = 3600) => {
       res.json = async (data) => {
         if (res.statusCode === 200 && data?.success !== false) {
           try {
-            await cacheHelpers.set(cacheKey, JSON.stringify(data), duration);
+            // @upstash/redis automatically serializes objects on set(),
+            // so pass data directly — no JSON.stringify() needed.
+            await cacheHelpers.set(cacheKey, data, duration);
             logger.info('Response cached', { key: cacheKey, duration });
           } catch (error) {
             logger.error('Failed to cache response:', { error: error.message });
