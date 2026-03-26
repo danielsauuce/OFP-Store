@@ -76,7 +76,7 @@ const ContactForm = () => {
 
     const { errors: validationErrors } = validateForm(contactSchema, formData);
 
-    if (validationErrors) {
+    if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
       shakeErrorFields(validationErrors);
       return;
