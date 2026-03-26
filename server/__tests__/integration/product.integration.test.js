@@ -11,18 +11,40 @@ import app from '../../app.js';
 import { adminToken, customerToken, authHeader } from './helpers.js';
 
 /* ── Mock models & external deps ──────────────────────────── */
-jest.mock('../../models/user.js');
-jest.mock('../../models/refreshToken.js');
-jest.mock('../../models/product.js');
-jest.mock('../../models/category.js');
-jest.mock('../../models/media.js');
-jest.mock('../../models/cart.js');
-jest.mock('../../models/order.js');
-jest.mock('../../models/ticket.js');
-jest.mock('../../models/wishlist.js');
-jest.mock('../../models/review.js');
-jest.mock('../../models/payment.js');
-jest.mock('../../utils/generateToken.js');
+function mockModelFactory() {
+  return {
+    findOne: jest.fn(),
+    findById: jest.fn(),
+    find: jest.fn(),
+    create: jest.fn(),
+    findByIdAndUpdate: jest.fn(),
+    findByIdAndDelete: jest.fn(),
+    countDocuments: jest.fn(),
+    deleteMany: jest.fn(),
+    deleteOne: jest.fn(),
+    updateOne: jest.fn(),
+    aggregate: jest.fn(),
+  };
+}
+jest.mock('../../models/user.js', () => ({ default: mockModelFactory(), __esModule: true }));
+jest.mock('../../models/refreshToken.js', () => ({
+  default: mockModelFactory(),
+  __esModule: true,
+}));
+jest.mock('../../models/product.js', () => ({ default: mockModelFactory(), __esModule: true }));
+jest.mock('../../models/category.js', () => ({ default: mockModelFactory(), __esModule: true }));
+jest.mock('../../models/media.js', () => ({ default: mockModelFactory(), __esModule: true }));
+jest.mock('../../models/cart.js', () => ({ default: mockModelFactory(), __esModule: true }));
+jest.mock('../../models/order.js', () => ({ default: mockModelFactory(), __esModule: true }));
+jest.mock('../../models/ticket.js', () => ({ default: mockModelFactory(), __esModule: true }));
+jest.mock('../../models/wishlist.js', () => ({ default: mockModelFactory(), __esModule: true }));
+jest.mock('../../models/review.js', () => ({ default: mockModelFactory(), __esModule: true }));
+jest.mock('../../models/payment.js', () => ({ default: mockModelFactory(), __esModule: true }));
+jest.mock('../../utils/generateToken.js', () => ({ default: jest.fn(), __esModule: true }));
+jest.mock('../../middleware/rateLimiter.js', () => ({
+  default: (_req, _res, next) => next(),
+  __esModule: true,
+}));
 jest.mock('../../config/cloudinary.js', () => ({
   deleteMediaFromCloudinary: jest.fn(),
 }));
@@ -87,8 +109,8 @@ describe('GET /api/product (public)', () => {
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
-    expect(res.body.products).toHaveLength(1);
-    expect(res.body.products[0].name).toBe('Modern Sofa');
+    expect(res.body.data.products).toHaveLength(1);
+    expect(res.body.data.products[0].name).toBe('Modern Sofa');
   });
 
   test('supports pagination query params', async () => {

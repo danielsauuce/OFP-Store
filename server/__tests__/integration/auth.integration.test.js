@@ -12,9 +12,38 @@ import app from '../../app.js';
 import { customerToken, authHeader } from './helpers.js';
 
 /* ── Mock all Mongoose models & external deps ─────────────── */
-jest.mock('../../models/user.js');
-jest.mock('../../models/refreshToken.js');
-jest.mock('../../utils/generateToken.js');
+jest.mock('../../models/user.js', () => ({
+  default: {
+    findOne: jest.fn(),
+    findById: jest.fn(),
+    find: jest.fn(),
+    create: jest.fn(),
+    findByIdAndUpdate: jest.fn(),
+    findByIdAndDelete: jest.fn(),
+    countDocuments: jest.fn(),
+    deleteMany: jest.fn(),
+  },
+  __esModule: true,
+}));
+jest.mock('../../models/refreshToken.js', () => ({
+  default: {
+    findOne: jest.fn(),
+    find: jest.fn(),
+    create: jest.fn(),
+    deleteMany: jest.fn(),
+    deleteOne: jest.fn(),
+    findByIdAndDelete: jest.fn(),
+  },
+  __esModule: true,
+}));
+jest.mock('../../utils/generateToken.js', () => ({
+  default: jest.fn(),
+  __esModule: true,
+}));
+jest.mock('../../middleware/rateLimiter.js', () => ({
+  default: (_req, _res, next) => next(),
+  __esModule: true,
+}));
 jest.mock('../../config/upstashRedis.js', () => ({
   cacheHelpers: {
     get: jest.fn().mockResolvedValue(null),
