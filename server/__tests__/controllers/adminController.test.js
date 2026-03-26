@@ -1,4 +1,4 @@
-jest.mock('../../models/user.js', () => ({
+npm ijest.mock('../../models/user.js', () => ({
   default: {
     find: jest.fn(),
     findById: jest.fn(),
