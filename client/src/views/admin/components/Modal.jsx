@@ -28,6 +28,7 @@ const Modal = ({ isOpen, onClose, title, description, children, maxWidth = 'max-
 
       {/* Content */}
       <div
+        role="dialog"
         className={`relative z-50 w-full ${maxWidth} mx-4 bg-card rounded-lg shadow-lg border border-border max-h-[90vh] overflow-y-auto`}
       >
         {/* Header */}

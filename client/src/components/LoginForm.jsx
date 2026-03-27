@@ -119,12 +119,7 @@ const LoginForm = ({ handleLogin }) => {
 
       <button
         type="submit"
-        disabled={!isFormFilled}
-        className={`w-full py-4 font-medium transition-all rounded duration-300 group justify-center flex ${
-          isFormFilled
-            ? 'bg-primary hover:bg-primary-dark text-primary-foreground'
-            : 'bg-muted text-muted-foreground cursor-not-allowed border'
-        }`}
+        className="w-full py-4 font-medium transition-all rounded duration-300 group justify-center flex bg-primary hover:bg-primary-dark text-primary-foreground"
       >
         <span className="flex items-center gap-2">
           Login

@@ -21,7 +21,7 @@ const CategoryFilter = ({ categories, selected, onChange }) => {
   }, [categories]);
 
   return (
-    <div className="mb-6">
+    <div className="category-filter mb-6">
       <label className="mb-3 block font-semibold text-card-foreground">Categories</label>
       <div ref={listRef} className="space-y-2">
         {categories.map((category) => (

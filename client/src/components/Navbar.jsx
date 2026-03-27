@@ -82,8 +82,8 @@ function Navbar() {
       const ctx = gsap.context(() => {
         gsap.fromTo(
           mobileMenuRef.current,
-          { height: 0, opacity: 0 },
-          { height: 'auto', opacity: 1, duration: 0.4, ease: 'power3.out' },
+          { opacity: 0 },
+          { opacity: 1, duration: 0.4, ease: 'power3.out' },
         );
         const items = gsap.utils.toArray('.mobile-nav-item');
         gsap.from(items, {

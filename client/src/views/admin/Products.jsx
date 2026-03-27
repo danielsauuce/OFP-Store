@@ -411,6 +411,7 @@ const Products = () => {
         </div>
       )}
 
+      <div className="product-list space-y-4">
       {products.map((product) => (
         <div key={product._id} className="border p-4 rounded flex gap-4">
           <img
@@ -439,6 +440,7 @@ const Products = () => {
               onClick={() => openEdit(product)}
             >
               <Edit />
+              <span className="sr-only">Edit</span>
             </button>
 
             <button
@@ -447,10 +449,12 @@ const Products = () => {
               onClick={() => openDelete(product)}
             >
               <Trash2 />
+              <span className="sr-only">Delete</span>
             </button>
           </div>
         </div>
       ))}
+      </div>
 
       <Pagination
         currentPage={currentPage}

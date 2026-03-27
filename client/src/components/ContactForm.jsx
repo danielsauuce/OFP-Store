@@ -256,9 +256,9 @@ const ContactForm = () => {
         <button
           ref={buttonRef}
           type="submit"
-          disabled={isSending || !isFormFilled}
+          disabled={isSending}
           className={`w-full py-3.5 rounded-xl font-semibold transition-all duration-300 ${
-            isFormFilled && !isSending
+            !isSending
               ? 'bg-primary text-primary-foreground hover:bg-primary-dark'
               : 'bg-muted text-muted-foreground cursor-not-allowed'
           }`}

@@ -483,6 +483,7 @@ const Profile = () => {
                         <User className="h-4 w-4" /> Full Name
                       </label>
                       <input
+                        name="fullName"
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
                         className="w-full h-10 px-3 rounded-md bg-muted/50 border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-colors"
@@ -493,6 +494,8 @@ const Profile = () => {
                         <Mail className="h-4 w-4" /> Email
                       </label>
                       <input
+                        name="email"
+                        type="email"
                         value={auth.user?.email || ''}
                         disabled
                         className="w-full h-10 px-3 rounded-md bg-muted border border-border text-muted-foreground"
@@ -503,6 +506,8 @@ const Profile = () => {
                         <Phone className="h-4 w-4" /> Phone
                       </label>
                       <input
+                        name="phone"
+                        type="tel"
                         value={phoneNum}
                         onChange={(e) => setPhoneNum(e.target.value)}
                         className="w-full h-10 px-3 rounded-md bg-muted/50 border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-colors"
@@ -763,6 +768,7 @@ const Profile = () => {
                           </p>
                           <button
                             onClick={() => removeFromWishlist(product._id)}
+                            aria-label="Remove from wishlist"
                             className="text-xs text-destructive mt-2 hover:text-destructive/80 transition-colors"
                           >
                             Remove
@@ -937,7 +943,7 @@ const Profile = () => {
                 <input
                   value={addressForm.city}
                   onChange={(e) => setAddressForm((prev) => ({ ...prev, city: e.target.value }))}
-                  placeholder="Lagos"
+                  placeholder="City"
                   className="w-full h-10 px-3 mt-1 rounded-md bg-muted/50 border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-colors"
                 />
               </div>
