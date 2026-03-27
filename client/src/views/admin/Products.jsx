@@ -412,48 +412,48 @@ const Products = () => {
       )}
 
       <div className="product-list space-y-4">
-      {products.map((product) => (
-        <div key={product._id} className="border p-4 rounded flex gap-4">
-          <img
-            src={getProductImage(product)}
-            alt={product.name}
-            className="w-24 h-24 object-cover"
-          />
+        {products.map((product) => (
+          <div key={product._id} className="border p-4 rounded flex gap-4">
+            <img
+              src={getProductImage(product)}
+              alt={product.name}
+              className="w-24 h-24 object-cover"
+            />
 
-          <div className="flex-1">
-            <h3 className="font-semibold">{product.name}</h3>
-            <p>£{Number(product.price).toFixed(2)}</p>
+            <div className="flex-1">
+              <h3 className="font-semibold">{product.name}</h3>
+              <p>£{Number(product.price).toFixed(2)}</p>
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                aria-label={`View product ${product.name}`}
+                title={`View product ${product.name}`}
+                onClick={() => openView(product)}
+              >
+                <Eye />
+              </button>
+
+              <button
+                aria-label={`Edit product ${product.name}`}
+                title={`Edit product ${product.name}`}
+                onClick={() => openEdit(product)}
+              >
+                <Edit />
+                <span className="sr-only">Edit</span>
+              </button>
+
+              <button
+                aria-label={`Delete product ${product.name}`}
+                title={`Delete product ${product.name}`}
+                onClick={() => openDelete(product)}
+              >
+                <Trash2 />
+                <span className="sr-only">Delete</span>
+              </button>
+            </div>
           </div>
-
-          <div className="flex gap-2">
-            <button
-              aria-label={`View product ${product.name}`}
-              title={`View product ${product.name}`}
-              onClick={() => openView(product)}
-            >
-              <Eye />
-            </button>
-
-            <button
-              aria-label={`Edit product ${product.name}`}
-              title={`Edit product ${product.name}`}
-              onClick={() => openEdit(product)}
-            >
-              <Edit />
-              <span className="sr-only">Edit</span>
-            </button>
-
-            <button
-              aria-label={`Delete product ${product.name}`}
-              title={`Delete product ${product.name}`}
-              onClick={() => openDelete(product)}
-            >
-              <Trash2 />
-              <span className="sr-only">Delete</span>
-            </button>
-          </div>
-        </div>
-      ))}
+        ))}
       </div>
 
       <Pagination

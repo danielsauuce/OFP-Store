@@ -239,7 +239,8 @@ const Users = () => {
                     )}
                   </div>
                   <p className="text-sm text-muted-foreground mb-2">
-                    <span className="font-medium text-foreground">Email: </span>{user.email}
+                    <span className="font-medium text-foreground">Email: </span>
+                    {user.email}
                   </p>
                   <p className="text-sm text-muted-foreground">
                     Joined {new Date(user.createdAt).toLocaleDateString()}

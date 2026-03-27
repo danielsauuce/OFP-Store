@@ -1,33 +1,31 @@
-import { Routes, Route, Suspense, lazy } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
+import { Suspense, lazy } from 'react';
 import { Loader } from 'lucide-react';
 import { Toaster } from 'react-hot-toast';
 import RouteGuard from './components/RouteGuard';
 import { useAuth } from './context/authContext';
 import MainLayout from './components/mainLayout';
-
-// ─── Eager: tiny, needed immediately ─────────────────────────────────────────
 import NotFound from './views/NotFound';
 
-// ─── Lazy: public pages ───────────────────────────────────────────────────────
-const Home         = lazy(() => import('./views/Home'));
-const Shop         = lazy(() => import('./views/Shop'));
-const About        = lazy(() => import('./views/About'));
-const Contact      = lazy(() => import('./views/Contact'));
-const AuthPage     = lazy(() => import('./views/AuthPage'));
-const Cart         = lazy(() => import('./views/Cart'));
-const Profile      = lazy(() => import('./views/Profile'));
+// public pages
+const Home = lazy(() => import('./views/Home'));
+const Shop = lazy(() => import('./views/Shop'));
+const About = lazy(() => import('./views/About'));
+const Contact = lazy(() => import('./views/Contact'));
+const AuthPage = lazy(() => import('./views/AuthPage'));
+const Cart = lazy(() => import('./views/Cart'));
+const Profile = lazy(() => import('./views/Profile'));
 const ProductDetails = lazy(() => import('./views/ProductDetails'));
-const Checkout     = lazy(() => import('./views/CheckOutPage'));
+const Checkout = lazy(() => import('./views/CheckOutPage'));
 
-// ─── Lazy: admin panel (only loaded when an admin navigates there) ────────────
+// admin pages
 const CommonSideBar = lazy(() => import('./views/admin/components/CommonSideBar'));
-const Dashboard     = lazy(() => import('./views/admin/Dashboard'));
-const Products      = lazy(() => import('./views/admin/Products'));
-const Orders        = lazy(() => import('./views/admin/Orders'));
-const Users         = lazy(() => import('./views/admin/Users'));
-const Analytics     = lazy(() => import('./views/admin/Analytics'));
+const Dashboard = lazy(() => import('./views/admin/Dashboard'));
+const Products = lazy(() => import('./views/admin/Products'));
+const Orders = lazy(() => import('./views/admin/Orders'));
+const Users = lazy(() => import('./views/admin/Users'));
+const Analytics = lazy(() => import('./views/admin/Analytics'));
 
-// ─── Shared page-level loading fallback ──────────────────────────────────────
 function PageLoader() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
