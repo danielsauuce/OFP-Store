@@ -119,7 +119,7 @@ const Profile = () => {
 
   // Page entrance
   useLayoutEffect(() => {
-    if (loading || !pageRef.current) return;
+    if (loading || !pageRef.current || window.Cypress) return;
     const ctx = gsap.context(() => {
       gsap.from('.profile-header', {
         y: 30,
@@ -140,7 +140,7 @@ const Profile = () => {
 
   // Tab switch animation
   const animateTabContent = useCallback(() => {
-    if (!tabContentRef.current) return;
+    if (!tabContentRef.current || window.Cypress) return;
     gsap.fromTo(
       tabContentRef.current,
       { y: 25, opacity: 0 },

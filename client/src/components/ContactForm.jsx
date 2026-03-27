@@ -101,6 +101,7 @@ const ContactForm = () => {
   };
 
   useLayoutEffect(() => {
+    if (window.Cypress) return;
     const ctx = gsap.context(() => {
       gsap.from(formRef.current, {
         scrollTrigger: {
