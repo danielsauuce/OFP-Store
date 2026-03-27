@@ -2,13 +2,81 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Olayinka Furniture Palace</title>
+
+    <!-- Primary meta -->
+    <title>Olayinka Furniture Palace — Premium Furniture in Lagos</title>
+    <meta
+      name="description"
+      content="Shop premium, handcrafted furniture at Olayinka Furniture Palace. Sofas, beds, dining sets and more. Quality furniture delivered across Nigeria."
+    />
+    <meta name="keywords" content="furniture, Lagos, Nigeria, sofa, bed, dining table, home decor, Olayinka Furniture Palace" />
+    <meta name="author" content="Olayinka Furniture Palace" />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://olayinkafurniturepalace.com/" />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://olayinkafurniturepalace.com/" />
+    <meta property="og:title" content="Olayinka Furniture Palace — Premium Furniture in Lagos" />
+    <meta
+      property="og:description"
+      content="Shop premium, handcrafted furniture at Olayinka Furniture Palace. Sofas, beds, dining sets and more. Quality furniture delivered across Nigeria."
+    />
+    <meta property="og:image" content="https://olayinkafurniturepalace.com/og-image.jpg" />
+    <meta property="og:locale" content="en_NG" />
+    <meta property="og:site_name" content="Olayinka Furniture Palace" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Olayinka Furniture Palace — Premium Furniture in Lagos" />
+    <meta
+      name="twitter:description"
+      content="Shop premium, handcrafted furniture at Olayinka Furniture Palace. Quality furniture delivered across Nigeria."
+    />
+    <meta name="twitter:image" content="https://olayinkafurniturepalace.com/og-image.jpg" />
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+
+    <!-- Theme color (matches primary brand) -->
+    <meta name="theme-color" content="#8b5e3c" />
+
+    <!-- Preconnect to backend API to reduce first-request latency -->
+    <link rel="preconnect" href="%VITE_BACKEND_URL%" crossorigin />
+
+    <!-- Structured data — Local Business -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "FurnitureStore",
+        "name": "Olayinka Furniture Palace",
+        "description": "Premium handcrafted furniture store in Lagos, Nigeria",
+        "url": "https://olayinkafurniturepalace.com",
+        "telephone": "+234-012-345-6789",
+        "address": {
+          "@type": "PostalAddress",
+          "streetAddress": "123 Furniture Street, Victoria Island",
+          "addressLocality": "Lagos",
+          "addressCountry": "NG"
+        },
+        "openingHoursSpecification": {
+          "@type": "OpeningHoursSpecification",
+          "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],
+          "opens": "09:00",
+          "closes": "18:00"
+        },
+        "priceRange": "££"
+      }
+    </script>
+
+    <!-- Sublyzer analytics -->
     <script
       src="/sdks/sublyzer.js"
       data-integration-code="5ZZRGGEHY51N9MQJL1Y9TXGM"
       data-api-url="%VITE_BACKEND_URL%/sublyzer"
+      defer
     ></script>
   </head>
   <body>

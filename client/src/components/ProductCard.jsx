@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/authContext';
 import { useCart } from '../context/cartContext';
 import { toast } from 'react-hot-toast';
-import { useState } from 'react';
+import { useState, memo, useMemo } from 'react';
 
 const isObjectId = (val) => typeof val === 'string' && /^[a-f\d]{24}$/i.test(val);
 
@@ -47,7 +47,7 @@ const resolveImage = (product) => {
   return '';
 };
 
-const ProductCard = ({ product }) => {
+const ProductCard = memo(function ProductCard({ product }) {
   const { auth } = useAuth();
   const { addItem } = useCart();
   const navigate = useNavigate();
@@ -55,7 +55,7 @@ const ProductCard = ({ product }) => {
 
   const productName = product.name || product.title || 'Product';
   const productId = product._id || product.id;
-  const productImage = resolveImage(product);
+  const productImage = useMemo(() => resolveImage(product), [product]);
   const categoryName =
     typeof product.category === 'object' ? product.category.name : product.category;
 
@@ -91,6 +91,8 @@ const ProductCard = ({ product }) => {
           <img
             src={productImage}
             alt={productName}
+            loading="lazy"
+            decoding="async"
             className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-500"
           />
         ) : (
@@ -129,6 +131,6 @@ const ProductCard = ({ product }) => {
       </div>
     </div>
   );
-};
+});
 
 export default ProductCard;

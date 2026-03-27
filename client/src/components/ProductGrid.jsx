@@ -1,6 +1,7 @@
+import { memo } from 'react';
 import ProductCard from '../components/ProductCard';
 
-const ProductGrid = ({ products }) => {
+const ProductGrid = memo(function ProductGrid({ products }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
       {products.map((product) => (
@@ -10,6 +11,6 @@ const ProductGrid = ({ products }) => {
       ))}
     </div>
   );
-};
+});
 
 export default ProductGrid;
