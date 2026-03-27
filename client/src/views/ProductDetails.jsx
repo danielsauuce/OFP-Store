@@ -255,7 +255,7 @@ const ProductDetails = () => {
                 <div className="flex items-center border border-border rounded-md">
                   <button
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    disabled={!product.inStock}
+                    disabled={quantity <= 1 || !product.inStock}
                     className="p-2.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     <Minus className="h-4 w-4" />

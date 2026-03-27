@@ -40,8 +40,8 @@ const HeaderContact = () => {
       </h1>
       <div className="contact-header-line h-[3px] w-16 bg-primary mx-auto mb-5 rounded-full" />
       <p className="contact-subtitle text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-        Have questions? We'd love to hear from you. Send us a message and we'll respond as soon as
-        possible.
+        Have questions? We'd love to hear from you. Use our contact form and we'll respond as soon
+        as possible.
       </p>
     </div>
   );

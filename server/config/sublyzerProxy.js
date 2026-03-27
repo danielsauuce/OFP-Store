@@ -17,9 +17,12 @@ export async function sublyzerProxy(req, res) {
     };
 
     const hasBody = req.method !== 'GET' && req.method !== 'HEAD';
-    const body = hasBody ? JSON.stringify(req.body ?? {}) : undefined;
 
-    // Add AbortController timeout to prevent indefinite hanging
+    // req.body is already parsed by express.json() — serialize it back to the
+    // exact JSON string the upstream Sublyzer API expects. If body is empty
+    // (e.g. a GET), don't send a body at all.
+    const body = hasBody && req.body !== undefined ? JSON.stringify(req.body) : undefined;
+
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
 

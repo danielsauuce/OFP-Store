@@ -45,6 +45,7 @@ services:
   caddy:
     image: caddy:2-alpine
     container_name: ofp-caddy
+    restart: unless-stopped
     depends_on:
       - web
       - server
@@ -52,10 +53,15 @@ services:
     ports:
       - "80:80"
       - "443:443"
+      - "443:443/udp" # HTTP/3 (QUIC)
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
+      - caddy_data:/data # stores TLS certificates — must be persistent
       - caddy_config:/config
+    environment:
+      # Set to your real domain in production, e.g. ofpstore.com
+      # Leave unset or set to "localhost" for local Docker dev
+      CADDY_DOMAIN: ${CADDY_DOMAIN:-localhost}
 
 volumes:
   mongo_data:
