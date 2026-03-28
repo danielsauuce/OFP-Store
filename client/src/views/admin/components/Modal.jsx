@@ -39,9 +39,11 @@ const Modal = ({ isOpen, onClose, title, description, children, maxWidth = 'max-
           </div>
           <button
             onClick={onClose}
+            aria-label="Close"
             className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
           >
             <X className="h-4 w-4" />
+            <span className="sr-only">Close</span>
           </button>
         </div>
 

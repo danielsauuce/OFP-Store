@@ -104,7 +104,7 @@ const Checkout = () => {
 
   // GSAP step transition
   const animateStepChange = useCallback(() => {
-    if (!stepContentRef.current) return;
+    if (!stepContentRef.current || window.Cypress) return;
     gsap.fromTo(
       stepContentRef.current,
       { y: 30, opacity: 0 },

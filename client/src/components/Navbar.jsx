@@ -78,6 +78,7 @@ function Navbar() {
   // Animate mobile menu
   useLayoutEffect(() => {
     if (!mobileMenuRef.current) return;
+    if (window.Cypress) return;
     if (open) {
       const ctx = gsap.context(() => {
         gsap.fromTo(

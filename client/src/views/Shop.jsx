@@ -58,7 +58,7 @@ const Shop = () => {
 
   // GSAP entrance animations
   useLayoutEffect(() => {
-    if (loading) return;
+    if (loading || window.Cypress) return;
 
     const ctx = gsap.context(() => {
       gsap.from(headerRef.current, {

@@ -19,6 +19,7 @@ const RightPanelAuthPage = () => {
   useLayoutEffect(() => {
     if (hasAnimated.current) return;
     hasAnimated.current = true;
+    if (window.Cypress) return;
 
     const ctx = gsap.context(() => {
       const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
@@ -79,6 +80,11 @@ const RightPanelAuthPage = () => {
   // Animate form swap when toggling between login/signup
   const animateFormSwap = useCallback((toLogin) => {
     if (!formContainerRef.current) return;
+
+    if (window.Cypress) {
+      setIsLogin(toLogin);
+      return;
+    }
 
     const tl = gsap.timeline();
 

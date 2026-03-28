@@ -8,6 +8,7 @@ const MapSection = () => {
   const mapRef = useRef(null);
 
   useLayoutEffect(() => {
+    if (window.Cypress) return;
     const ctx = gsap.context(() => {
       gsap.from(mapRef.current, {
         scrollTrigger: {

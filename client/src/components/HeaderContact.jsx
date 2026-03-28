@@ -5,6 +5,7 @@ const HeaderContact = () => {
   const headerRef = useRef(null);
 
   useLayoutEffect(() => {
+    if (window.Cypress) return;
     const ctx = gsap.context(() => {
       const tl = gsap.timeline({ defaults: { ease: 'power4.out' } });
 
