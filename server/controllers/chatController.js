@@ -1,38 +1,17 @@
 import ChatMessage from '../models/chatMessage.js';
+import Conversation from '../models/conversation.js';
 import logger from '../utils/logger.js';
 
 export const getConversations = async (req, res) => {
   try {
-    // Get distinct conversationIds with latest message and unread count
-    const conversations = await ChatMessage.aggregate([
-      {
-        $sort: { createdAt: -1 },
-      },
-      {
-        $group: {
-          _id: '$conversationId',
-          lastMessage: { $first: '$$ROOT' },
-          totalMessages: { $sum: 1 },
-        },
-      },
-      {
-        $sort: { 'lastMessage.createdAt': -1 },
-      },
-    ]);
+    // Use Conversation model as the source of truth, populate user details
+    const conversations = await Conversation.find()
+      .populate('userId', 'fullName email profilePicture')
+      .populate('adminId', 'fullName')
+      .sort({ lastMessageAt: -1, createdAt: -1 })
+      .lean();
 
-    // Add unread counts for each conversation (messages not read by admin)
-    const result = await Promise.all(
-      conversations.map(async (conv) => {
-        const unreadCount = await ChatMessage.countDocuments({
-          conversationId: conv._id,
-          'sender.role': 'customer',
-          readBy: { $ne: req.user.id },
-        });
-        return { ...conv, unreadCount };
-      }),
-    );
-
-    res.status(200).json({ success: true, conversations: result });
+    res.status(200).json({ success: true, conversations });
   } catch (error) {
     logger.error('Get conversations error', { error: error.message });
     res.status(500).json({ success: false, message: 'Failed to fetch conversations' });
@@ -56,21 +35,19 @@ export const getMessages = async (req, res) => {
       ChatMessage.countDocuments({ conversationId }),
     ]);
 
-    // Mark messages as read by current user
-    await ChatMessage.updateMany(
-      { conversationId, readBy: { $ne: req.user.id } },
-      { $addToSet: { readBy: req.user.id } },
-    );
+    // Mark as read by admin
+    await Promise.all([
+      ChatMessage.updateMany(
+        { conversationId, readBy: { $ne: req.user.id } },
+        { $addToSet: { readBy: req.user.id } },
+      ),
+      Conversation.findOneAndUpdate({ conversationId }, { unreadByAdmin: 0 }),
+    ]);
 
     res.status(200).json({
       success: true,
       messages,
-      pagination: {
-        total,
-        page,
-        pages: Math.ceil(total / limit),
-        limit,
-      },
+      pagination: { total, page, pages: Math.ceil(total / limit), limit },
     });
   } catch (error) {
     logger.error('Get messages error', { error: error.message });
@@ -83,19 +60,40 @@ export const createOrGetConversation = async (req, res) => {
     const userId = req.user.id;
     const conversationId = `conv:${userId}`;
 
-    const existingMessages = await ChatMessage.find({ conversationId })
+    // Ensure Conversation document exists
+    await Conversation.findOneAndUpdate(
+      { conversationId },
+      { $setOnInsert: { conversationId, userId, status: 'pending' } },
+      { upsert: true, new: true, setDefaultsOnInsert: true },
+    );
+
+    const messages = await ChatMessage.find({ conversationId })
       .populate('sender.userId', 'fullName email')
       .sort({ createdAt: 1 })
       .limit(50)
       .lean();
 
+    const conversation = await Conversation.findOne({ conversationId }).lean();
+
     res.status(200).json({
       success: true,
       conversationId,
-      messages: existingMessages,
+      status: conversation?.status || 'pending',
+      messages,
     });
   } catch (error) {
     logger.error('Create conversation error', { error: error.message });
     res.status(500).json({ success: false, message: 'Failed to get conversation' });
+  }
+};
+
+export const closeConversation = async (req, res) => {
+  try {
+    const { conversationId } = req.params;
+    await Conversation.findOneAndUpdate({ conversationId }, { status: 'closed' });
+    res.status(200).json({ success: true, message: 'Conversation closed' });
+  } catch (error) {
+    logger.error('Close conversation error', { error: error.message });
+    res.status(500).json({ success: false, message: 'Failed to close conversation' });
   }
 };

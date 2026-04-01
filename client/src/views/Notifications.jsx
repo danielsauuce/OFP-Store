@@ -1,15 +1,21 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell, CheckCheck, Package } from 'lucide-react';
+import { Bell, CheckCheck, Package, MessageCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import {
   getNotificationsService,
   markAllAsReadService,
   markAsReadService,
 } from '../services/notificationService';
+import { useNotifications } from '../context/notificationContext';
+
+const TYPE_ICON = {
+  chat_message: MessageCircle,
+};
 
 function Notifications() {
   const navigate = useNavigate();
+  const { refreshCount } = useNotifications();
   const [notifications, setNotifications] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0 });
   const [loading, setLoading] = useState(true);
@@ -40,6 +46,7 @@ function Notifications() {
     try {
       await markAllAsReadService();
       setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+      refreshCount();
       toast.success('All notifications marked as read');
     } catch {
       toast.error('Failed to mark all as read');
@@ -53,9 +60,15 @@ function Notifications() {
         setNotifications((prev) =>
           prev.map((n) => (n._id === notification._id ? { ...n, isRead: true } : n)),
         );
+        refreshCount();
       } catch {
         // Non-critical
       }
+    }
+
+    if (notification.type === 'chat_message') {
+      navigate('/admin/chat');
+      return;
     }
 
     if (
@@ -125,43 +138,46 @@ function Notifications() {
           </div>
         ) : (
           <div className="space-y-2">
-            {notifications.map((notification) => (
-              <button
-                key={notification._id}
-                onClick={() => handleNotificationClick(notification)}
-                className={`w-full text-left rounded-lg border border-border p-4 transition-colors hover:bg-muted/50 ${
-                  !notification.isRead ? 'bg-primary/5 border-primary/20' : 'bg-card'
-                }`}
-              >
-                <div className="flex items-start gap-3">
-                  <div
-                    className={`mt-0.5 rounded-full p-1.5 ${
-                      !notification.isRead ? 'bg-primary/10' : 'bg-muted'
-                    }`}
-                  >
-                    <Package className="h-4 w-4 text-primary" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2">
-                      <p
-                        className={`text-sm font-medium ${
-                          !notification.isRead ? 'text-foreground' : 'text-muted-foreground'
-                        }`}
-                      >
-                        {notification.title}
-                      </p>
-                      <span className="text-xs text-muted-foreground shrink-0">
-                        {formatTime(notification.createdAt)}
-                      </span>
+            {notifications.map((notification) => {
+              const Icon = TYPE_ICON[notification.type] || Package;
+              return (
+                <button
+                  key={notification._id}
+                  onClick={() => handleNotificationClick(notification)}
+                  className={`w-full text-left rounded-lg border border-border p-4 transition-colors hover:bg-muted/50 ${
+                    !notification.isRead ? 'bg-primary/5 border-primary/20' : 'bg-card'
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <div
+                      className={`mt-0.5 rounded-full p-1.5 ${
+                        !notification.isRead ? 'bg-primary/10' : 'bg-muted'
+                      }`}
+                    >
+                      <Icon className="h-4 w-4 text-primary" />
                     </div>
-                    <p className="text-sm text-muted-foreground mt-0.5">{notification.message}</p>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <p
+                          className={`text-sm font-medium ${
+                            !notification.isRead ? 'text-foreground' : 'text-muted-foreground'
+                          }`}
+                        >
+                          {notification.title}
+                        </p>
+                        <span className="text-xs text-muted-foreground shrink-0">
+                          {formatTime(notification.createdAt)}
+                        </span>
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-0.5">{notification.message}</p>
+                    </div>
+                    {!notification.isRead && (
+                      <span className="mt-1.5 h-2 w-2 rounded-full bg-primary shrink-0" />
+                    )}
                   </div>
-                  {!notification.isRead && (
-                    <span className="mt-1.5 h-2 w-2 rounded-full bg-primary shrink-0" />
-                  )}
-                </div>
-              </button>
-            ))}
+                </button>
+              );
+            })}
           </div>
         )}
 

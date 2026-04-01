@@ -1,52 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BellRing } from 'lucide-react';
-import { io } from 'socket.io-client';
-import { getUnreadCountService } from '../services/notificationService';
-
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
+import { useNotifications } from '../context/notificationContext';
 
 function NotificationBell() {
-  const [unreadCount, setUnreadCount] = useState(0);
+  const { unreadCount } = useNotifications();
   const navigate = useNavigate();
-  const socketRef = useRef(null);
-
-  useEffect(() => {
-    let mounted = true;
-
-    const fetchCount = async () => {
-      try {
-        const data = await getUnreadCountService();
-        if (mounted && data?.success) {
-          setUnreadCount(data.count);
-        }
-      } catch {
-        // Silently fail — not critical
-      }
-    };
-
-    fetchCount();
-
-    // Connect to /notifications namespace
-    const accessToken = sessionStorage.getItem('accessToken');
-    if (!accessToken) return;
-
-    const socket = io(`${BACKEND_URL}/notifications`, {
-      auth: { token: accessToken },
-      transports: ['websocket', 'polling'],
-    });
-
-    socketRef.current = socket;
-
-    socket.on('notification:new', () => {
-      if (mounted) setUnreadCount((prev) => prev + 1);
-    });
-
-    return () => {
-      mounted = false;
-      socket.disconnect();
-    };
-  }, []);
 
   return (
     <button

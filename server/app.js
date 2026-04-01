@@ -28,10 +28,8 @@ const app = express();
 app.use(helmet());
 app.use(cors(corsOptions));
 
-// Raw body for Stripe webhooks — MUST be before express.json()
 app.use('/api/payments/webhook', express.raw({ type: 'application/json' }));
 
-// Body parsers MUST come before /sublyzer so req.body is populated for the proxy
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { MessageCircle, X, Send, Loader } from 'lucide-react';
+import { MessageCircle, X, Send, Loader, CheckCircle2 } from 'lucide-react';
 import { io } from 'socket.io-client';
 import { useAuth } from '../context/authContext';
 import { createConversationService } from '../services/chatService';
@@ -12,6 +12,7 @@ function ChatWidget() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [conversationId, setConversationId] = useState(null);
+  const [convStatus, setConvStatus] = useState('pending'); // pending | active | closed
   const [connected, setConnected] = useState(false);
   const [connectionError, setConnectionError] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -26,7 +27,7 @@ function ChatWidget() {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, scrollToBottom]);
+  }, [messages, typingIndicator, scrollToBottom]);
 
   useEffect(() => {
     if (!auth.authenticate || !open) return;
@@ -35,6 +36,7 @@ function ChatWidget() {
     if (!accessToken) return;
 
     setLoading(true);
+    setConnectionError(false);
 
     const socket = io(`${BACKEND_URL}/chat`, {
       auth: { token: accessToken },
@@ -50,11 +52,12 @@ function ChatWidget() {
         const data = await createConversationService();
         if (data?.success) {
           setConversationId(data.conversationId);
+          setConvStatus(data.status || 'pending');
           setMessages(data.messages || []);
           socket.emit('chat:join-conversation', { conversationId: data.conversationId });
         }
       } catch {
-        // Non-critical
+        // Non-critical — conversation will be created on first send
       } finally {
         setLoading(false);
       }
@@ -62,19 +65,44 @@ function ChatWidget() {
 
     socket.on('connect_error', () => {
       setConnectionError(true);
+      setConnected(false);
       setLoading(false);
     });
 
     socket.on('chat:message', (msg) => {
       setMessages((prev) => {
-        const exists = prev.some((m) => m._id === msg._id);
-        return exists ? prev : [...prev, msg];
+        // Deduplicate by _id and by optimistic tempId
+        const exists = prev.some(
+          (m) => (m._id && m._id === msg._id) || (m.tempId && m.tempId === msg.tempId),
+        );
+        if (exists) {
+          // Replace optimistic message with server-confirmed message
+          return prev.map((m) =>
+            (m.tempId && m.tempId === msg.tempId) || (m._id && m._id === msg._id) ? msg : m,
+          );
+        }
+        return [...prev, msg];
       });
       setTypingIndicator(false);
     });
 
     socket.on('chat:typing', ({ isTyping }) => {
       setTypingIndicator(isTyping);
+    });
+
+    socket.on('chat:admin-joined', () => {
+      setConvStatus('active');
+    });
+
+    socket.on('chat:closed', () => {
+      setConvStatus('closed');
+    });
+
+    socket.on('chat:error', ({ message }) => {
+      // Remove failed optimistic messages
+      setMessages((prev) => prev.filter((m) => !m.isOptimistic));
+      // Could show a toast here if needed
+      console.error('Chat error:', message);
     });
 
     socket.on('disconnect', () => {
@@ -90,15 +118,31 @@ function ChatWidget() {
   }, [auth.authenticate, open]);
 
   const handleSend = useCallback(() => {
-    if (!input.trim() || !conversationId || !socketRef.current) return;
+    if (!input.trim() || !conversationId || !socketRef.current || convStatus === 'closed') return;
 
-    socketRef.current.emit('chat:send', {
+    const trimmed = input.trim();
+    const tempId = `temp-${Date.now()}`;
+    const currentUserId = auth.user?._id || auth.user?.id;
+
+    // Optimistic update — show message immediately
+    const optimisticMsg = {
+      tempId,
+      _id: null,
+      isOptimistic: true,
       conversationId,
-      message: input.trim(),
-    });
+      sender: { userId: { _id: currentUserId }, role: 'customer' },
+      message: trimmed,
+      createdAt: new Date().toISOString(),
+    };
 
+    setMessages((prev) => [...prev, optimisticMsg]);
     setInput('');
-  }, [input, conversationId]);
+
+    socketRef.current.emit('chat:send', { conversationId, message: trimmed, tempId });
+
+    clearTimeout(typingTimeoutRef.current);
+    socketRef.current?.emit('chat:typing', { conversationId, isTyping: false });
+  }, [input, conversationId, convStatus, auth.user]);
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -109,20 +153,16 @@ function ChatWidget() {
 
   const handleInputChange = (e) => {
     setInput(e.target.value);
-
     if (!conversationId || !socketRef.current) return;
-
     socketRef.current.emit('chat:typing', { conversationId, isTyping: true });
-
     clearTimeout(typingTimeoutRef.current);
     typingTimeoutRef.current = setTimeout(() => {
       socketRef.current?.emit('chat:typing', { conversationId, isTyping: false });
     }, 1500);
   };
 
-  const formatTime = (dateStr) => {
-    return new Date(dateStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
+  const formatTime = (dateStr) =>
+    new Date(dateStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
   const currentUserId = auth.user?._id || auth.user?.id;
 
@@ -131,7 +171,7 @@ function ChatWidget() {
   return (
     <div className="fixed bottom-6 right-6 z-50">
       {open && (
-        <div className="mb-4 w-80 h-[420px] bg-card border border-border rounded-xl shadow-card flex flex-col overflow-hidden">
+        <div className="mb-4 w-80 h-[460px] bg-card border border-border rounded-xl shadow-card flex flex-col overflow-hidden">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 bg-primary text-primary-foreground">
             <div className="flex items-center gap-2">
@@ -150,11 +190,39 @@ function ChatWidget() {
             </button>
           </div>
 
+          {/* Status banner */}
+          {convStatus === 'active' && (
+            <div className="flex items-center gap-2 px-4 py-2 bg-green-50 border-b border-green-100 text-green-700 text-xs font-medium">
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              Support agent has joined
+            </div>
+          )}
+          {convStatus === 'closed' && (
+            <div className="px-4 py-2 bg-muted border-b border-border text-muted-foreground text-xs text-center font-medium">
+              This conversation has been closed
+            </div>
+          )}
+          {convStatus === 'pending' && messages.length > 0 && (
+            <div className="px-4 py-2 bg-amber-50 border-b border-amber-100 text-amber-700 text-xs text-center">
+              Waiting for a support agent to join…
+            </div>
+          )}
+
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
             {loading ? (
               <div className="flex items-center justify-center h-full">
                 <Loader className="h-5 w-5 animate-spin text-primary" />
+              </div>
+            ) : connectionError ? (
+              <div className="flex flex-col items-center justify-center h-full gap-3 text-center">
+                <p className="text-sm text-muted-foreground">Unable to connect to chat.</p>
+                <button
+                  onClick={() => setOpen(false)}
+                  className="text-xs text-primary hover:underline"
+                >
+                  Close and try again
+                </button>
               </div>
             ) : messages.length === 0 ? (
               <p className="text-center text-sm text-muted-foreground mt-8">
@@ -166,14 +234,19 @@ function ChatWidget() {
                   msg.sender?.userId?._id === currentUserId || msg.sender?.userId === currentUserId;
                 return (
                   <div
-                    key={msg._id || i}
+                    key={msg._id || msg.tempId || i}
                     className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
                   >
                     <div
                       className={`max-w-[75%] rounded-lg px-3 py-2 text-sm ${
-                        isOwn ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground'
+                        isOwn
+                          ? `bg-primary text-primary-foreground ${msg.isOptimistic ? 'opacity-70' : ''}`
+                          : 'bg-muted text-foreground'
                       }`}
                     >
+                      {!isOwn && (
+                        <p className="text-[11px] font-semibold mb-1 opacity-70">Support</p>
+                      )}
                       <p>{msg.message}</p>
                       <p
                         className={`text-[10px] mt-1 ${
@@ -181,6 +254,7 @@ function ChatWidget() {
                         }`}
                       >
                         {msg.createdAt ? formatTime(msg.createdAt) : ''}
+                        {msg.isOptimistic && ' · Sending…'}
                       </p>
                     </div>
                   </div>
@@ -189,8 +263,12 @@ function ChatWidget() {
             )}
             {typingIndicator && (
               <div className="flex justify-start">
-                <div className="bg-muted rounded-lg px-3 py-2 text-sm text-muted-foreground">
-                  Support is typing…
+                <div className="bg-muted rounded-lg px-3 py-2 text-sm text-muted-foreground flex items-center gap-1">
+                  <span className="inline-flex gap-0.5">
+                    <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground animate-bounce [animation-delay:0ms]" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground animate-bounce [animation-delay:150ms]" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground animate-bounce [animation-delay:300ms]" />
+                  </span>
                 </div>
               </div>
             )}
@@ -198,11 +276,11 @@ function ChatWidget() {
           </div>
 
           {/* Input */}
-          {connectionError ? (
-            <div className="p-3 border-t border-border text-center text-sm text-destructive">
-              Connection failed. Please close and reopen chat.
+          {convStatus === 'closed' ? (
+            <div className="p-3 border-t border-border text-center text-sm text-muted-foreground">
+              Chat ended. Thank you for contacting us!
             </div>
-          ) : (
+          ) : connectionError ? null : (
             <div className="p-3 border-t border-border flex gap-2">
               <input
                 type="text"
@@ -210,7 +288,8 @@ function ChatWidget() {
                 onChange={handleInputChange}
                 onKeyDown={handleKeyDown}
                 placeholder="Type a message…"
-                className="flex-1 text-sm px-3 py-2 rounded-md border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                disabled={!conversationId}
+                className="flex-1 text-sm px-3 py-2 rounded-md border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
               />
               <button
                 onClick={handleSend}
