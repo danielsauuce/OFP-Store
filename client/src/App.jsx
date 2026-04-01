@@ -4,6 +4,7 @@ import { Loader } from 'lucide-react';
 import { Toaster } from 'react-hot-toast';
 import RouteGuard from './components/RouteGuard';
 import { useAuth } from './context/authContext';
+import { SocketProvider } from './context/socketContext';
 import MainLayout from './components/mainLayout';
 import NotFound from './views/NotFound';
 
@@ -17,6 +18,7 @@ const Cart = lazy(() => import('./views/Cart'));
 const Profile = lazy(() => import('./views/Profile'));
 const ProductDetails = lazy(() => import('./views/ProductDetails'));
 const Checkout = lazy(() => import('./views/CheckOutPage'));
+const Notifications = lazy(() => import('./views/Notifications'));
 
 // admin pages
 const CommonSideBar = lazy(() => import('./views/admin/components/CommonSideBar'));
@@ -25,6 +27,7 @@ const Products = lazy(() => import('./views/admin/Products'));
 const Orders = lazy(() => import('./views/admin/Orders'));
 const Users = lazy(() => import('./views/admin/Users'));
 const Analytics = lazy(() => import('./views/admin/Analytics'));
+const AdminChat = lazy(() => import('./views/admin/Chat'));
 
 function PageLoader() {
   return (
@@ -40,7 +43,7 @@ function App() {
   if (isLoading) return <PageLoader />;
 
   return (
-    <>
+    <SocketProvider>
       <Toaster
         position="top-center"
         toastOptions={{
@@ -102,6 +105,7 @@ function App() {
             <Route path="orders" element={<Orders />} />
             <Route path="users" element={<Users />} />
             <Route path="analytics" element={<Analytics />} />
+            <Route path="chat" element={<AdminChat />} />
           </Route>
 
           {/* Public pages */}
@@ -114,11 +118,12 @@ function App() {
             <Route path="/cart" element={<Cart />} />
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/notifications" element={<Notifications />} />
             <Route path="*" element={<NotFound />} />
           </Route>
         </Routes>
       </Suspense>
-    </>
+    </SocketProvider>
   );
 }
 

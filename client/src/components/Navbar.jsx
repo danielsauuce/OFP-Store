@@ -5,6 +5,7 @@ import useDarkMode from '../hooks/useDarkMode';
 import { useAuth } from '../context/authContext';
 import { useCart } from '../context/cartContext';
 import gsap from 'gsap';
+import NotificationBell from './NotificationBell';
 
 const navItems = [
   { label: 'Home', path: '/' },
@@ -169,6 +170,7 @@ function Navbar() {
 
           {auth.authenticate ? (
             <>
+              <NotificationBell />
               <Link
                 to="/profile"
                 className="nav-action-icon hover:text-primary transition-colors"
