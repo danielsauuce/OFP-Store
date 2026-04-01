@@ -3,22 +3,27 @@ import mongoose from 'mongoose';
 const paymentSchema = new mongoose.Schema(
   {
     order: { type: mongoose.Schema.Types.ObjectId, ref: 'Order', required: true, unique: true },
-    provider: { type: String, required: true },
-    intentId: { type: String, required: true },
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    stripePaymentIntentId: { type: String },
+    amount: { type: Number, required: true, min: 0 },
+    currency: { type: String, default: 'gbp' },
     status: {
       type: String,
       enum: ['pending', 'succeeded', 'failed', 'refunded'],
       default: 'pending',
     },
-    amount: { type: Number, required: true, min: 0 },
-    currency: { type: String, default: 'NGN' },
-    lastFour: String,
-    method: { type: String, enum: ['card', 'bank', 'mobile'] },
+    paymentMethod: {
+      type: String,
+      enum: ['card', 'pay_on_delivery'],
+      required: true,
+    },
   },
   { timestamps: true },
 );
 
 paymentSchema.index({ order: 1 }, { unique: true });
+paymentSchema.index({ user: 1 });
 paymentSchema.index({ status: 1 });
+paymentSchema.index({ stripePaymentIntentId: 1 });
 
 export default mongoose.model('Payment', paymentSchema);

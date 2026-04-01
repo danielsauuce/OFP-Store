@@ -17,6 +17,7 @@ import { useAuth } from '../context/authContext';
 import { useCart } from '../context/cartContext';
 import { createOrderService } from '../services/orderService';
 import { getUserProfileService } from '../services/userService';
+import { createPaymentIntentService } from '../services/paymentService';
 import { shippingSchema, validateForm } from '../validation/formSchemas';
 import FormField from '../components/FormField';
 import StepProgressBar from '../components/StepProgressBar';
@@ -26,6 +27,7 @@ import OrderSummaryCard, {
   SHIPPING_COST,
 } from '../components/OrderSummaryCard';
 import OrderConfirmation from '../components/OrderConfirmation';
+import StripeCheckout from '../components/StripeCheckout';
 
 const STEP_LABELS = ['Shipping', 'Payment', 'Review'];
 
@@ -39,6 +41,8 @@ const Checkout = () => {
   const [submitting, setSubmitting] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [orderNumber, setOrderNumber] = useState('');
+  const [stripeClientSecret, setStripeClientSecret] = useState(null);
+  const [pendingOrderTotal, setPendingOrderTotal] = useState(0);
 
   const [paymentMethod, setPaymentMethod] = useState('card');
   const [errors, setErrors] = useState({});
@@ -198,10 +202,23 @@ const Checkout = () => {
 
       if (data?.success) {
         setOrderNumber(data.order.orderNumber);
-        setOrderPlaced(true);
-        toast.success('Order placed successfully!');
-        // Refetch cart to clear it
-        fetchCart();
+
+        if (paymentMethod === 'card') {
+          // Initiate Stripe payment
+          const paymentData = await createPaymentIntentService(data.order._id);
+          if (paymentData?.success && paymentData.clientSecret) {
+            setPendingOrderTotal(total);
+            setStripeClientSecret(paymentData.clientSecret);
+            fetchCart();
+          } else {
+            toast.error('Failed to initiate payment. Please contact support.');
+          }
+        } else {
+          // Pay on delivery — confirm immediately
+          setOrderPlaced(true);
+          toast.success('Order placed successfully!');
+          fetchCart();
+        }
       }
     } catch (error) {
       toast.error(error?.response?.data?.message || 'Failed to place order. Please try again.');
@@ -219,6 +236,30 @@ const Checkout = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (stripeClientSecret) {
+    return (
+      <div className="min-h-screen py-8 lg:py-12 bg-background text-foreground">
+        <div className="container mx-auto px-4 max-w-2xl">
+          <div className="bg-card rounded-lg border border-border shadow-card p-8">
+            <h2 className="text-2xl font-serif font-bold text-foreground mb-2">Complete Payment</h2>
+            <p className="text-muted-foreground text-sm mb-6">
+              Order #{orderNumber} — Secure payment powered by Stripe
+            </p>
+            <StripeCheckout
+              clientSecret={stripeClientSecret}
+              total={pendingOrderTotal}
+              onSuccess={() => {
+                setStripeClientSecret(null);
+                setOrderPlaced(true);
+                toast.success('Payment successful! Order confirmed.');
+              }}
+            />
+          </div>
+        </div>
       </div>
     );
   }
