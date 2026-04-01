@@ -298,9 +298,7 @@ function Dashboard() {
                 <Legend
                   iconType="circle"
                   iconSize={8}
-                  formatter={(value) => (
-                    <span style={{ fontSize: 11 }}>{value}</span>
-                  )}
+                  formatter={(value) => <span style={{ fontSize: 11 }}>{value}</span>}
                 />
               </PieChart>
             </ResponsiveContainer>
@@ -346,9 +344,7 @@ function Dashboard() {
             ))}
           </div>
         ) : (
-          <div className="px-5 py-10 text-center text-sm text-muted-foreground">
-            No orders yet
-          </div>
+          <div className="px-5 py-10 text-center text-sm text-muted-foreground">No orders yet</div>
         )}
       </div>
 

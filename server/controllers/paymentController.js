@@ -72,10 +72,7 @@ export const stripeWebhook = async (req, res) => {
         const { orderId, userId } = intent.metadata || {};
 
         await Promise.all([
-          Payment.findOneAndUpdate(
-            { stripePaymentIntentId: intent.id },
-            { status: 'succeeded' },
-          ),
+          Payment.findOneAndUpdate({ stripePaymentIntentId: intent.id }, { status: 'succeeded' }),
           Order.findOneAndUpdate({ _id: orderId }, { paymentStatus: 'paid' }),
         ]);
 

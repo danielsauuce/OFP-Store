@@ -1,12 +1,19 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { Fragment } from 'react';
 
-function RouteGuard({ authenticated, user, element, requireAuth = false, requireAdmin = false }) {
+function RouteGuard({
+  authenticated,
+  user,
+  element,
+  requireAuth = false,
+  requireAdmin = false,
+  storeOnly = false,
+}) {
   const location = useLocation();
   const path = location.pathname;
 
   const isAuthPage = path.startsWith('/auth');
-  const isRootPage = path === '/';
+  const isAdmin = authenticated && user?.role === 'admin';
 
   // Not authenticated but route requires auth
   if (requireAuth && !authenticated) {
@@ -18,13 +25,13 @@ function RouteGuard({ authenticated, user, element, requireAuth = false, require
     return <Navigate to="/" replace />;
   }
 
-  // Authenticated users can not access /auth
+  // Authenticated users cannot access /auth
   if (authenticated && isAuthPage) {
-    return <Navigate to={user?.role === 'admin' ? '/admin' : '/'} replace />;
+    return <Navigate to={isAdmin ? '/admin' : '/'} replace />;
   }
 
-  // Admin can not access /
-  if (authenticated && user?.role === 'admin' && isRootPage) {
+  // Admins cannot access store pages — redirect to admin panel
+  if (isAdmin && (storeOnly || (!path.startsWith('/admin') && !isAuthPage))) {
     return <Navigate to="/admin" replace />;
   }
 
