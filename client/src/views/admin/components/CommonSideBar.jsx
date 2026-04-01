@@ -1,5 +1,5 @@
 import { Link, useLocation, Outlet } from 'react-router-dom';
-import { Home, LayoutDashboard, Package, ShoppingCart, Users, BarChart3 } from 'lucide-react';
+import { Home, LayoutDashboard, Package, ShoppingCart, Users, BarChart3, MessageSquare } from 'lucide-react';
 
 export const navigations = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
@@ -7,6 +7,7 @@ export const navigations = [
   { name: 'Orders', href: '/admin/orders', icon: ShoppingCart },
   { name: 'Users', href: '/admin/users', icon: Users },
   { name: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
+  { name: 'Chat', href: '/admin/chat', icon: MessageSquare },
 ];
 
 const CommonSideBar = () => {
