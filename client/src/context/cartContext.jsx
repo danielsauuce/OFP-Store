@@ -50,7 +50,7 @@ export function CartProvider({ children }) {
       return { success: false, message: data?.message };
     } catch (error) {
       const message = error?.response?.data?.message || 'Failed to add to cart';
-      throw { message };
+      throw new Error(message);
     }
   }, []);
 

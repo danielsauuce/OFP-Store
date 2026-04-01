@@ -7,6 +7,7 @@ import {
   getCurrentUser,
   forgotPassword,
   resetPassword,
+  refreshTokenHandler,
 } from '../controllers/authController.js';
 import { authenticate } from '../middleware/checkAuthMiddleware.js';
 
@@ -14,7 +15,8 @@ const router = express.Router();
 
 router.post('/register', registerUser);
 router.post('/login', loginUser);
-router.get('/logout', logoutUser);
+router.post('/logout', authenticate, logoutUser);
+router.post('/refresh-token', refreshTokenHandler);
 router.post('/forgot-password', forgotPassword);
 router.post('/reset-password', resetPassword);
 
