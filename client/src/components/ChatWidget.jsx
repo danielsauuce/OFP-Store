@@ -13,6 +13,7 @@ function ChatWidget() {
   const [input, setInput] = useState('');
   const [conversationId, setConversationId] = useState(null);
   const [connected, setConnected] = useState(false);
+  const [connectionError, setConnectionError] = useState(false);
   const [loading, setLoading] = useState(false);
   const [typingIndicator, setTypingIndicator] = useState(false);
   const socketRef = useRef(null);
@@ -44,6 +45,7 @@ function ChatWidget() {
 
     socket.on('connect', async () => {
       setConnected(true);
+      setConnectionError(false);
       try {
         const data = await createConversationService();
         if (data?.success) {
@@ -56,6 +58,11 @@ function ChatWidget() {
       } finally {
         setLoading(false);
       }
+    });
+
+    socket.on('connect_error', () => {
+      setConnectionError(true);
+      setLoading(false);
     });
 
     socket.on('chat:message', (msg) => {
@@ -191,24 +198,30 @@ function ChatWidget() {
           </div>
 
           {/* Input */}
-          <div className="p-3 border-t border-border flex gap-2">
-            <input
-              type="text"
-              value={input}
-              onChange={handleInputChange}
-              onKeyDown={handleKeyDown}
-              placeholder="Type a message…"
-              className="flex-1 text-sm px-3 py-2 rounded-md border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-            />
-            <button
-              onClick={handleSend}
-              disabled={!input.trim() || !connected}
-              className="p-2 rounded-md bg-primary text-primary-foreground disabled:opacity-50 hover:bg-primary-dark transition-colors"
-              aria-label="Send message"
-            >
-              <Send className="h-4 w-4" />
-            </button>
-          </div>
+          {connectionError ? (
+            <div className="p-3 border-t border-border text-center text-sm text-destructive">
+              Connection failed. Please close and reopen chat.
+            </div>
+          ) : (
+            <div className="p-3 border-t border-border flex gap-2">
+              <input
+                type="text"
+                value={input}
+                onChange={handleInputChange}
+                onKeyDown={handleKeyDown}
+                placeholder="Type a message…"
+                className="flex-1 text-sm px-3 py-2 rounded-md border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+              <button
+                onClick={handleSend}
+                disabled={!input.trim() || !conversationId}
+                className="p-2 rounded-md bg-primary text-primary-foreground disabled:opacity-50 hover:bg-primary-dark transition-colors"
+                aria-label="Send message"
+              >
+                <Send className="h-4 w-4" />
+              </button>
+            </div>
+          )}
         </div>
       )}
 
