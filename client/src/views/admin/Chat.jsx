@@ -46,7 +46,11 @@ function Chat() {
       setConversations((prev) =>
         prev.map((c) =>
           c._id === msg.conversationId && msg.sender?.role === 'customer'
-            ? { ...c, unreadCount: (c.unreadCount || 0) + 1, lastMessage: { ...c.lastMessage, message: msg.message } }
+            ? {
+                ...c,
+                unreadCount: (c.unreadCount || 0) + 1,
+                lastMessage: { ...c.lastMessage, message: msg.message },
+              }
             : c,
         ),
       );
@@ -199,7 +203,10 @@ function Chat() {
                 messages.map((msg, i) => {
                   const isAdmin = msg.sender?.role === 'admin';
                   return (
-                    <div key={msg._id || i} className={`flex ${isAdmin ? 'justify-end' : 'justify-start'}`}>
+                    <div
+                      key={msg._id || i}
+                      className={`flex ${isAdmin ? 'justify-end' : 'justify-start'}`}
+                    >
                       <div
                         className={`max-w-[70%] rounded-lg px-3 py-2 text-sm ${
                           isAdmin

@@ -1,5 +1,13 @@
 import { Link, useLocation, Outlet } from 'react-router-dom';
-import { Home, LayoutDashboard, Package, ShoppingCart, Users, BarChart3, MessageSquare } from 'lucide-react';
+import {
+  Home,
+  LayoutDashboard,
+  Package,
+  ShoppingCart,
+  Users,
+  BarChart3,
+  MessageSquare,
+} from 'lucide-react';
 
 export const navigations = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },

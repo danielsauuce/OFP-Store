@@ -68,29 +68,17 @@ export const stripeWebhook = async (req, res) => {
     if (event.type === 'payment_intent.succeeded') {
       const intent = event.data.object;
 
-      await Payment.findOneAndUpdate(
-        { stripePaymentIntentId: intent.id },
-        { status: 'succeeded' },
-      );
+      await Payment.findOneAndUpdate({ stripePaymentIntentId: intent.id }, { status: 'succeeded' });
 
-      await Order.findOneAndUpdate(
-        { _id: intent.metadata.orderId },
-        { paymentStatus: 'paid' },
-      );
+      await Order.findOneAndUpdate({ _id: intent.metadata.orderId }, { paymentStatus: 'paid' });
 
       logger.info('Payment succeeded', { intentId: intent.id, orderId: intent.metadata.orderId });
     } else if (event.type === 'payment_intent.payment_failed') {
       const intent = event.data.object;
 
-      await Payment.findOneAndUpdate(
-        { stripePaymentIntentId: intent.id },
-        { status: 'failed' },
-      );
+      await Payment.findOneAndUpdate({ stripePaymentIntentId: intent.id }, { status: 'failed' });
 
-      await Order.findOneAndUpdate(
-        { _id: intent.metadata.orderId },
-        { paymentStatus: 'failed' },
-      );
+      await Order.findOneAndUpdate({ _id: intent.metadata.orderId }, { paymentStatus: 'failed' });
 
       logger.info('Payment failed', { intentId: intent.id, orderId: intent.metadata.orderId });
     }

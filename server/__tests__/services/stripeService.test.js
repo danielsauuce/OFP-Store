@@ -42,9 +42,7 @@ describe('createPaymentIntent', () => {
 
     await createPaymentIntent(1000);
 
-    expect(mockCreate).toHaveBeenCalledWith(
-      expect.objectContaining({ currency: 'gbp' }),
-    );
+    expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({ currency: 'gbp' }));
   });
 
   test('defaults to empty metadata when not specified', async () => {
@@ -52,9 +50,7 @@ describe('createPaymentIntent', () => {
 
     await createPaymentIntent(2000, 'gbp');
 
-    expect(mockCreate).toHaveBeenCalledWith(
-      expect.objectContaining({ metadata: {} }),
-    );
+    expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({ metadata: {} }));
   });
 
   test('propagates stripe errors', async () => {

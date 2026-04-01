@@ -22,10 +22,9 @@ describe('createPaymentIntentService', () => {
 
     const result = await createPaymentIntentService('ord123');
 
-    expect(axiosInstance.post).toHaveBeenCalledWith(
-      '/api/payments/create-payment-intent',
-      { orderId: 'ord123' },
-    );
+    expect(axiosInstance.post).toHaveBeenCalledWith('/api/payments/create-payment-intent', {
+      orderId: 'ord123',
+    });
     expect(result.clientSecret).toBe('pi_test123_secret');
   });
 

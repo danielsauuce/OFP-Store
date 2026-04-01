@@ -156,8 +156,7 @@ function ChatWidget() {
             ) : (
               messages.map((msg, i) => {
                 const isOwn =
-                  msg.sender?.userId?._id === currentUserId ||
-                  msg.sender?.userId === currentUserId;
+                  msg.sender?.userId?._id === currentUserId || msg.sender?.userId === currentUserId;
                 return (
                   <div
                     key={msg._id || i}
@@ -165,9 +164,7 @@ function ChatWidget() {
                   >
                     <div
                       className={`max-w-[75%] rounded-lg px-3 py-2 text-sm ${
-                        isOwn
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-muted text-foreground'
+                        isOwn ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground'
                       }`}
                     >
                       <p>{msg.message}</p>

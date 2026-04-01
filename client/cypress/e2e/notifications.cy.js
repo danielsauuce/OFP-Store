@@ -36,9 +36,7 @@ describe('Notifications — Authenticated', () => {
     cy.visit('/notifications');
     cy.get('body', { timeout: 8000 }).should(($body) => {
       const text = $body.text().toLowerCase();
-      expect(
-        text.includes('notification') || text.includes('no notifications'),
-      ).to.be.true;
+      expect(text.includes('notification') || text.includes('no notifications')).to.be.true;
     });
   });
 

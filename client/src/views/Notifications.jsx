@@ -19,7 +19,9 @@ function Notifications() {
     try {
       const data = await getNotificationsService(page, 10);
       if (data?.success) {
-        setNotifications((prev) => (append ? [...prev, ...data.notifications] : data.notifications));
+        setNotifications((prev) =>
+          append ? [...prev, ...data.notifications] : data.notifications,
+        );
         setPagination(data.pagination);
       }
     } catch {

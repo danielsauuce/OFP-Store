@@ -6,10 +6,9 @@ export const getConversationsService = async () => {
 };
 
 export const getMessagesService = async (conversationId, page = 1, limit = 50) => {
-  const { data } = await axiosInstance.get(
-    `/api/chat/conversations/${conversationId}/messages`,
-    { params: { page, limit } },
-  );
+  const { data } = await axiosInstance.get(`/api/chat/conversations/${conversationId}/messages`, {
+    params: { page, limit },
+  });
   return data;
 };
 

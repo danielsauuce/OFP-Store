@@ -80,10 +80,7 @@ function StripeCheckout({ clientSecret, onSuccess, total }) {
   };
 
   return (
-    <Elements
-      stripe={stripePromise}
-      options={{ clientSecret, appearance }}
-    >
+    <Elements stripe={stripePromise} options={{ clientSecret, appearance }}>
       <PaymentForm onSuccess={onSuccess} total={total} />
     </Elements>
   );
