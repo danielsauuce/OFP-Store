@@ -20,30 +20,16 @@ const isSafeUrl = (url) => {
 const resolveImage = (product) => {
   if (product.primaryImage && typeof product.primaryImage === 'object') {
     const url = product.primaryImage.secureUrl || product.primaryImage.url;
-    if (url && isSafeUrl(url)) {
-      return url;
-    }
+    if (url && isSafeUrl(url)) return url;
   }
-
   if (typeof product.primaryImage === 'string' && !isObjectId(product.primaryImage)) {
-    if (isSafeUrl(product.primaryImage)) {
-      return product.primaryImage;
-    }
+    if (isSafeUrl(product.primaryImage)) return product.primaryImage;
   }
-
   if (product.image && typeof product.image === 'object') {
     const url = product.image.secureUrl || product.image.url;
-    if (url && isSafeUrl(url)) {
-      return url;
-    }
+    if (url && isSafeUrl(url)) return url;
   }
-
-  if (typeof product.image === 'string') {
-    if (isSafeUrl(product.image)) {
-      return product.image;
-    }
-  }
-
+  if (typeof product.image === 'string' && isSafeUrl(product.image)) return product.image;
   return '';
 };
 
@@ -59,77 +45,80 @@ const ProductCard = memo(function ProductCard({ product }) {
   const categoryName =
     typeof product.category === 'object' ? product.category.name : product.category;
 
-  const handleAddToCart = async () => {
+  const handleAddToCart = async (e) => {
+    e.preventDefault();
     if (!auth.authenticate) {
-      toast.error('Please login to add items to cart');
+      toast.error('Please sign in to add items to cart');
       navigate('/auth');
       return;
     }
-
     setIsAdding(true);
     try {
       const result = await addItem(productId, 1);
-
       if (result?.success) {
         toast.success(`${productName} added to cart`);
       } else {
         toast.error(result?.message || 'Failed to add to cart');
       }
     } catch (error) {
-      const errorMessage = error?.message || 'Failed to add to cart';
-      toast.error(errorMessage);
+      toast.error(error?.message || 'Failed to add to cart');
     } finally {
       setIsAdding(false);
     }
   };
 
   return (
-    <div className="bg-card rounded-2xl shadow-md overflow-hidden hover:shadow-xl transition duration-300 group">
+    <Link
+      to={`/product/${productId}`}
+      className="group block bg-card rounded-xl overflow-hidden border border-border hover:border-primary/30 hover:shadow-lg transition-all duration-300"
+    >
       {/* Image */}
-      <Link to={`/product/${productId}`}>
+      <div className="relative overflow-hidden aspect-[4/3] bg-muted">
         {productImage ? (
           <img
             src={productImage}
             alt={productName}
             loading="lazy"
             decoding="async"
-            className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-500"
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           />
         ) : (
-          <div className="w-full h-64 bg-muted flex items-center justify-center">
+          <div className="w-full h-full flex items-center justify-center">
             <span className="text-muted-foreground text-sm">No image</span>
           </div>
         )}
-      </Link>
+        {/* Category pill */}
+        {categoryName && (
+          <span className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide bg-background/80 backdrop-blur-sm text-foreground border border-border/50">
+            {categoryName}
+          </span>
+        )}
+      </div>
 
       {/* Info */}
-      <div className="p-6">
-        {categoryName && (
-          <p className="text-xs uppercase text-muted-foreground mb-1 tracking-wider">
-            {categoryName}
-          </p>
-        )}
+      <div className="p-4">
+        <h3 className="font-serif font-semibold text-base line-clamp-1 text-foreground group-hover:text-primary transition-colors mb-1">
+          {productName}
+        </h3>
 
-        <Link to={`/product/${productId}`}>
-          <h3 className="font-serif font-semibold text-lg mb-2 line-clamp-1 hover:underline text-foreground">
-            {productName}
-          </h3>
-        </Link>
+        <div className="flex items-center justify-between mt-3">
+          <p className="text-primary text-xl font-bold">£{(product.price || 0).toFixed(2)}</p>
 
-        <p className="text-primary text-2xl font-bold mb-4">£{product.price.toFixed(2)}</p>
-
-        <button
-          onClick={handleAddToCart}
-          disabled={isAdding}
-          className={`w-full h-10 flex items-center justify-center gap-2 rounded-md bg-primary text-primary-foreground font-medium hover:bg-primary-dark transition ${
-            isAdding ? 'opacity-60 cursor-not-allowed' : ''
-          }`}
-        >
-          <ShoppingCart className="h-5 w-5" />
-          {isAdding ? 'Adding...' : 'Add to Cart'}
-        </button>
+          <button
+            onClick={handleAddToCart}
+            disabled={isAdding}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              isAdding
+                ? 'bg-muted text-muted-foreground cursor-not-allowed'
+                : 'bg-primary text-primary-foreground hover:bg-primary-dark'
+            }`}
+          >
+            <ShoppingCart className="h-3.5 w-3.5" />
+            {isAdding ? 'Adding…' : 'Add'}
+          </button>
+        </div>
       </div>
-    </div>
+    </Link>
   );
 });
 

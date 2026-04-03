@@ -1,18 +1,54 @@
-{$CADDY_DOMAIN:localhost} {
+# ── Global options ────────────────────────────────────────────────────────────
+{
+  # Disable automatic HTTPS when running behind Render or another SSL-terminating
+  # reverse proxy.  Set CADDY_AUTO_HTTPS=on in your environment to re-enable
+  # (e.g. for a self-hosted bare-metal deployment where Caddy owns the TLS cert).
+  auto_https {$CADDY_AUTO_HTTPS:off}
 
-  # ── Compression ──────────────────────────────────────────
+  # Grace period before forcibly closing connections on reload
+  grace_period 10s
+}
+
+# ── Site block ─────────────────────────────────────────────────────────────────
+# Local / behind a TLS-terminating proxy (CADDY_AUTO_HTTPS=off, default):
+#   Bind to port only — no hostname, no certificate provisioning.
+# Production with Caddy managing TLS (CADDY_AUTO_HTTPS=on):
+#   Set CADDY_DOMAIN to the public hostname so Caddy can provision a certificate.
+#   The port-only fallback (:{$CADDY_PORT:80}) is kept for the off/local case.
+{$CADDY_DOMAIN:}:{$CADDY_PORT:80} {
+
+  # ── Compression ──────────────────────────────────────────────────────────
   encode gzip
 
-  # ── Security headers ─────────────────────────────────────
+  # ── Security headers ─────────────────────────────────────────────────────
   header {
     X-Content-Type-Options "nosniff"
     X-Frame-Options "SAMEORIGIN"
     Referrer-Policy "strict-origin-when-cross-origin"
-    # Remove Caddy's Server header
     -Server
   }
 
-  # ── API → Express server ──────────────────────────────────
+  # ── Socket.IO (WebSocket + polling) ──────────────────────────────────────
+  # Must be listed BEFORE the generic /api/* handler so it is matched first.
+  handle /socket.io/* {
+    reverse_proxy server:3000 {
+      header_up Host {upstream_hostport}
+      header_up X-Real-IP {remote_host}
+      header_up X-Forwarded-For {remote_host}
+      header_up X-Forwarded-Proto {scheme}
+      # WebSocket upgrade support
+      header_up Connection {>Connection}
+      header_up Upgrade {>Upgrade}
+      # Increase timeouts for long-polling fallback
+      transport http {
+        dial_timeout 30s
+        response_header_timeout 90s
+        read_timeout 90s
+      }
+    }
+  }
+
+  # ── REST API → Express server ─────────────────────────────────────────────
   handle /api/* {
     reverse_proxy server:3000 {
       header_up Host {upstream_hostport}
@@ -22,7 +58,7 @@
     }
   }
 
-  # ── Sublyzer analytics proxy → Express server ────────────
+  # ── Analytics proxy → Express server ─────────────────────────────────────
   handle /sublyzer/* {
     reverse_proxy server:3000 {
       header_up Host {upstream_hostport}
@@ -32,20 +68,17 @@
     }
   }
 
-  # ── Uptime Kuma dashboard ─────────────────────────────────
+  # ── Uptime Kuma dashboard ─────────────────────────────────────────────────
   handle /kuma/* {
     reverse_proxy uptime-kuma:3001 {
       header_up Host {upstream_hostport}
-      # Uptime Kuma uses WebSockets — enable upgrade support
       header_up Connection {>Connection}
       header_up Upgrade {>Upgrade}
     }
   }
 
-  # ── React SPA (everything else) ───────────────────────────
-  # The client container runs `serve -s dist` which handles
-  # static files. Caddy must try files first, then fall back
-  # to index.html so React Router works on page reload.
+  # ── React SPA (everything else) ───────────────────────────────────────────
+  # Falls back to index.html so React Router works on hard reload.
   handle {
     reverse_proxy web:5173 {
       header_up Host {upstream_hostport}

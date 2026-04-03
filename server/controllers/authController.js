@@ -208,6 +208,52 @@ export const getCurrentUser = async (req, res) => {
   }
 };
 
+// Refresh Token — issue new access + refresh token pair
+export const refreshTokenHandler = async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      return res.status(400).json({ success: false, message: 'Refresh token is required' });
+    }
+
+    if (typeof refreshToken !== 'string' || !refreshToken.trim()) {
+      return res.status(400).json({ success: false, message: 'Invalid refresh token format' });
+    }
+
+    const existing = await RefreshToken.findOne({ token: { $eq: refreshToken } }).populate('user');
+
+    if (!existing) {
+      return res.status(401).json({ success: false, message: 'Invalid refresh token' });
+    }
+
+    if (new Date() > existing.expiresAt) {
+      await existing.deleteOne();
+      return res.status(401).json({ success: false, message: 'Refresh token has expired' });
+    }
+
+    const user = existing.user;
+
+    if (!user || !user.isActive) {
+      return res.status(401).json({ success: false, message: 'User not found or deactivated' });
+    }
+
+    // Rotate: delete old, issue new pair
+    await existing.deleteOne();
+
+    const { accessToken, refreshToken: newRefreshToken } = await generateTokens(user);
+
+    res.status(200).json({
+      success: true,
+      accessToken,
+      refreshToken: newRefreshToken,
+    });
+  } catch (error) {
+    logger.error('Refresh token error', { error: error.message });
+    res.status(500).json({ success: false, message: 'Failed to refresh token' });
+  }
+};
+
 export const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;

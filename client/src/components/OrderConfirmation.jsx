@@ -18,7 +18,7 @@ const statusSteps = [
 
 const actions = [
   { to: '/shop', label: 'Continue Shopping', primary: true },
-  { to: '/profile', label: 'View Orders', primary: false },
+  { to: '/profile?tab=orders', label: 'View Orders', primary: false },
 ];
 
 const OrderConfirmation = ({ orderNumber }) => {

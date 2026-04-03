@@ -16,7 +16,11 @@ import categoryRoutes from './routes/categoryRoutes.js';
 import reviewRoutes from './routes/reviewRoutes.js';
 import supportRoutes from './routes/supportRoutes.js';
 import wishlistRoutes from './routes/wishlistRoutes.js';
+import paymentRoutes from './routes/paymentRoutes.js';
+import notificationRoutes from './routes/notificationRoutes.js';
+import chatRoutes from './routes/chatRoutes.js';
 import { sublyzerProxy } from './config/sublyzerProxy.js';
+import { httpRequestDuration, httpRequestsTotal, register } from './config/prometheus.js';
 
 const app = express();
 
@@ -24,7 +28,8 @@ const app = express();
 app.use(helmet());
 app.use(cors(corsOptions));
 
-// Body parsers MUST come before /sublyzer so req.body is populated for the proxy
+app.use('/api/payments/webhook', express.raw({ type: 'application/json' }));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -42,6 +47,19 @@ app.use((req, res, next) => {
 // Rate limit middleware
 app.use(rateLimiterMiddleware);
 
+// Prometheus metrics middleware
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    const duration = (Date.now() - start) / 1000;
+    const route = req.route ? (req.baseUrl || '') + req.route.path : 'unmatched';
+    const labels = { method: req.method, route, status_code: res.statusCode };
+    httpRequestDuration.observe(labels, duration);
+    httpRequestsTotal.inc(labels);
+  });
+  next();
+});
+
 // Routes
 app.use('/api/auth/', authRoutes);
 app.use('/api/product', productRoutes);
@@ -55,6 +73,19 @@ app.use('/api/categories', categoryRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/support', supportRoutes);
 app.use('/api/wishlist', wishlistRoutes);
+app.use('/api/payments', paymentRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/chat', chatRoutes);
+
+// Prometheus metrics endpoint
+app.get('/metrics', async (req, res) => {
+  try {
+    res.set('Content-Type', register.contentType);
+    res.end(await register.metrics());
+  } catch (error) {
+    res.status(500).end(error.message);
+  }
+});
 
 app.use(errorHandler);
 

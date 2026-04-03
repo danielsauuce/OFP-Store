@@ -437,41 +437,44 @@ export const updateProduct = async (req, res) => {
     }
 
     // Validate category if being updated
-    if (req.body.category && req.body.category.toString() !== product.category.toString()) {
-      if (!mongoose.Types.ObjectId.isValid(req.body.category)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid category ID format',
-        });
-      }
-
-      const categoryExists = await Category.findById(req.body.category);
-      if (!categoryExists) {
-        return res.status(400).json({
-          success: false,
-          message: 'Category not found',
-        });
+    if (req.body.category) {
+      const newCatId = req.body.category.toString();
+      const existingCatId = product.category ? product.category.toString() : null;
+      if (!existingCatId || newCatId !== existingCatId) {
+        if (!mongoose.Types.ObjectId.isValid(req.body.category)) {
+          return res.status(400).json({
+            success: false,
+            message: 'Invalid category ID format',
+          });
+        }
+        const categoryExists = await Category.findById(req.body.category);
+        if (!categoryExists) {
+          return res.status(400).json({
+            success: false,
+            message: 'Category not found',
+          });
+        }
       }
     }
 
     // Validate primaryImage if being updated
-    if (
-      req.body.primaryImage &&
-      req.body.primaryImage.toString() !== product.primaryImage?.toString()
-    ) {
-      if (!mongoose.Types.ObjectId.isValid(req.body.primaryImage)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid primary image ID format',
-        });
-      }
-
-      const imageExists = await Media.findById(req.body.primaryImage);
-      if (!imageExists) {
-        return res.status(400).json({
-          success: false,
-          message: 'Primary image not found',
-        });
+    if (req.body.primaryImage) {
+      const newImgId = req.body.primaryImage.toString();
+      const existingImgId = product.primaryImage ? product.primaryImage.toString() : null;
+      if (!existingImgId || newImgId !== existingImgId) {
+        if (!mongoose.Types.ObjectId.isValid(req.body.primaryImage)) {
+          return res.status(400).json({
+            success: false,
+            message: 'Invalid primary image ID format',
+          });
+        }
+        const imageExists = await Media.findById(req.body.primaryImage);
+        if (!imageExists) {
+          return res.status(400).json({
+            success: false,
+            message: 'Primary image not found',
+          });
+        }
       }
     }
 

@@ -32,6 +32,8 @@ const ProductDetails = () => {
   const [reviewContent, setReviewContent] = useState('');
   const [submittingReview, setSubmittingReview] = useState(false);
 
+  const inWishlist = product ? isInWishlist(product._id) : false;
+
   useEffect(() => {
     fetchProduct();
     fetchReviews();
@@ -140,8 +142,6 @@ const ProductDetails = () => {
       setSubmittingReview(false);
     }
   };
-
-  const inWishlist = product ? isInWishlist(product._id) : false;
 
   if (loading) {
     return (

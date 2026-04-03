@@ -17,6 +17,7 @@ import { useAuth } from '../context/authContext';
 import { useCart } from '../context/cartContext';
 import { createOrderService } from '../services/orderService';
 import { getUserProfileService } from '../services/userService';
+import { createPaymentIntentService } from '../services/paymentService';
 import { shippingSchema, validateForm } from '../validation/formSchemas';
 import FormField from '../components/FormField';
 import StepProgressBar from '../components/StepProgressBar';
@@ -26,6 +27,7 @@ import OrderSummaryCard, {
   SHIPPING_COST,
 } from '../components/OrderSummaryCard';
 import OrderConfirmation from '../components/OrderConfirmation';
+import StripeCheckout from '../components/StripeCheckout';
 
 const STEP_LABELS = ['Shipping', 'Payment', 'Review'];
 
@@ -39,6 +41,10 @@ const Checkout = () => {
   const [submitting, setSubmitting] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [orderNumber, setOrderNumber] = useState('');
+  const [stripeClientSecret, setStripeClientSecret] = useState(null);
+  const [pendingOrderTotal, setPendingOrderTotal] = useState(0);
+  const [pendingOrderId, setPendingOrderId] = useState(null);
+  const [paymentIntentFailed, setPaymentIntentFailed] = useState(false);
 
   const [paymentMethod, setPaymentMethod] = useState('card');
   const [errors, setErrors] = useState({});
@@ -95,12 +101,13 @@ const Checkout = () => {
     }
   };
 
-  // Redirect if cart becomes empty
+  // Redirect if cart becomes empty — but not during an active Stripe payment
   useEffect(() => {
-    if (!loading && !cartLoading && !cart?.items?.length && !orderPlaced) {
+    if (!loading && !cartLoading && !cart?.items?.length && !orderPlaced && !stripeClientSecret) {
       navigate('/cart');
     }
-  }, [cart, loading, cartLoading, orderPlaced]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cart, loading, cartLoading, orderPlaced, stripeClientSecret]);
 
   // GSAP step transition
   const animateStepChange = useCallback(() => {
@@ -197,11 +204,28 @@ const Checkout = () => {
       const data = await createOrderService(orderData);
 
       if (data?.success) {
+        const orderId = data.order._id;
         setOrderNumber(data.order.orderNumber);
-        setOrderPlaced(true);
-        toast.success('Order placed successfully!');
-        // Refetch cart to clear it
-        fetchCart();
+        setPendingOrderId(orderId);
+
+        if (paymentMethod === 'card') {
+          // Initiate Stripe payment
+          const paymentData = await createPaymentIntentService(orderId);
+          if (paymentData?.success && paymentData.clientSecret) {
+            setPendingOrderTotal(total);
+            setStripeClientSecret(paymentData.clientSecret);
+            setPaymentIntentFailed(false);
+            fetchCart();
+          } else {
+            setPaymentIntentFailed(true);
+            toast.error('Failed to initiate payment. You can retry below.');
+          }
+        } else {
+          // Pay on delivery — confirm immediately
+          setOrderPlaced(true);
+          toast.success('Order placed successfully!');
+          fetchCart();
+        }
       }
     } catch (error) {
       toast.error(error?.response?.data?.message || 'Failed to place order. Please try again.');
@@ -210,15 +234,82 @@ const Checkout = () => {
     }
   };
 
+  // Retry payment intent for an already-created order
+  const handleRetryPayment = async () => {
+    if (!pendingOrderId || submitting) return;
+    setSubmitting(true);
+    try {
+      const paymentData = await createPaymentIntentService(pendingOrderId);
+      if (paymentData?.success && paymentData.clientSecret) {
+        setStripeClientSecret(paymentData.clientSecret);
+        setPaymentIntentFailed(false);
+      } else {
+        toast.error('Payment retry failed. Please contact support.');
+      }
+    } catch {
+      toast.error('Payment retry failed. Please contact support.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   // Computed
   const subtotal = cart?.total || 0;
-  const shipping = subtotal > SHIPPING_THRESHOLD ? 0 : SHIPPING_COST;
+  const shipping = subtotal >= SHIPPING_THRESHOLD ? 0 : SHIPPING_COST;
   const total = subtotal + shipping;
 
   if (loading || cartLoading || !cart) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (stripeClientSecret) {
+    return (
+      <div className="min-h-screen py-8 lg:py-12 bg-background text-foreground">
+        <div className="container mx-auto px-4 max-w-2xl">
+          <div className="bg-card rounded-lg border border-border shadow-card p-8">
+            <h2 className="text-2xl font-serif font-bold text-foreground mb-2">Complete Payment</h2>
+            <p className="text-muted-foreground text-sm mb-6">
+              Order #{orderNumber} — Secure payment powered by Stripe
+            </p>
+            <StripeCheckout
+              clientSecret={stripeClientSecret}
+              total={pendingOrderTotal}
+              onSuccess={() => {
+                setStripeClientSecret(null);
+                setOrderPlaced(true);
+                toast.success('Payment successful! Order confirmed.');
+              }}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (paymentIntentFailed && pendingOrderId) {
+    return (
+      <div className="min-h-screen py-8 lg:py-12 bg-background text-foreground">
+        <div className="container mx-auto px-4 max-w-2xl">
+          <div className="bg-card rounded-lg border border-border shadow-card p-8 text-center space-y-4">
+            <h2 className="text-xl font-semibold text-foreground">Payment initialisation failed</h2>
+            <p className="text-muted-foreground text-sm">
+              Your order #{orderNumber} was created but payment could not be started. You can retry
+              payment below or contact support with your order number.
+            </p>
+            <button
+              onClick={handleRetryPayment}
+              disabled={submitting}
+              className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-md font-medium hover:bg-primary-dark transition-colors disabled:opacity-60"
+            >
+              {submitting && <Loader className="h-4 w-4 animate-spin" />}
+              Retry Payment
+            </button>
+          </div>
+        </div>
       </div>
     );
   }

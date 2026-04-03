@@ -189,21 +189,70 @@ export const deleteUser = async (req, res) => {
 // Dashboard Stats
 export const getDashboardStats = async (req, res) => {
   try {
-    const [totalUsers, totalOrders, totalProducts, recentOrders] = await Promise.all([
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now - 30 * 24 * 60 * 60 * 1000);
+    const sevenDaysAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
+
+    const [
+      totalUsers,
+      totalOrders,
+      totalProducts,
+      recentOrders,
+      revenueAgg,
+      ordersByStatus,
+      ordersLast30Days,
+      newUsersLast7Days,
+    ] = await Promise.all([
       User.countDocuments(),
       Order.countDocuments(),
       Product.countDocuments({ isActive: true }),
       Order.find()
         .sort({ createdAt: -1 })
-        .limit(5)
+        .limit(8)
         .populate('user', 'fullName email')
-        .select('orderNumber total orderStatus paymentStatus createdAt')
+        .select('orderNumber total orderStatus paymentStatus createdAt user')
         .lean(),
+      // Total revenue from paid orders
+      Order.aggregate([
+        { $match: { paymentStatus: 'paid' } },
+        { $group: { _id: null, total: { $sum: '$total' } } },
+      ]),
+      // Orders grouped by status
+      Order.aggregate([{ $group: { _id: '$orderStatus', count: { $sum: 1 } } }]),
+      // Daily orders + revenue for last 30 days
+      Order.aggregate([
+        { $match: { createdAt: { $gte: thirtyDaysAgo } } },
+        {
+          $group: {
+            _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+            orders: { $sum: 1 },
+            revenue: { $sum: { $cond: [{ $eq: ['$paymentStatus', 'paid'] }, '$total', 0] } },
+          },
+        },
+        { $sort: { _id: 1 } },
+      ]),
+      // New users last 7 days
+      User.countDocuments({ createdAt: { $gte: sevenDaysAgo } }),
     ]);
+
+    const totalRevenue = revenueAgg[0]?.total || 0;
+    const statusMap = {};
+    ordersByStatus.forEach((s) => {
+      statusMap[s._id] = s.count;
+    });
 
     res.status(200).json({
       success: true,
-      stats: { totalUsers, totalOrders, totalProducts, recentOrders },
+      stats: {
+        totalUsers,
+        totalOrders,
+        totalProducts,
+        totalRevenue,
+        newUsersLast7Days,
+        recentOrders,
+        ordersByStatus: statusMap,
+        ordersLast30Days,
+      },
     });
   } catch (error) {
     logger.error('Admin dashboard stats error', { error: error.message });

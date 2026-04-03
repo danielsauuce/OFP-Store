@@ -74,9 +74,9 @@ const ContactForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const { errors: validationErrors } = validateForm(contactSchema, formData);
+    const { success, errors: validationErrors } = validateForm(contactSchema, formData);
 
-    if (Object.keys(validationErrors).length > 0) {
+    if (!success) {
       setErrors(validationErrors);
       shakeErrorFields(validationErrors);
       return;

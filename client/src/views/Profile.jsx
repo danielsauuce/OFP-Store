@@ -1,5 +1,5 @@
 import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import {
   User,
   Camera,
@@ -13,6 +13,7 @@ import {
   MapPin,
   Plus,
   Heart,
+  ShoppingBag,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import gsap from 'gsap';
@@ -52,12 +53,23 @@ const orderStatusStyles = {
   cancelled: 'bg-destructive/20 text-destructive',
 };
 
+const VALID_TABS = TABS.map((t) => t.key);
+
 const Profile = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { auth, signOut, setAuth } = useAuth();
   const { wishlist, loading: wishlistLoading, removeFromWishlist } = useWishlist();
 
-  const [activeTab, setActiveTab] = useState('profile');
+  const rawTab = searchParams.get('tab');
+  const activeTab = VALID_TABS.includes(rawTab) ? rawTab : 'profile';
+
+  const setActiveTab = useCallback(
+    (tab) => {
+      setSearchParams(tab === 'profile' ? {} : { tab }, { replace: true });
+    },
+    [setSearchParams],
+  );
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
@@ -109,13 +121,15 @@ const Profile = () => {
 
   // Fetch tab-specific data when tab changes
   useEffect(() => {
+    if (!auth.authenticate) return;
     if (activeTab === 'orders' && orders.length === 0) {
       fetchOrders(1);
     }
     if (activeTab === 'addresses' && addresses.length === 0) {
       fetchAddresses();
     }
-  }, [activeTab]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, auth.authenticate]);
 
   // Page entrance
   useLayoutEffect(() => {
@@ -741,38 +755,56 @@ const Profile = () => {
               ) : (
                 <div className="grid gap-4 sm:grid-cols-2">
                   {wishlist.products.map((product) => {
-                    const img = product.primaryImage?.secureUrl || product.primaryImage?.url || '';
+                    const img =
+                      product.primaryImage?.secureUrl || product.primaryImage?.url || null;
                     return (
                       <div
                         key={product._id}
-                        className="border border-border rounded-lg p-4 flex gap-4"
+                        className="border border-border rounded-xl overflow-hidden flex flex-col hover:shadow-md transition-shadow"
                       >
-                        {img && (
-                          <Link to={`/product/${product._id}`}>
-                            <img
-                              src={img}
-                              alt={product.name}
-                              className="w-20 h-20 object-cover rounded-lg shrink-0"
-                            />
-                          </Link>
-                        )}
-                        <div className="flex-1 min-w-0">
+                        {/* Product Image */}
+                        <Link to={`/product/${product._id}`} className="block">
+                          <div className="h-40 bg-muted relative overflow-hidden">
+                            {img ? (
+                              <img
+                                src={img}
+                                alt={product.name}
+                                className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <Package className="h-10 w-10 text-muted-foreground opacity-30" />
+                              </div>
+                            )}
+                          </div>
+                        </Link>
+
+                        {/* Info */}
+                        <div className="p-4 flex-1 flex flex-col">
                           <Link
                             to={`/product/${product._id}`}
-                            className="font-medium text-foreground hover:text-primary transition-colors line-clamp-1"
+                            className="font-semibold text-foreground hover:text-primary transition-colors line-clamp-2 text-sm leading-snug"
                           >
                             {product.name}
                           </Link>
-                          <p className="text-primary font-bold mt-1">
+                          <p className="text-primary font-bold mt-1.5">
                             £{Number(product.price).toFixed(2)}
                           </p>
-                          <button
-                            onClick={() => removeFromWishlist(product._id)}
-                            aria-label="Remove from wishlist"
-                            className="text-xs text-destructive mt-2 hover:text-destructive/80 transition-colors"
-                          >
-                            Remove
-                          </button>
+                          <div className="flex items-center justify-between mt-auto pt-3 border-t border-border">
+                            <Link
+                              to={`/product/${product._id}`}
+                              className="text-xs font-medium text-primary hover:text-primary-dark transition-colors"
+                            >
+                              View Product →
+                            </Link>
+                            <button
+                              onClick={() => removeFromWishlist(product._id)}
+                              aria-label="Remove from wishlist"
+                              className="text-xs text-destructive hover:text-destructive/80 transition-colors"
+                            >
+                              Remove
+                            </button>
+                          </div>
                         </div>
                       </div>
                     );

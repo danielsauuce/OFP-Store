@@ -1,9 +1,13 @@
 import Order from '../models/order.js';
 import Cart from '../models/cart.js';
 import Product from '../models/product.js';
+import Media from '../models/media.js';
 import Payment from '../models/payment.js';
+import Notification from '../models/notification.js';
 import logger from '../utils/logger.js';
 import { createOrder as createOrderValidation, updateStatus } from '../utils/orderValidation.js';
+import { emitNotification } from '../socket/notificationHandler.js';
+import { ordersTotal } from '../config/prometheus.js';
 
 export const createOrder = async (req, res) => {
   try {
@@ -34,8 +38,14 @@ export const createOrder = async (req, res) => {
 
       let itemPrice = product.price;
       let nameSnapshot = product.name;
-      let imageSnapshot = product.primaryImage?.toString() || null;
       let variantStock = product.stockQuantity;
+
+      // Resolve image URL for snapshot (store URL, not ObjectId)
+      let imageSnapshot = null;
+      if (product.primaryImage) {
+        const media = await Media.findById(product.primaryImage).select('secureUrl url').lean();
+        imageSnapshot = media?.secureUrl || media?.url || null;
+      }
 
       // Handle variants
       if (product.variants?.length > 0) {
@@ -84,8 +94,10 @@ export const createOrder = async (req, res) => {
       subtotal += itemPrice * cartItem.quantity;
     }
 
-    // Calculate total (subtotal + shipping)
-    const shippingCost = 0; // ← you can implement real shipping logic here later
+    // Calculate shipping server-side — free above £500, £50 otherwise
+    const FREE_SHIPPING_THRESHOLD = 500;
+    const STANDARD_SHIPPING_COST = 50;
+    const shippingCost = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : STANDARD_SHIPPING_COST;
     const total = subtotal + shippingCost;
 
     // Create the order
@@ -125,21 +137,22 @@ export const createOrder = async (req, res) => {
     // Clear user's cart after successful order
     await Cart.findOneAndUpdate({ user: userId }, { items: [] });
 
-    // If payment method requires immediate payment, you can create Payment document here
-    // Example:
-    // if (paymentMethod === 'card') {
-    //   const payment = await Payment.create({
-    //     order: order._id,
-    //     provider: 'paystack', // or stripe, etc.
-    //     intentId: 'temp-intent-id', // replace with real gateway response
-    //     amount: total,
-    //     currency: 'NGN',
-    //     method: 'card',
-    //     status: 'pending'
-    //   });
-    //   order.payment = payment._id;
-    //   await order.save();
-    // }
+    // Create notification for order placed
+    try {
+      const notification = await Notification.create({
+        user: userId,
+        type: 'order_placed',
+        title: 'Order Placed',
+        message: `Your order #${order.orderNumber} has been placed.`,
+        metadata: { orderId: order._id, orderNumber: order.orderNumber },
+      });
+      emitNotification(userId, notification);
+    } catch (notifError) {
+      logger.error('Failed to create order notification', { error: notifError.message });
+    }
+
+    // Increment Prometheus counter
+    ordersTotal.inc({ status: 'pending' });
 
     res.status(201).json({
       success: true,
@@ -335,6 +348,20 @@ export const updateOrderStatusAdmin = async (req, res) => {
     });
 
     await order.save();
+
+    // Create notification for order status update
+    try {
+      const notification = await Notification.create({
+        user: order.user,
+        type: 'order_status_updated',
+        title: 'Order Status Updated',
+        message: `Your order #${order.orderNumber} status has been updated to ${orderStatus}.`,
+        metadata: { orderId: order._id, orderNumber: order.orderNumber, orderStatus },
+      });
+      emitNotification(order.user.toString(), notification);
+    } catch (notifError) {
+      logger.error('Failed to create status update notification', { error: notifError.message });
+    }
 
     res.status(200).json({
       success: true,
