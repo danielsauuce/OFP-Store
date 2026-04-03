@@ -21,7 +21,6 @@ const paymentSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-paymentSchema.index({ order: 1 }, { unique: true });
 paymentSchema.index({ user: 1 });
 paymentSchema.index({ status: 1 });
 paymentSchema.index({ stripePaymentIntentId: 1 });

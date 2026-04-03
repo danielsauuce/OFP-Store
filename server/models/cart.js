@@ -26,6 +26,4 @@ cartSchema.virtual('total').get(function () {
 
 cartSchema.set('toJSON', { virtuals: true });
 
-cartSchema.index({ user: 1 }, { unique: true });
-
 export default mongoose.model('Cart', cartSchema);
