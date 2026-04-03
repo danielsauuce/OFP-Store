@@ -1,7 +1,8 @@
-import { ShoppingCart } from 'lucide-react';
+import { ShoppingCart, Heart } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/authContext';
 import { useCart } from '../context/cartContext';
+import { useWishlist } from '../context/wishlistContext';
 import { toast } from 'react-hot-toast';
 import { useState, memo, useMemo } from 'react';
 
@@ -50,14 +51,39 @@ const resolveImage = (product) => {
 const ProductCard = memo(function ProductCard({ product }) {
   const { auth } = useAuth();
   const { addItem } = useCart();
+  const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
   const navigate = useNavigate();
   const [isAdding, setIsAdding] = useState(false);
+  const [wishlistLoading, setWishlistLoading] = useState(false);
+
+  const inWishlist = isInWishlist(product._id || product.id);
 
   const productName = product.name || product.title || 'Product';
   const productId = product._id || product.id;
   const productImage = useMemo(() => resolveImage(product), [product]);
   const categoryName =
     typeof product.category === 'object' ? product.category.name : product.category;
+
+  const handleToggleWishlist = async (e) => {
+    e.preventDefault();
+    if (!auth.authenticate) {
+      toast.error('Please sign in to save to wishlist');
+      navigate('/auth');
+      return;
+    }
+    setWishlistLoading(true);
+    try {
+      if (inWishlist) {
+        await removeFromWishlist(productId);
+      } else {
+        await addToWishlist(productId);
+      }
+    } catch {
+      toast.error('Failed to update wishlist');
+    } finally {
+      setWishlistLoading(false);
+    }
+  };
 
   const handleAddToCart = async () => {
     if (!auth.authenticate) {
@@ -116,18 +142,32 @@ const ProductCard = memo(function ProductCard({ product }) {
           </h3>
         </Link>
 
-        <p className="text-primary text-2xl font-bold mb-4">£{product.price.toFixed(2)}</p>
+        <p className="text-primary text-2xl font-bold mb-4">£{(product.price || 0).toFixed(2)}</p>
 
-        <button
-          onClick={handleAddToCart}
-          disabled={isAdding}
-          className={`w-full h-10 flex items-center justify-center gap-2 rounded-md bg-primary text-primary-foreground font-medium hover:bg-primary-dark transition ${
-            isAdding ? 'opacity-60 cursor-not-allowed' : ''
-          }`}
-        >
-          <ShoppingCart className="h-5 w-5" />
-          {isAdding ? 'Adding...' : 'Add to Cart'}
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={handleAddToCart}
+            disabled={isAdding}
+            className={`flex-1 h-10 flex items-center justify-center gap-2 rounded-md bg-primary text-primary-foreground font-medium hover:bg-primary-dark transition ${
+              isAdding ? 'opacity-60 cursor-not-allowed' : ''
+            }`}
+          >
+            <ShoppingCart className="h-4 w-4" />
+            {isAdding ? 'Adding...' : 'Add to Cart'}
+          </button>
+          <button
+            onClick={handleToggleWishlist}
+            disabled={wishlistLoading}
+            title={inWishlist ? 'Remove from wishlist' : 'Save to wishlist'}
+            className={`h-10 w-10 flex items-center justify-center rounded-md border transition-colors disabled:opacity-60 ${
+              inWishlist
+                ? 'border-destructive bg-destructive/10 text-destructive'
+                : 'border-border text-muted-foreground hover:text-foreground hover:bg-muted'
+            }`}
+          >
+            <Heart className={`h-4 w-4 ${inWishlist ? 'fill-current' : ''}`} />
+          </button>
+        </div>
       </div>
     </div>
   );
