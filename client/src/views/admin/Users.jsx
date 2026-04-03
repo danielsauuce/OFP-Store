@@ -312,7 +312,11 @@ const Users = () => {
                               setIsStatusOpen(true);
                             }}
                             title={user.isActive !== false ? 'Deactivate user' : 'Activate user'}
-                            aria-label={user.isActive !== false ? `Deactivate ${user.email}` : `Activate ${user.email}`}
+                            aria-label={
+                              user.isActive !== false
+                                ? `Deactivate ${user.email}`
+                                : `Activate ${user.email}`
+                            }
                             className="p-1.5 rounded-md hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
                           >
                             {user.isActive !== false ? (

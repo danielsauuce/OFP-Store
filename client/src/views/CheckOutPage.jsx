@@ -106,6 +106,7 @@ const Checkout = () => {
     if (!loading && !cartLoading && !cart?.items?.length && !orderPlaced && !stripeClientSecret) {
       navigate('/cart');
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cart, loading, cartLoading, orderPlaced, stripeClientSecret]);
 
   // GSAP step transition

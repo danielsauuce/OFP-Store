@@ -128,7 +128,8 @@ const Profile = () => {
     if (activeTab === 'addresses' && addresses.length === 0) {
       fetchAddresses();
     }
-  }, [activeTab]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, auth.authenticate]);
 
   // Page entrance
   useLayoutEffect(() => {

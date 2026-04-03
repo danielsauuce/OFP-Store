@@ -140,7 +140,11 @@ function Dashboard() {
       // Format label from the UTC date to match the aggregation key and avoid timezone drift
       const utcDate = new Date(key + 'T00:00:00Z');
       return {
-        date: utcDate.toLocaleDateString('en-GB', { month: 'short', day: 'numeric', timeZone: 'UTC' }),
+        date: utcDate.toLocaleDateString('en-GB', {
+          month: 'short',
+          day: 'numeric',
+          timeZone: 'UTC',
+        }),
         orders: map[key]?.orders || 0,
         revenue: map[key]?.revenue || 0,
       };

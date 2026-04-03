@@ -2,9 +2,16 @@ import Stripe from 'stripe';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-export const createPaymentIntent = async (amount, currency = 'gbp', metadata = {}, idempotencyKey = null) => {
+export const createPaymentIntent = async (
+  amount,
+  currency = 'gbp',
+  metadata = {},
+  idempotencyKey = null,
+) => {
   if (!Number.isInteger(amount) || amount <= 0) {
-    throw new Error(`Invalid payment amount: ${amount}. Must be a positive integer in the smallest currency unit.`);
+    throw new Error(
+      `Invalid payment amount: ${amount}. Must be a positive integer in the smallest currency unit.`,
+    );
   }
   const options = idempotencyKey ? { idempotencyKey } : {};
   return await stripe.paymentIntents.create(

@@ -74,24 +74,22 @@ const Products = () => {
     };
   }, [previewUrl]);
 
-  // Debounce search input → trigger backend fetch
+  // Debounce search input → update searchQuery and reset to page 1
   const searchDebounceRef = useRef(null);
   useEffect(() => {
     clearTimeout(searchDebounceRef.current);
     searchDebounceRef.current = setTimeout(() => {
-      setSearchQuery(search);
       setCurrentPage(1);
+      setSearchQuery(search);
     }, 350);
     return () => clearTimeout(searchDebounceRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search]);
 
   useEffect(() => {
-    fetchProducts(1, searchQuery);
-  }, [searchQuery]);
-
-  useEffect(() => {
     fetchProducts(currentPage, searchQuery);
-  }, [currentPage]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage, searchQuery]);
 
   useEffect(() => {
     fetchCategories();
@@ -192,7 +190,10 @@ const Products = () => {
   const sanitisePayload = (obj) => {
     const result = {};
     for (const [k, v] of Object.entries(obj)) {
-      if (v === null) { result[k] = null; continue; }
+      if (v === null) {
+        result[k] = null;
+        continue;
+      }
       if (typeof v === 'string' && v.trim() === '') continue;
       result[k] = v;
     }
