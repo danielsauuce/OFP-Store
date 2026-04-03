@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Edit,
   Trash2,
@@ -62,17 +62,15 @@ const Products = () => {
   const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [imageFile, setImageFile] = useState(null);
+  const previewImgRef = useRef(null);
 
-  const previewUrl = useMemo(() => {
-    if (!imageFile) return null;
-    return URL.createObjectURL(imageFile);
-  }, [imageFile]);
-
+  // Set the preview src imperatively so no blob URL ever flows through a JSX prop
   useEffect(() => {
-    return () => {
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
-    };
-  }, [previewUrl]);
+    if (!imageFile || !previewImgRef.current) return;
+    const url = URL.createObjectURL(imageFile);
+    previewImgRef.current.src = url;
+    return () => URL.revokeObjectURL(url);
+  }, [imageFile]);
 
   // Debounce search input → update searchQuery and reset to page 1
   const searchDebounceRef = useRef(null);
@@ -450,9 +448,9 @@ const Products = () => {
             onChange={handleImageChange}
             className="hidden"
           />
-          {previewUrl && previewUrl.startsWith('blob:') ? (
+          {imageFile ? (
             <img
-              src={previewUrl}
+              ref={previewImgRef}
               alt="Preview"
               className="h-full w-full object-contain rounded-xl"
             />
