@@ -189,6 +189,19 @@ export function setupChatHandler(io) {
               ...populated.toObject(),
               tempId,
             });
+            // Notify the user so their bell badge updates
+            try {
+              const notification = await Notification.create({
+                user: conv.userId,
+                type: 'chat_message',
+                title: 'New message from Support',
+                message: `${message.trim().substring(0, 80)}${message.trim().length > 80 ? '…' : ''}`,
+                metadata: { conversationId },
+              });
+              emitNotification(conv.userId.toString(), notification);
+            } catch (notifErr) {
+              logger.warn('Failed to create user chat notification', { error: notifErr.message });
+            }
           }
           if (conv?.guestId) {
             nsp.to(`chat:guest:${conv.guestId}`).emit('chat:message', {
