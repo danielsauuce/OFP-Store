@@ -13,7 +13,7 @@ export const createPaymentIntentController = async (req, res) => {
       return res.status(400).json({ success: false, message: 'orderId is required' });
     }
 
-    const order = await Order.findOne({ _id: orderId, user: req.user.id });
+    const order = await Order.findOne({ _id: { $eq: orderId }, user: { $eq: req.user.id } });
     if (!order) {
       return res.status(404).json({ success: false, message: 'Order not found' });
     }
@@ -59,7 +59,7 @@ export const stripeWebhook = async (req, res) => {
     event = constructWebhookEvent(req.body, sig);
   } catch (error) {
     logger.error('Stripe webhook signature verification failed', { error: error.message });
-    return res.status(400).send(`Webhook Error: ${error.message}`);
+    return res.status(400).send('Webhook Error: invalid signature');
   }
 
   // Always acknowledge receipt immediately — processing errors must not return 4xx/5xx

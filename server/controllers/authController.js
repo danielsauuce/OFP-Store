@@ -217,7 +217,11 @@ export const refreshTokenHandler = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Refresh token is required' });
     }
 
-    const existing = await RefreshToken.findOne({ token: refreshToken }).populate('user');
+    if (typeof refreshToken !== 'string' || !refreshToken.trim()) {
+      return res.status(400).json({ success: false, message: 'Invalid refresh token format' });
+    }
+
+    const existing = await RefreshToken.findOne({ token: { $eq: refreshToken } }).populate('user');
 
     if (!existing) {
       return res.status(401).json({ success: false, message: 'Invalid refresh token' });

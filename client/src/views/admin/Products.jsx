@@ -432,7 +432,7 @@ const Products = () => {
             onChange={handleImageChange}
             className="hidden"
           />
-          {previewUrl ? (
+          {previewUrl && previewUrl.startsWith('blob:') ? (
             <img
               src={previewUrl}
               alt="Preview"
