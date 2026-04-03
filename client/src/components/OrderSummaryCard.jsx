@@ -4,7 +4,7 @@ const SHIPPING_THRESHOLD = 500;
 const SHIPPING_COST = 50;
 
 const OrderSummaryCard = ({ items, subtotal }) => {
-  const shipping = subtotal > SHIPPING_THRESHOLD ? 0 : SHIPPING_COST;
+  const shipping = subtotal >= SHIPPING_THRESHOLD ? 0 : SHIPPING_COST;
   const total = subtotal + shipping;
 
   return (

@@ -33,7 +33,7 @@ const Cart = () => {
   };
 
   const subtotal = cart?.total || 0;
-  const shipping = subtotal > SHIPPING_THRESHOLD ? 0 : SHIPPING_COST;
+  const shipping = subtotal >= SHIPPING_THRESHOLD ? 0 : SHIPPING_COST;
   const total = subtotal + shipping;
 
   // Loading state
