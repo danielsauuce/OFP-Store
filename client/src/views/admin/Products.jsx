@@ -245,6 +245,10 @@ const Products = () => {
       toast.error('Please fill in name, category, and price');
       return;
     }
+    if (formData.description && formData.description.trim().length < 20) {
+      toast.error('Description must be at least 20 characters');
+      return;
+    }
 
     setSubmitting(true);
     try {
