@@ -258,14 +258,13 @@ function Hero() {
             {splitSubtitle}
           </p>
 
-          <Link to="/shop">
-            <button
-              ref={buttonRef}
-              className="rounded-xl bg-primary text-primary-foreground flex items-center px-8 py-4 shadow-lg text-lg font-medium tracking-wide"
-            >
-              Shop Now
-              <ArrowRight className="ml-3 h-5 w-5 hero-arrow" />
-            </button>
+          <Link
+            ref={buttonRef}
+            to="/shop"
+            className="rounded-xl bg-primary text-primary-foreground inline-flex items-center px-8 py-4 shadow-lg text-lg font-medium tracking-wide"
+          >
+            Shop Now
+            <ArrowRight className="ml-3 h-5 w-5 hero-arrow" />
           </Link>
         </div>
       </div>
