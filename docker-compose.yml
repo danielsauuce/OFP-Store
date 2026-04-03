@@ -60,6 +60,8 @@ services:
       - caddy_config:/config
     environment:
       CADDY_DOMAIN: ${CADDY_DOMAIN:-localhost}
+      CADDY_PORT: ${CADDY_PORT:-80}
+      CADDY_AUTO_HTTPS: ${CADDY_AUTO_HTTPS:-off}
 
   prometheus:
     image: prom/prometheus:v2.54.1

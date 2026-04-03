@@ -103,11 +103,12 @@ const Shop = () => {
   const filteredAndSortedProducts = useMemo(() => {
     let result = products;
 
-    // Category filter
+    // Category filter — case-insensitive, handle both populated object and raw string
     if (selectedCategory !== 'All') {
+      const selectedLower = selectedCategory.toLowerCase();
       result = result.filter((item) => {
         const cat = typeof item.category === 'object' ? item.category.name : item.category;
-        return cat === selectedCategory;
+        return typeof cat === 'string' && cat.toLowerCase() === selectedLower;
       });
     }
 
