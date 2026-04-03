@@ -3,7 +3,9 @@ import mongoose from 'mongoose';
 const conversationSchema = new mongoose.Schema(
   {
     conversationId: { type: String, required: true, unique: true },
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    guestId: { type: String },
+    guestName: { type: String, default: 'Guest' },
     status: { type: String, enum: ['pending', 'active', 'closed'], default: 'pending' },
     adminId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     lastMessage: { type: String },

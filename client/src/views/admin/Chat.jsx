@@ -4,7 +4,6 @@ import {
   Send,
   Loader,
   X,
-  UserCircle2,
   Circle,
   CheckCircle2,
   XCircle,
@@ -237,8 +236,24 @@ function Chat() {
   const getCustomerName = (conv) => {
     if (conv.userId?.fullName) return conv.userId.fullName;
     if (conv.userId?.email) return conv.userId.email;
-    if (conv.conversationId) return conv.conversationId.replace('conv:', 'Customer ');
+    if (conv.displayName && conv.displayName !== 'Guest') return conv.displayName;
+    if (conv.guestId) return 'Guest';
+    if (conv.conversationId) return conv.conversationId.replace(/^conv:(guest:)?/, 'Customer ');
     return 'Unknown Customer';
+  };
+
+  const getCustomerAvatar = (conv) => {
+    return conv.userId?.profilePicture || null;
+  };
+
+  const getCustomerInitials = (conv) => {
+    const name = getCustomerName(conv);
+    return name
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
   };
 
   const anyTyping = Object.values(typingUsers).some(Boolean);
@@ -280,8 +295,18 @@ function Chat() {
                   }`}
                 >
                   <div className="flex items-start gap-2.5">
-                    <div className="mt-0.5 shrink-0">
-                      <UserCircle2 className="h-8 w-8 text-muted-foreground" />
+                    <div className="mt-0.5 shrink-0 h-9 w-9 rounded-full overflow-hidden bg-primary/10 flex items-center justify-center">
+                      {getCustomerAvatar(conv) ? (
+                        <img
+                          src={getCustomerAvatar(conv)}
+                          alt={getCustomerName(conv)}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-xs font-semibold text-primary">
+                          {getCustomerInitials(conv)}
+                        </span>
+                      )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-1">
@@ -371,26 +396,45 @@ function Chat() {
               ) : (
                 messages.map((msg, i) => {
                   const isAdmin = msg.sender?.role === 'admin';
+                  const avatarUrl = msg.sender?.userId?.profilePicture || null;
+                  const senderName =
+                    msg.sender?.userId?.fullName ||
+                    msg.sender?.senderName ||
+                    (msg.sender?.role === 'guest' ? 'Guest' : 'Customer');
+                  const senderInitials = senderName
+                    .split(' ')
+                    .map((n) => n[0])
+                    .join('')
+                    .toUpperCase()
+                    .slice(0, 2);
+
                   return (
                     <div
                       key={msg._id || i}
-                      className={`flex ${isAdmin ? 'justify-end' : 'justify-start'}`}
+                      className={`flex items-end gap-2 ${isAdmin ? 'justify-end' : 'justify-start'}`}
                     >
+                      {!isAdmin && (
+                        <div className="shrink-0 h-7 w-7 rounded-full overflow-hidden bg-primary/10 flex items-center justify-center">
+                          {avatarUrl ? (
+                            <img src={avatarUrl} alt={senderName} className="h-full w-full object-cover" />
+                          ) : (
+                            <span className="text-[10px] font-bold text-primary">{senderInitials}</span>
+                          )}
+                        </div>
+                      )}
                       <div
-                        className={`max-w-[70%] rounded-lg px-3 py-2 text-sm ${
+                        className={`max-w-[70%] rounded-2xl px-3 py-2 text-sm ${
                           isAdmin
-                            ? 'bg-primary text-primary-foreground'
-                            : 'bg-muted text-foreground'
+                            ? 'bg-primary text-primary-foreground rounded-br-sm'
+                            : 'bg-muted text-foreground rounded-bl-sm'
                         }`}
                       >
                         {!isAdmin && (
-                          <p className="text-[11px] font-semibold mb-1 opacity-60">
-                            {msg.sender?.userId?.fullName || 'Customer'}
-                          </p>
+                          <p className="text-[10px] font-semibold mb-0.5 opacity-60">{senderName}</p>
                         )}
                         <p>{msg.message}</p>
                         <p
-                          className={`text-[10px] mt-1 ${
+                          className={`text-[10px] mt-0.5 ${
                             isAdmin ? 'text-primary-foreground/70' : 'text-muted-foreground'
                           }`}
                         >

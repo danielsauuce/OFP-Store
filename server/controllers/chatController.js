@@ -4,14 +4,19 @@ import logger from '../utils/logger.js';
 
 export const getConversations = async (req, res) => {
   try {
-    // Use Conversation model as the source of truth, populate user details
     const conversations = await Conversation.find()
       .populate('userId', 'fullName email profilePicture')
       .populate('adminId', 'fullName')
       .sort({ lastMessageAt: -1, createdAt: -1 })
       .lean();
 
-    res.status(200).json({ success: true, conversations });
+    // Normalise: for guest conversations without a userId, expose a display name
+    const normalised = conversations.map((c) => ({
+      ...c,
+      displayName: c.userId?.fullName || c.userId?.email || c.guestName || 'Guest',
+    }));
+
+    res.status(200).json({ success: true, conversations: normalised });
   } catch (error) {
     logger.error('Get conversations error', { error: error.message });
     res.status(500).json({ success: false, message: 'Failed to fetch conversations' });

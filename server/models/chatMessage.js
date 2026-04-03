@@ -4,8 +4,9 @@ const chatMessageSchema = new mongoose.Schema(
   {
     conversationId: { type: String, required: true, index: true },
     sender: {
-      userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-      role: { type: String, enum: ['customer', 'admin'], required: true },
+      userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      role: { type: String, enum: ['customer', 'admin', 'guest'], required: true },
+      senderName: { type: String },
     },
     message: { type: String, required: true },
     readBy: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
