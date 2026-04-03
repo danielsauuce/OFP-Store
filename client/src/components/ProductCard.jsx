@@ -70,7 +70,7 @@ const ProductCard = memo(function ProductCard({ product }) {
   return (
     <Link
       to={`/product/${productId}`}
-      className="shop-product-card group block bg-card rounded-xl overflow-hidden border border-border hover:border-primary/30 hover:shadow-lg transition-all duration-300"
+      className="group block bg-card rounded-xl overflow-hidden border border-border hover:border-primary/30 hover:shadow-lg transition-all duration-300"
     >
       {/* Image */}
       <div className="relative overflow-hidden aspect-[4/3] bg-muted">
