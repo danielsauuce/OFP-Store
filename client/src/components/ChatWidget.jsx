@@ -49,9 +49,7 @@ function ChatWidget() {
     setLoading(true);
     setConnectionError(false);
 
-    const authPayload = accessToken
-      ? { token: accessToken }
-      : { guestId: guestId.current };
+    const authPayload = accessToken ? { token: accessToken } : { guestId: guestId.current };
 
     const socket = io(`${BACKEND_URL}/chat`, {
       auth: authPayload,
@@ -187,9 +185,7 @@ function ChatWidget() {
 
   const isOwnMessage = (msg) => {
     if (auth.authenticate) {
-      return (
-        msg.sender?.userId?._id === currentUserId || msg.sender?.userId === currentUserId
-      );
+      return msg.sender?.userId?._id === currentUserId || msg.sender?.userId === currentUserId;
     }
     // Guest: messages with guest role and not admin
     return msg.sender?.role === 'guest' || msg.sender?.role === 'customer';
@@ -292,7 +288,11 @@ function ChatWidget() {
                     {!own && (
                       <div className="shrink-0 h-6 w-6 rounded-full overflow-hidden bg-primary/10 flex items-center justify-center">
                         {avatarUrl ? (
-                          <img src={avatarUrl} alt="Support" className="h-full w-full object-cover" />
+                          <img
+                            src={avatarUrl}
+                            alt="Support"
+                            className="h-full w-full object-cover"
+                          />
                         ) : (
                           <span className="text-[9px] font-bold text-primary">{initials}</span>
                         )}

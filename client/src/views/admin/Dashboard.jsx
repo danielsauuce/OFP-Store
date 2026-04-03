@@ -170,6 +170,38 @@ function Dashboard() {
         </button>
       </div>
 
+      {/* quick-stat cards */}
+      <div className="grid gap-4 sm:grid-cols-3">
+        <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
+          <div className="flex items-center gap-2 mb-3">
+            <UserPlus className="h-4 w-4 text-violet-500" />
+            <span className="text-sm font-semibold text-foreground">New Users</span>
+          </div>
+          <p className="text-3xl font-bold text-foreground">{stats?.newUsersLast7Days || 0}</p>
+          <p className="text-xs text-muted-foreground mt-1">In the last 7 days</p>
+        </div>
+        <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
+          <div className="flex items-center gap-2 mb-3">
+            <ShoppingCart className="h-4 w-4 text-amber-500" />
+            <span className="text-sm font-semibold text-foreground">Pending</span>
+          </div>
+          <p className="text-3xl font-bold text-foreground">
+            {stats?.ordersByStatus?.pending || 0}
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">Orders awaiting action</p>
+        </div>
+        <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
+          <div className="flex items-center gap-2 mb-3">
+            <Package className="h-4 w-4 text-emerald-500" />
+            <span className="text-sm font-semibold text-foreground">Delivered</span>
+          </div>
+          <p className="text-3xl font-bold text-foreground">
+            {stats?.ordersByStatus?.delivered || 0}
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">Successfully completed</p>
+        </div>
+      </div>
+
       {/* Stat cards */}
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
@@ -346,38 +378,6 @@ function Dashboard() {
         ) : (
           <div className="px-5 py-10 text-center text-sm text-muted-foreground">No orders yet</div>
         )}
-      </div>
-
-      {/* Bottom quick-stat cards */}
-      <div className="grid gap-4 sm:grid-cols-3">
-        <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
-          <div className="flex items-center gap-2 mb-3">
-            <UserPlus className="h-4 w-4 text-violet-500" />
-            <span className="text-sm font-semibold text-foreground">New Users</span>
-          </div>
-          <p className="text-3xl font-bold text-foreground">{stats?.newUsersLast7Days || 0}</p>
-          <p className="text-xs text-muted-foreground mt-1">In the last 7 days</p>
-        </div>
-        <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
-          <div className="flex items-center gap-2 mb-3">
-            <ShoppingCart className="h-4 w-4 text-amber-500" />
-            <span className="text-sm font-semibold text-foreground">Pending</span>
-          </div>
-          <p className="text-3xl font-bold text-foreground">
-            {stats?.ordersByStatus?.pending || 0}
-          </p>
-          <p className="text-xs text-muted-foreground mt-1">Orders awaiting action</p>
-        </div>
-        <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
-          <div className="flex items-center gap-2 mb-3">
-            <Package className="h-4 w-4 text-emerald-500" />
-            <span className="text-sm font-semibold text-foreground">Delivered</span>
-          </div>
-          <p className="text-3xl font-bold text-foreground">
-            {stats?.ordersByStatus?.delivered || 0}
-          </p>
-          <p className="text-xs text-muted-foreground mt-1">Successfully completed</p>
-        </div>
       </div>
     </div>
   );

@@ -1,5 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Loader, RefreshCw, Search, Shield, Ban, CheckCircle, Trash2, Users as UsersIcon } from 'lucide-react';
+import {
+  Loader,
+  RefreshCw,
+  Search,
+  Shield,
+  Ban,
+  CheckCircle,
+  Trash2,
+  Users as UsersIcon,
+} from 'lucide-react';
 import toast from 'react-hot-toast';
 import Modal from './components/Modal';
 import {
@@ -183,7 +192,11 @@ const Users = () => {
         {search && (
           <button
             type="button"
-            onClick={() => { setSearchInput(''); setSearch(''); setCurrentPage(1); }}
+            onClick={() => {
+              setSearchInput('');
+              setSearch('');
+              setCurrentPage(1);
+            }}
             className="px-3 h-9 border border-border rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
           >
             Clear
@@ -254,18 +267,28 @@ const Users = () => {
                       </td>
                       {/* Role */}
                       <td className="px-4 py-3.5 hidden md:table-cell">
-                        <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${ROLE_STYLES[user.role] || ROLE_STYLES.customer}`}>
+                        <span
+                          className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${ROLE_STYLES[user.role] || ROLE_STYLES.customer}`}
+                        >
                           {user.role}
                         </span>
                       </td>
                       {/* Joined */}
                       <td className="px-4 py-3.5 hidden lg:table-cell text-xs text-muted-foreground">
-                        {new Date(user.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        {new Date(user.createdAt).toLocaleDateString('en-GB', {
+                          day: 'numeric',
+                          month: 'short',
+                          year: 'numeric',
+                        })}
                       </td>
                       {/* Status */}
                       <td className="px-4 py-3.5 hidden sm:table-cell">
-                        <span className={`inline-flex items-center gap-1 text-xs font-medium ${user.isActive !== false ? 'text-green-600' : 'text-destructive'}`}>
-                          <span className={`h-1.5 w-1.5 rounded-full ${user.isActive !== false ? 'bg-green-500' : 'bg-destructive'}`} />
+                        <span
+                          className={`inline-flex items-center gap-1 text-xs font-medium ${user.isActive !== false ? 'text-green-600' : 'text-destructive'}`}
+                        >
+                          <span
+                            className={`h-1.5 w-1.5 rounded-full ${user.isActive !== false ? 'bg-green-500' : 'bg-destructive'}`}
+                          />
                           {user.isActive !== false ? 'Active' : 'Inactive'}
                         </span>
                       </td>
@@ -273,14 +296,20 @@ const Users = () => {
                       <td className="px-4 py-3.5">
                         <div className="flex items-center justify-end gap-1">
                           <button
-                            onClick={() => { setActionUser(user); setIsRoleOpen(true); }}
+                            onClick={() => {
+                              setActionUser(user);
+                              setIsRoleOpen(true);
+                            }}
                             title={`Change role (currently ${user.role})`}
                             className="p-1.5 rounded-md hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
                           >
                             <Shield className="h-4 w-4" />
                           </button>
                           <button
-                            onClick={() => { setActionUser(user); setIsStatusOpen(true); }}
+                            onClick={() => {
+                              setActionUser(user);
+                              setIsStatusOpen(true);
+                            }}
                             title={user.isActive !== false ? 'Deactivate user' : 'Activate user'}
                             className="p-1.5 rounded-md hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
                           >
@@ -291,7 +320,10 @@ const Users = () => {
                             )}
                           </button>
                           <button
-                            onClick={() => { setActionUser(user); setIsDeleteOpen(true); }}
+                            onClick={() => {
+                              setActionUser(user);
+                              setIsDeleteOpen(true);
+                            }}
                             title="Delete user"
                             className="p-1.5 rounded-md hover:bg-destructive/10 transition-colors text-destructive"
                           >
@@ -346,7 +378,10 @@ const Users = () => {
         description={`Change ${actionUser?.fullName || actionUser?.email || 'user'}'s role from ${actionUser?.role} to ${actionUser?.role === 'admin' ? 'customer' : 'admin'}?`}
       >
         <div className="flex justify-end gap-3 pt-4">
-          <button onClick={() => setIsRoleOpen(false)} className="px-4 py-2 border border-border rounded-lg text-sm text-foreground hover:bg-muted transition-colors">
+          <button
+            onClick={() => setIsRoleOpen(false)}
+            className="px-4 py-2 border border-border rounded-lg text-sm text-foreground hover:bg-muted transition-colors"
+          >
             Cancel
           </button>
           <button
@@ -367,7 +402,10 @@ const Users = () => {
         description={`Are you sure you want to ${actionUser?.isActive !== false ? 'deactivate' : 'activate'} ${actionUser?.fullName || 'this user'}?`}
       >
         <div className="flex justify-end gap-3 pt-4">
-          <button onClick={() => setIsStatusOpen(false)} className="px-4 py-2 border border-border rounded-lg text-sm text-foreground hover:bg-muted transition-colors">
+          <button
+            onClick={() => setIsStatusOpen(false)}
+            className="px-4 py-2 border border-border rounded-lg text-sm text-foreground hover:bg-muted transition-colors"
+          >
             Cancel
           </button>
           <button
@@ -379,7 +417,11 @@ const Users = () => {
                 : 'bg-accent text-white hover:bg-accent/90'
             }`}
           >
-            {actionLoading ? 'Processing…' : actionUser?.isActive !== false ? 'Deactivate' : 'Activate'}
+            {actionLoading
+              ? 'Processing…'
+              : actionUser?.isActive !== false
+                ? 'Deactivate'
+                : 'Activate'}
           </button>
         </div>
       </Modal>
@@ -392,7 +434,10 @@ const Users = () => {
         description={`Permanently delete ${actionUser?.fullName || 'this user'}? This cannot be undone.`}
       >
         <div className="flex justify-end gap-3 pt-4">
-          <button onClick={() => setIsDeleteOpen(false)} className="px-4 py-2 border border-border rounded-lg text-sm text-foreground hover:bg-muted transition-colors">
+          <button
+            onClick={() => setIsDeleteOpen(false)}
+            className="px-4 py-2 border border-border rounded-lg text-sm text-foreground hover:bg-muted transition-colors"
+          >
             Cancel
           </button>
           <button

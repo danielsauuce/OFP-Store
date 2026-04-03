@@ -115,9 +115,7 @@ export const addToCart = async (req, res) => {
       // Resolve the actual image URL for snapshot (not just the ObjectId)
       let imageSnapshot = null;
       if (product.primaryImage) {
-        const media = await Media.findById(product.primaryImage)
-          .select('secureUrl url')
-          .lean();
+        const media = await Media.findById(product.primaryImage).select('secureUrl url').lean();
         imageSnapshot = media?.secureUrl || media?.url || null;
       }
 

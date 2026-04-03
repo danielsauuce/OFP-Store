@@ -311,9 +311,7 @@ const Products = () => {
     if (!search.trim()) return products;
     const q = search.toLowerCase();
     return products.filter(
-      (p) =>
-        p.name?.toLowerCase().includes(q) ||
-        getCategoryName(p).toLowerCase().includes(q),
+      (p) => p.name?.toLowerCase().includes(q) || getCategoryName(p).toLowerCase().includes(q),
     );
   }, [products, search]);
 
@@ -435,7 +433,11 @@ const Products = () => {
             className="hidden"
           />
           {previewUrl ? (
-            <img src={previewUrl} alt="Preview" className="h-full w-full object-contain rounded-xl" />
+            <img
+              src={previewUrl}
+              alt="Preview"
+              className="h-full w-full object-contain rounded-xl"
+            />
           ) : (
             <div className="flex flex-col items-center gap-2 text-muted-foreground">
               <ImageIcon className="h-8 w-8 opacity-40" />
@@ -713,26 +715,38 @@ const Products = () => {
 
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-muted/40 rounded-lg p-3">
-                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-0.5">Name</p>
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-0.5">
+                  Name
+                </p>
                 <p className="text-sm font-medium text-foreground">{selectedProduct.name}</p>
               </div>
               <div className="bg-muted/40 rounded-lg p-3">
-                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-0.5">Price</p>
-                <p className="text-sm font-bold text-primary">£{Number(selectedProduct.price).toFixed(2)}</p>
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-0.5">
+                  Price
+                </p>
+                <p className="text-sm font-bold text-primary">
+                  £{Number(selectedProduct.price).toFixed(2)}
+                </p>
               </div>
               <div className="bg-muted/40 rounded-lg p-3">
-                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-0.5">Category</p>
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-0.5">
+                  Category
+                </p>
                 <p className="text-sm text-foreground">{getCategoryName(selectedProduct)}</p>
               </div>
               <div className="bg-muted/40 rounded-lg p-3">
-                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-0.5">Stock</p>
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-0.5">
+                  Stock
+                </p>
                 <p className="text-sm text-foreground">
                   {selectedProduct.stockQuantity ?? 0} units
                 </p>
               </div>
               {selectedProduct.material && (
                 <div className="bg-muted/40 rounded-lg p-3 col-span-2">
-                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-0.5">Material</p>
+                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-0.5">
+                    Material
+                  </p>
                   <p className="text-sm text-foreground">{selectedProduct.material}</p>
                 </div>
               )}
@@ -740,8 +754,12 @@ const Products = () => {
 
             {selectedProduct.description && (
               <div>
-                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Description</p>
-                <p className="text-sm text-foreground leading-relaxed">{selectedProduct.description}</p>
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">
+                  Description
+                </p>
+                <p className="text-sm text-foreground leading-relaxed">
+                  {selectedProduct.description}
+                </p>
               </div>
             )}
 
@@ -791,7 +809,8 @@ const Products = () => {
             <div>
               <p className="text-sm font-medium text-foreground">This action is irreversible</p>
               <p className="text-sm text-muted-foreground mt-0.5">
-                Deleting <strong>&quot;{selectedProduct?.name}&quot;</strong> will permanently remove it and all associated media from the system.
+                Deleting <strong>&quot;{selectedProduct?.name}&quot;</strong> will permanently
+                remove it and all associated media from the system.
               </p>
             </div>
           </div>

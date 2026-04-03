@@ -18,9 +18,27 @@ import toast from 'react-hot-toast';
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
 
 const STATUS_CONFIG = {
-  pending: { label: 'Waiting', icon: Clock, bg: 'bg-amber-100', text: 'text-amber-700', dot: 'bg-amber-500' },
-  active: { label: 'Active', icon: CheckCircle2, bg: 'bg-green-100', text: 'text-green-700', dot: 'bg-green-500' },
-  closed: { label: 'Closed', icon: XCircle, bg: 'bg-muted', text: 'text-muted-foreground', dot: 'bg-muted-foreground' },
+  pending: {
+    label: 'Waiting',
+    icon: Clock,
+    bg: 'bg-amber-100',
+    text: 'text-amber-700',
+    dot: 'bg-amber-500',
+  },
+  active: {
+    label: 'Active',
+    icon: CheckCircle2,
+    bg: 'bg-green-100',
+    text: 'text-green-700',
+    dot: 'bg-green-500',
+  },
+  closed: {
+    label: 'Closed',
+    icon: XCircle,
+    bg: 'bg-muted',
+    text: 'text-muted-foreground',
+    dot: 'bg-muted-foreground',
+  },
 };
 
 function formatTime(dateStr) {
@@ -71,7 +89,9 @@ function getInitials(name) {
 function Avatar({ src, name, size = 'md' }) {
   const dim = size === 'sm' ? 'h-7 w-7 text-[10px]' : 'h-9 w-9 text-xs';
   return (
-    <div className={`${dim} rounded-full overflow-hidden bg-primary/10 flex items-center justify-center shrink-0`}>
+    <div
+      className={`${dim} rounded-full overflow-hidden bg-primary/10 flex items-center justify-center shrink-0`}
+    >
       {src ? (
         <img src={src} alt={name} className="h-full w-full object-cover" />
       ) : (
@@ -405,7 +425,10 @@ function Chat() {
             {/* Header */}
             <div className="px-5 py-3 border-b border-border flex items-center justify-between gap-4">
               <div className="flex items-center gap-3 min-w-0">
-                <Avatar src={getCustomerAvatar(selectedConv)} name={getCustomerName(selectedConv)} />
+                <Avatar
+                  src={getCustomerAvatar(selectedConv)}
+                  name={getCustomerName(selectedConv)}
+                />
                 <div className="min-w-0">
                   <p className="font-semibold text-foreground text-sm leading-tight truncate">
                     {getCustomerName(selectedConv)}
@@ -421,7 +444,9 @@ function Chat() {
                 {(() => {
                   const cfg = STATUS_CONFIG[selectedConv.status] || STATUS_CONFIG.pending;
                   return (
-                    <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${cfg.bg} ${cfg.text}`}>
+                    <span
+                      className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${cfg.bg} ${cfg.text}`}
+                    >
                       {cfg.label}
                     </span>
                   );
@@ -463,9 +488,7 @@ function Chat() {
                       key={msg._id || i}
                       className={`flex items-end gap-2 ${isAdmin ? 'justify-end' : 'justify-start'}`}
                     >
-                      {!isAdmin && (
-                        <Avatar src={avatarUrl} name={senderName} size="sm" />
-                      )}
+                      {!isAdmin && <Avatar src={avatarUrl} name={senderName} size="sm" />}
                       <div
                         className={`max-w-[68%] rounded-2xl px-3.5 py-2.5 text-sm shadow-sm ${
                           isAdmin
@@ -474,12 +497,16 @@ function Chat() {
                         }`}
                       >
                         {!isAdmin && (
-                          <p className="text-[10px] font-semibold mb-0.5 opacity-60">{senderName}</p>
+                          <p className="text-[10px] font-semibold mb-0.5 opacity-60">
+                            {senderName}
+                          </p>
                         )}
                         <p className="leading-relaxed">{msg.message}</p>
                         <p
                           className={`text-[10px] mt-1 ${
-                            isAdmin ? 'text-primary-foreground/60 text-right' : 'text-muted-foreground'
+                            isAdmin
+                              ? 'text-primary-foreground/60 text-right'
+                              : 'text-muted-foreground'
                           }`}
                         >
                           {formatMessageTime(msg.createdAt)}

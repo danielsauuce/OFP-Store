@@ -165,7 +165,9 @@ function AdminNotifications() {
                       !notification.isRead ? 'bg-primary/15' : 'bg-muted'
                     }`}
                   >
-                    <Icon className={`h-4 w-4 ${!notification.isRead ? 'text-primary' : 'text-muted-foreground'}`} />
+                    <Icon
+                      className={`h-4 w-4 ${!notification.isRead ? 'text-primary' : 'text-muted-foreground'}`}
+                    />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2 mb-0.5">

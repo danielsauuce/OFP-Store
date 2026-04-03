@@ -67,9 +67,7 @@ export function setupChatHandler(io) {
             conversationId = `conv:guest:${guestId}:${Date.now()}`;
           } else {
             // Find most recent open guest conversation
-            const existing = await Conversation.findOne({ guestId })
-              .sort({ createdAt: -1 })
-              .lean();
+            const existing = await Conversation.findOne({ guestId }).sort({ createdAt: -1 }).lean();
             conversationId =
               existing && existing.status !== 'closed'
                 ? existing.conversationId
@@ -79,13 +77,9 @@ export function setupChatHandler(io) {
           if (forceNew) {
             conversationId = `conv:${userId}:${Date.now()}`;
           } else {
-            const existing = await Conversation.findOne({ userId })
-              .sort({ createdAt: -1 })
-              .lean();
+            const existing = await Conversation.findOne({ userId }).sort({ createdAt: -1 }).lean();
             conversationId =
-              existing && existing.status !== 'closed'
-                ? existing.conversationId
-                : `conv:${userId}`;
+              existing && existing.status !== 'closed' ? existing.conversationId : `conv:${userId}`;
           }
         }
 
@@ -169,7 +163,10 @@ export function setupChatHandler(io) {
           readBy: userId ? [userId] : [],
         });
 
-        const populated = await chatMessage.populate('sender.userId', 'fullName email profilePicture');
+        const populated = await chatMessage.populate(
+          'sender.userId',
+          'fullName email profilePicture',
+        );
 
         // Emit to conversation room
         nsp.to(`chat:conv:${conversationId}`).emit('chat:message', {
