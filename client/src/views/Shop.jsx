@@ -107,7 +107,7 @@ const Shop = () => {
     if (selectedCategory !== 'All') {
       const selectedLower = selectedCategory.toLowerCase();
       result = result.filter((item) => {
-        const cat = typeof item.category === 'object' ? item.category.name : item.category;
+        const cat = item.category && typeof item.category === 'object' ? item.category.name : item.category;
         return typeof cat === 'string' && cat.toLowerCase() === selectedLower;
       });
     }

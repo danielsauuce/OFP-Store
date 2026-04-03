@@ -253,6 +253,10 @@ function Navbar() {
                   Logged in as:{' '}
                   <span className="font-medium text-foreground">{auth.user?.fullName}</span>
                 </div>
+                <div className="flex items-center gap-2">
+                  <NotificationBell />
+                  <span className="text-sm">Notifications</span>
+                </div>
                 <Link
                   to="/profile"
                   onClick={() => setOpen(false)}

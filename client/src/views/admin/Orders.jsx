@@ -247,6 +247,7 @@ const Orders = () => {
                           <button
                             onClick={() => openView(order)}
                             title="View order details"
+                            aria-label={`View details for order ${order.orderNumber || order._id}`}
                             className="p-1.5 rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
                           >
                             <Eye className="h-3.5 w-3.5" />

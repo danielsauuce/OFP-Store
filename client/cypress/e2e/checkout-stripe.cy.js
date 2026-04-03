@@ -8,17 +8,19 @@ describe('Checkout Stripe — Unauthenticated', () => {
 });
 
 describe('Checkout Stripe — Authenticated', () => {
+  before(function () {
+    if (!Cypress.env('USER_EMAIL')) this.skip();
+  });
+
   function login() {
     const email = Cypress.env('USER_EMAIL');
     const password = Cypress.env('USER_PASSWORD');
-    if (!email || !password) return false;
 
     cy.visit('/auth');
     cy.get('input[type="email"]').type(email);
     cy.get('input[type="password"]').type(password);
     cy.get('button[type="submit"]').click();
     cy.url({ timeout: 10000 }).should('not.include', '/auth');
-    return true;
   }
 
   beforeEach(() => {
@@ -26,27 +28,20 @@ describe('Checkout Stripe — Authenticated', () => {
   });
 
   it('loads checkout page or redirects to cart when cart is empty', () => {
-    if (!Cypress.env('USER_EMAIL')) return;
     cy.visit('/checkout');
     cy.url().should('match', /\/checkout|\/cart/);
   });
 
   it('Step 1 — renders shipping form fields', () => {
-    if (!Cypress.env('USER_EMAIL')) return;
     cy.visit('/checkout');
-    cy.get('body').then(($body) => {
-      if ($body.text().includes('Shipping')) {
-        cy.get('input[name="fullName"]').should('exist');
-        cy.get('input[name="email"]').should('exist');
-        cy.get('input[name="phone"]').should('exist');
-        cy.get('input[name="street"]').should('exist');
-        cy.get('input[name="city"]').should('exist');
-      }
-    });
+    cy.get('input[name="fullName"]').should('exist');
+    cy.get('input[name="email"]').should('exist');
+    cy.get('input[name="phone"]').should('exist');
+    cy.get('input[name="street"]').should('exist');
+    cy.get('input[name="city"]').should('exist');
   });
 
   it('Step 1 — can complete shipping form and proceed', () => {
-    if (!Cypress.env('USER_EMAIL')) return;
     cy.visit('/checkout');
     cy.get('body').then(($body) => {
       if ($body.text().includes('Shipping Information')) {
@@ -63,7 +58,6 @@ describe('Checkout Stripe — Authenticated', () => {
   });
 
   it('Step 2 — can select card payment method', () => {
-    if (!Cypress.env('USER_EMAIL')) return;
     cy.visit('/checkout');
     cy.get('body').then(($body) => {
       if ($body.text().includes('Shipping Information')) {
@@ -85,7 +79,6 @@ describe('Checkout Stripe — Authenticated', () => {
   });
 
   it('Step 2 — can select pay on delivery method', () => {
-    if (!Cypress.env('USER_EMAIL')) return;
     cy.visit('/checkout');
     cy.get('body').then(($body) => {
       if ($body.text().includes('Shipping Information')) {
@@ -107,7 +100,6 @@ describe('Checkout Stripe — Authenticated', () => {
   });
 
   it('Stripe payment element renders when card method selected and key is configured', () => {
-    if (!Cypress.env('USER_EMAIL')) return;
     cy.visit('/checkout');
     cy.get('body').then(($body) => {
       if ($body.text().includes('Shipping Information')) {

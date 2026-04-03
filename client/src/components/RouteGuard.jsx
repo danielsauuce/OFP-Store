@@ -30,8 +30,8 @@ function RouteGuard({
     return <Navigate to={isAdmin ? '/admin' : '/'} replace />;
   }
 
-  // Admins cannot access store pages — redirect to admin panel
-  if (isAdmin && (storeOnly || (!path.startsWith('/admin') && !isAuthPage))) {
+  // Admins cannot access store-only pages — redirect to admin panel
+  if (isAdmin && storeOnly) {
     return <Navigate to="/admin" replace />;
   }
 

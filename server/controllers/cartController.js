@@ -70,6 +70,7 @@ export const getCart = async (req, res) => {
         if (imageUrl && !item.imageSnapshot) {
           snapshotsToFix.push({
             productId: (item.product?._id || item.product).toString(),
+            variantSku: item.variantSku || null,
             imageUrl,
           });
         }
@@ -84,8 +85,10 @@ export const getCart = async (req, res) => {
         .then((cartDoc) => {
           if (!cartDoc) return;
           let dirty = false;
-          for (const { productId, imageUrl } of snapshotsToFix) {
-            const itemDoc = cartDoc.items.find((i) => i.product.toString() === productId);
+          for (const { productId, variantSku, imageUrl } of snapshotsToFix) {
+            const itemDoc = cartDoc.items.find(
+              (i) => i.product.toString() === productId && i.variantSku === variantSku,
+            );
             if (itemDoc && !itemDoc.imageSnapshot) {
               itemDoc.imageSnapshot = imageUrl;
               dirty = true;
@@ -172,12 +175,9 @@ export const addToCart = async (req, res) => {
       if (quantity > availableStock) {
         return res.status(400).json({ success: false, message: 'Insufficient stock' });
       }
-      // Resolve the actual image URL for snapshot (not just the ObjectId)
-      let imageSnapshot = null;
-      if (product.primaryImage) {
-        const media = await Media.findById(product.primaryImage).select('secureUrl url').lean();
-        imageSnapshot = media?.secureUrl || media?.url || null;
-      }
+      // Resolve the actual image URL for snapshot using the shared helper
+      // handles ObjectId, already-populated Media doc, and legacy plain-string URLs
+      const imageSnapshot = await resolveImageUrl(product.primaryImage);
 
       cart.items.push({
         product: productId,

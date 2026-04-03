@@ -147,19 +147,15 @@ function Chat() {
           const exists = prev.some((m) => m._id === msg._id);
           return exists ? prev : [...prev, msg];
         });
+        // Update lastMessage for active conversation only — unread logic owned by chat:new-message
+        setConversations((prev) =>
+          prev.map((c) =>
+            c.conversationId === msg.conversationId
+              ? { ...c, lastMessage: msg.message, lastMessageAt: msg.createdAt }
+              : c,
+          ),
+        );
       }
-      setConversations((prev) =>
-        prev.map((c) => {
-          if (c.conversationId !== msg.conversationId) return c;
-          const isViewing = selectedConvRef.current?.conversationId === c.conversationId;
-          return {
-            ...c,
-            lastMessage: msg.message,
-            lastMessageAt: msg.createdAt,
-            unreadByAdmin: isViewing ? 0 : (c.unreadByAdmin || 0) + 1,
-          };
-        }),
-      );
     });
 
     socket.on('chat:new-message', ({ conversationId, message }) => {
@@ -238,6 +234,7 @@ function Chat() {
 
   const handleSelectConversation = async (conv) => {
     if (selectedConv?.conversationId === conv.conversationId) return;
+    const requestId = conv.conversationId;
     setSelectedConv(conv);
     setMessagesLoading(true);
     setMessages([]);
@@ -245,16 +242,22 @@ function Chat() {
     setConversations((prev) =>
       prev.map((c) => (c.conversationId === conv.conversationId ? { ...c, unreadByAdmin: 0 } : c)),
     );
-    try {
-      const data = await getMessagesService(conv.conversationId);
-      if (data?.success) setMessages(data.messages);
-    } catch {
-      toast.error('Failed to load messages');
-    } finally {
-      setMessagesLoading(false);
-    }
     socketRef.current?.emit('chat:join-conversation', { conversationId: conv.conversationId });
     setTimeout(() => inputRef.current?.focus(), 100);
+    try {
+      const data = await getMessagesService(conv.conversationId);
+      if (selectedConvRef.current?.conversationId === requestId && data?.success) {
+        setMessages(data.messages);
+      }
+    } catch {
+      if (selectedConvRef.current?.conversationId === requestId) {
+        toast.error('Failed to load messages');
+      }
+    } finally {
+      if (selectedConvRef.current?.conversationId === requestId) {
+        setMessagesLoading(false);
+      }
+    }
   };
 
   const handleSend = useCallback(() => {

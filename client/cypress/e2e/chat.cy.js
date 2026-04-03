@@ -3,18 +3,9 @@
 describe('Chat Widget — Unauthenticated', () => {
   it('chat widget button is not visible for unauthenticated users', () => {
     cy.visit('/');
-    // Widget only renders for authenticated users; no button should appear
-    cy.get('body').then(($body) => {
-      const hasWidget =
-        $body.find('[aria-label*="chat" i], [aria-label*="Chat" i], [class*="chat-widget"]')
-          .length > 0;
-      if (hasWidget) {
-        // Widget may still render the button but check it does not open a login-protected modal
-        cy.log('Chat widget present — checking it does not expose chat for unauthenticated users');
-      } else {
-        cy.log('Chat widget not visible for unauthenticated users — as expected');
-      }
-    });
+    cy.get('[aria-label*="chat" i], [aria-label*="Chat" i], [class*="chat-widget"]').should(
+      'not.exist',
+    );
   });
 });
 

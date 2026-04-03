@@ -137,8 +137,10 @@ function Dashboard() {
       const d = new Date();
       d.setDate(d.getDate() - (29 - i));
       const key = d.toISOString().slice(0, 10);
+      // Format label from the UTC date to match the aggregation key and avoid timezone drift
+      const utcDate = new Date(key + 'T00:00:00Z');
       return {
-        date: d.toLocaleDateString('en-GB', { month: 'short', day: 'numeric' }),
+        date: utcDate.toLocaleDateString('en-GB', { month: 'short', day: 'numeric', timeZone: 'UTC' }),
         orders: map[key]?.orders || 0,
         revenue: map[key]?.revenue || 0,
       };

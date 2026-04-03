@@ -301,6 +301,7 @@ const Users = () => {
                               setIsRoleOpen(true);
                             }}
                             title={`Change role (currently ${user.role})`}
+                            aria-label={`Change role for ${user.email} (current: ${user.role})`}
                             className="p-1.5 rounded-md hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
                           >
                             <Shield className="h-4 w-4" />
@@ -311,6 +312,7 @@ const Users = () => {
                               setIsStatusOpen(true);
                             }}
                             title={user.isActive !== false ? 'Deactivate user' : 'Activate user'}
+                            aria-label={user.isActive !== false ? `Deactivate ${user.email}` : `Activate ${user.email}`}
                             className="p-1.5 rounded-md hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
                           >
                             {user.isActive !== false ? (
@@ -325,6 +327,7 @@ const Users = () => {
                               setIsDeleteOpen(true);
                             }}
                             title="Delete user"
+                            aria-label={`Delete ${user.email}`}
                             className="p-1.5 rounded-md hover:bg-destructive/10 transition-colors text-destructive"
                           >
                             <Trash2 className="h-4 w-4" />

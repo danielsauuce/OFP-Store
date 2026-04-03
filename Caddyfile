@@ -10,9 +10,12 @@
 }
 
 # ── Site block ─────────────────────────────────────────────────────────────────
-# CADDY_DOMAIN defaults to "localhost" for local Docker Compose.
-# In production set:  CADDY_DOMAIN=ofpstore.onrender.com
-:{$CADDY_PORT:80} {
+# Local / behind a TLS-terminating proxy (CADDY_AUTO_HTTPS=off, default):
+#   Bind to port only — no hostname, no certificate provisioning.
+# Production with Caddy managing TLS (CADDY_AUTO_HTTPS=on):
+#   Set CADDY_DOMAIN to the public hostname so Caddy can provision a certificate.
+#   The port-only fallback (:{$CADDY_PORT:80}) is kept for the off/local case.
+{$CADDY_DOMAIN:}:{$CADDY_PORT:80} {
 
   # ── Compression ──────────────────────────────────────────────────────────
   encode gzip

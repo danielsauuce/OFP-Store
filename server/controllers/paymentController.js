@@ -1,7 +1,11 @@
 import Order from '../models/order.js';
 import Payment from '../models/payment.js';
 import Notification from '../models/notification.js';
-import { createPaymentIntent, constructWebhookEvent } from '../services/stripeService.js';
+import {
+  createPaymentIntent,
+  retrievePaymentIntent,
+  constructWebhookEvent,
+} from '../services/stripeService.js';
 import { emitNotification } from '../socket/notificationHandler.js';
 import logger from '../utils/logger.js';
 
@@ -24,11 +28,21 @@ export const createPaymentIntentController = async (req, res) => {
 
     const amountInPence = Math.round(order.total * 100);
 
-    const intent = await createPaymentIntent(amountInPence, 'gbp', {
-      orderId: order._id.toString(),
-      orderNumber: order.orderNumber,
-      userId: req.user.id,
-    });
+    // Reuse an existing pending payment intent for this order to avoid duplicates
+    const existingPayment = await Payment.findOne({ order: { $eq: order._id }, status: 'pending' });
+    if (existingPayment?.stripePaymentIntentId) {
+      const existingIntent = await retrievePaymentIntent(existingPayment.stripePaymentIntentId);
+      if (existingIntent && existingIntent.status !== 'canceled') {
+        return res.status(200).json({ success: true, clientSecret: existingIntent.client_secret });
+      }
+    }
+
+    const intent = await createPaymentIntent(
+      amountInPence,
+      'gbp',
+      { orderId: order._id.toString(), orderNumber: order.orderNumber, userId: req.user.id },
+      `order:${order._id.toString()}`,
+    );
 
     await Payment.findOneAndUpdate(
       { order: order._id },
@@ -59,7 +73,7 @@ export const stripeWebhook = async (req, res) => {
     event = constructWebhookEvent(req.body, sig);
   } catch (error) {
     logger.error('Stripe webhook signature verification failed', { error: error.message });
-    return res.status(400).send('Webhook Error: invalid signature');
+    return res.status(400).json({ error: 'invalid_webhook_signature' });
   }
 
   // Always acknowledge receipt immediately — processing errors must not return 4xx/5xx

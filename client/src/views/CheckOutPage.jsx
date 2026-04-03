@@ -43,6 +43,8 @@ const Checkout = () => {
   const [orderNumber, setOrderNumber] = useState('');
   const [stripeClientSecret, setStripeClientSecret] = useState(null);
   const [pendingOrderTotal, setPendingOrderTotal] = useState(0);
+  const [pendingOrderId, setPendingOrderId] = useState(null);
+  const [paymentIntentFailed, setPaymentIntentFailed] = useState(false);
 
   const [paymentMethod, setPaymentMethod] = useState('card');
   const [errors, setErrors] = useState({});
@@ -99,12 +101,12 @@ const Checkout = () => {
     }
   };
 
-  // Redirect if cart becomes empty
+  // Redirect if cart becomes empty — but not during an active Stripe payment
   useEffect(() => {
-    if (!loading && !cartLoading && !cart?.items?.length && !orderPlaced) {
+    if (!loading && !cartLoading && !cart?.items?.length && !orderPlaced && !stripeClientSecret) {
       navigate('/cart');
     }
-  }, [cart, loading, cartLoading, orderPlaced]);
+  }, [cart, loading, cartLoading, orderPlaced, stripeClientSecret]);
 
   // GSAP step transition
   const animateStepChange = useCallback(() => {
@@ -201,17 +203,21 @@ const Checkout = () => {
       const data = await createOrderService(orderData);
 
       if (data?.success) {
+        const orderId = data.order._id;
         setOrderNumber(data.order.orderNumber);
+        setPendingOrderId(orderId);
 
         if (paymentMethod === 'card') {
           // Initiate Stripe payment
-          const paymentData = await createPaymentIntentService(data.order._id);
+          const paymentData = await createPaymentIntentService(orderId);
           if (paymentData?.success && paymentData.clientSecret) {
             setPendingOrderTotal(total);
             setStripeClientSecret(paymentData.clientSecret);
+            setPaymentIntentFailed(false);
             fetchCart();
           } else {
-            toast.error('Failed to initiate payment. Please contact support.');
+            setPaymentIntentFailed(true);
+            toast.error('Failed to initiate payment. You can retry below.');
           }
         } else {
           // Pay on delivery — confirm immediately
@@ -222,6 +228,25 @@ const Checkout = () => {
       }
     } catch (error) {
       toast.error(error?.response?.data?.message || 'Failed to place order. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Retry payment intent for an already-created order
+  const handleRetryPayment = async () => {
+    if (!pendingOrderId || submitting) return;
+    setSubmitting(true);
+    try {
+      const paymentData = await createPaymentIntentService(pendingOrderId);
+      if (paymentData?.success && paymentData.clientSecret) {
+        setStripeClientSecret(paymentData.clientSecret);
+        setPaymentIntentFailed(false);
+      } else {
+        toast.error('Payment retry failed. Please contact support.');
+      }
+    } catch {
+      toast.error('Payment retry failed. Please contact support.');
     } finally {
       setSubmitting(false);
     }
@@ -258,6 +283,30 @@ const Checkout = () => {
                 toast.success('Payment successful! Order confirmed.');
               }}
             />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (paymentIntentFailed && pendingOrderId) {
+    return (
+      <div className="min-h-screen py-8 lg:py-12 bg-background text-foreground">
+        <div className="container mx-auto px-4 max-w-2xl">
+          <div className="bg-card rounded-lg border border-border shadow-card p-8 text-center space-y-4">
+            <h2 className="text-xl font-semibold text-foreground">Payment initialisation failed</h2>
+            <p className="text-muted-foreground text-sm">
+              Your order #{orderNumber} was created but payment could not be started. You can retry
+              payment below or contact support with your order number.
+            </p>
+            <button
+              onClick={handleRetryPayment}
+              disabled={submitting}
+              className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-md font-medium hover:bg-primary-dark transition-colors disabled:opacity-60"
+            >
+              {submitting && <Loader className="h-4 w-4 animate-spin" />}
+              Retry Payment
+            </button>
           </div>
         </div>
       </div>

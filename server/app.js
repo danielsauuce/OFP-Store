@@ -52,7 +52,7 @@ app.use((req, res, next) => {
   const start = Date.now();
   res.on('finish', () => {
     const duration = (Date.now() - start) / 1000;
-    const route = req.route?.path || req.path || 'unknown';
+    const route = req.route ? (req.baseUrl || '') + req.route.path : 'unmatched';
     const labels = { method: req.method, route, status_code: res.statusCode };
     httpRequestDuration.observe(labels, duration);
     httpRequestsTotal.inc(labels);

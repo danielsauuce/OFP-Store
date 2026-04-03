@@ -51,7 +51,7 @@ services:
       - server
       - uptime-kuma
     ports:
-      - "80:80"
+      - "${CADDY_PORT:-80}:${CADDY_PORT:-80}"
       - "443:443"
       - "443:443/udp" # HTTP/3 (QUIC)
     volumes:
@@ -90,7 +90,7 @@ services:
     expose:
       - "3001"
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:?GRAFANA_PASSWORD must be set in .env}
       - GF_USERS_ALLOW_SIGN_UP=false
       - GF_SERVER_ROOT_URL=%(protocol)s://%(domain)s/grafana/
       - GF_SERVER_SERVE_FROM_SUB_PATH=true

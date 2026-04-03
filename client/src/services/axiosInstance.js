@@ -79,6 +79,13 @@ axiosInstance.interceptors.response.use(
           processQueue(null, data.accessToken);
           return axiosInstance(originalRequest);
         }
+
+        // Refresh succeeded HTTP-wise but server rejected the token
+        const refreshFailedError = new Error('Refresh failed');
+        processQueue(refreshFailedError, null);
+        sessionStorage.clear();
+        window.location.href = '/auth';
+        return Promise.reject(refreshFailedError);
       } catch (refreshError) {
         processQueue(refreshError, null);
         sessionStorage.clear();

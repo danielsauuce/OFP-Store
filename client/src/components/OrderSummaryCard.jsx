@@ -64,7 +64,7 @@ const OrderSummaryCard = ({ items, subtotal }) => {
         </div>
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <Truck className="h-3.5 w-3.5 text-accent" />
-          <span>Free shipping over £500</span>
+          <span>Free shipping on orders £500 or more</span>
         </div>
       </div>
     </div>

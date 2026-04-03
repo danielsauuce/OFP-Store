@@ -79,7 +79,9 @@ export function setupChatHandler(io) {
           } else {
             const existing = await Conversation.findOne({ userId }).sort({ createdAt: -1 }).lean();
             conversationId =
-              existing && existing.status !== 'closed' ? existing.conversationId : `conv:${userId}`;
+              existing && existing.status !== 'closed'
+                ? existing.conversationId
+                : `conv:${userId}:${Date.now()}`;
           }
         }
 

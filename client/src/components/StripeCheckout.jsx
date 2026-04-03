@@ -31,6 +31,8 @@ function PaymentForm({ onSuccess, total }) {
       } else if (paymentIntent && paymentIntent.status === 'succeeded') {
         toast.success('Payment successful!');
         onSuccess();
+      } else if (paymentIntent && paymentIntent.status === 'processing') {
+        toast('Payment is processing. You will be notified when it completes.', { icon: '⏳' });
       }
     } catch {
       toast.error('An unexpected error occurred. Please try again.');

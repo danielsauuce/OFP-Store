@@ -121,6 +121,7 @@ const Profile = () => {
 
   // Fetch tab-specific data when tab changes
   useEffect(() => {
+    if (!auth.authenticate) return;
     if (activeTab === 'orders' && orders.length === 0) {
       fetchOrders(1);
     }

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Edit,
   Trash2,
@@ -47,6 +47,7 @@ const Products = () => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -73,18 +74,35 @@ const Products = () => {
     };
   }, [previewUrl]);
 
+  // Debounce search input → trigger backend fetch
+  const searchDebounceRef = useRef(null);
   useEffect(() => {
-    fetchProducts(currentPage);
+    clearTimeout(searchDebounceRef.current);
+    searchDebounceRef.current = setTimeout(() => {
+      setSearchQuery(search);
+      setCurrentPage(1);
+    }, 350);
+    return () => clearTimeout(searchDebounceRef.current);
+  }, [search]);
+
+  useEffect(() => {
+    fetchProducts(1, searchQuery);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    fetchProducts(currentPage, searchQuery);
   }, [currentPage]);
 
   useEffect(() => {
     fetchCategories();
   }, []);
 
-  const fetchProducts = async (page) => {
+  const fetchProducts = async (page, query = '') => {
     setLoading(true);
     try {
-      const data = await getAllProductsAdminService({ page, limit: PRODUCTS_PER_PAGE });
+      const params = { page, limit: PRODUCTS_PER_PAGE };
+      if (query.trim()) params.search = query.trim();
+      const data = await getAllProductsAdminService(params);
       if (data?.success) {
         setProducts(data.data?.products || data.products || []);
         const pag = data.data?.pagination || data.pagination;
@@ -170,10 +188,11 @@ const Products = () => {
     setIsViewOpen(true);
   };
 
-  // Strip empty optional strings so Joi doesn't reject them
+  // Strip empty optional strings so Joi doesn't reject them; preserve explicit null for clearing fields
   const sanitisePayload = (obj) => {
     const result = {};
     for (const [k, v] of Object.entries(obj)) {
+      if (v === null) { result[k] = null; continue; }
       if (typeof v === 'string' && v.trim() === '') continue;
       result[k] = v;
     }
@@ -265,6 +284,9 @@ const Products = () => {
         ...formData,
         price: Number(formData.price),
         stockQuantity: Number(formData.stockQuantity) || 0,
+        // Explicitly send null for optional text fields so the server can clear them
+        shortDescription: formData.shortDescription === '' ? null : formData.shortDescription,
+        material: formData.material === '' ? null : formData.material,
         ...(primaryImage ? { primaryImage } : {}),
       });
 
@@ -307,13 +329,8 @@ const Products = () => {
   const getCategoryName = (product) =>
     typeof product.category === 'object' ? product.category?.name : product.category || '—';
 
-  const filteredProducts = useMemo(() => {
-    if (!search.trim()) return products;
-    const q = search.toLowerCase();
-    return products.filter(
-      (p) => p.name?.toLowerCase().includes(q) || getCategoryName(p).toLowerCase().includes(q),
-    );
-  }, [products, search]);
+  // Products are already filtered server-side by search query
+  const filteredProducts = products;
 
   const FieldLabel = ({ children }) => (
     <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">

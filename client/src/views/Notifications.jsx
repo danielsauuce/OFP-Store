@@ -8,6 +8,7 @@ import {
   markAsReadService,
 } from '../services/notificationService';
 import { useNotifications } from '../context/notificationContext';
+import { useAuth } from '../context/authContext';
 
 const TYPE_ICON = {
   chat_message: MessageCircle,
@@ -15,7 +16,14 @@ const TYPE_ICON = {
 
 function Notifications() {
   const navigate = useNavigate();
+  const { auth } = useAuth();
   const { refreshCount } = useNotifications();
+
+  useEffect(() => {
+    if (!auth.authenticate) {
+      navigate('/auth', { replace: true });
+    }
+  }, [auth.authenticate, navigate]);
   const [notifications, setNotifications] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0 });
   const [loading, setLoading] = useState(true);
@@ -67,7 +75,7 @@ function Notifications() {
     }
 
     if (notification.type === 'chat_message') {
-      navigate('/admin/chat');
+      navigate(auth.user?.role === 'admin' ? '/admin/chat' : '/chat');
       return;
     }
 

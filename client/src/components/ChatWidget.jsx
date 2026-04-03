@@ -37,6 +37,8 @@ function ChatWidget() {
   const typingTimeoutRef = useRef(null);
   const inputRef = useRef(null);
   const guestId = useRef(getGuestId());
+  const openRef = useRef(false);
+  openRef.current = open;
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -103,8 +105,8 @@ function ChatWidget() {
         return [...prev, msg];
       });
       setTypingIndicator(false);
-      // Increment unread badge if widget is closed
-      if (!open) {
+      // Increment unread badge if widget is closed (use ref to avoid stale closure)
+      if (!openRef.current) {
         setUnreadCount((n) => n + 1);
       }
     });
