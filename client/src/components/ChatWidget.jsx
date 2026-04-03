@@ -193,7 +193,12 @@ function ChatWidget() {
   };
 
   const userInitials = auth.user?.fullName
-    ? auth.user.fullName.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
+    ? auth.user.fullName
+        .split(' ')
+        .map((n) => n[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2)
     : 'ME';
 
   return (
@@ -277,14 +282,16 @@ function ChatWidget() {
                   <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
                     {auth.authenticate
                       ? `Welcome back, ${auth.user?.fullName?.split(' ')[0] || 'there'}! How can we help you today?`
-                      : 'How can we help you today? Send us a message and we\'ll get back to you shortly.'}
+                      : "How can we help you today? Send us a message and we'll get back to you shortly."}
                   </p>
                 </div>
               </div>
             ) : (
               messages.map((msg, i) => {
                 const own = isOwnMessage(msg);
-                const avatarUrl = !own ? msg.sender?.userId?.profilePicture : auth.user?.profilePicture;
+                const avatarUrl = !own
+                  ? msg.sender?.userId?.profilePicture
+                  : auth.user?.profilePicture;
                 const isAdmin = msg.sender?.role === 'admin';
 
                 return (
@@ -296,7 +303,11 @@ function ChatWidget() {
                     {!own && (
                       <div className="h-7 w-7 rounded-full bg-primary flex items-center justify-center shrink-0 overflow-hidden">
                         {avatarUrl ? (
-                          <img src={avatarUrl} alt="Support" className="h-full w-full object-cover" />
+                          <img
+                            src={avatarUrl}
+                            alt="Support"
+                            className="h-full w-full object-cover"
+                          />
                         ) : (
                           <span className="text-[9px] font-bold text-primary-foreground">
                             {isAdmin ? 'A' : 'G'}
@@ -332,7 +343,11 @@ function ChatWidget() {
                     {own && (
                       <div className="h-7 w-7 rounded-full bg-primary/20 flex items-center justify-center shrink-0 overflow-hidden">
                         {auth.user?.profilePicture ? (
-                          <img src={auth.user.profilePicture} alt="You" className="h-full w-full object-cover" />
+                          <img
+                            src={auth.user.profilePicture}
+                            alt="You"
+                            className="h-full w-full object-cover"
+                          />
                         ) : (
                           <span className="text-[9px] font-bold text-primary">{userInitials}</span>
                         )}
