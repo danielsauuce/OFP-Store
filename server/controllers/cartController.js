@@ -1,5 +1,6 @@
 import Cart from '../models/cart.js';
 import Product from '../models/product.js';
+import Media from '../models/media.js';
 import logger from '../utils/logger.js';
 import { addItem, updateItem } from '../utils/cartValidation.js';
 
@@ -111,13 +112,22 @@ export const addToCart = async (req, res) => {
       if (quantity > availableStock) {
         return res.status(400).json({ success: false, message: 'Insufficient stock' });
       }
+      // Resolve the actual image URL for snapshot (not just the ObjectId)
+      let imageSnapshot = null;
+      if (product.primaryImage) {
+        const media = await Media.findById(product.primaryImage)
+          .select('secureUrl url')
+          .lean();
+        imageSnapshot = media?.secureUrl || media?.url || null;
+      }
+
       cart.items.push({
         product: productId,
         variantSku,
         quantity,
         priceSnapshot: itemPrice,
         nameSnapshot: product.name,
-        imageSnapshot: product.primaryImage?.toString() || null,
+        imageSnapshot,
       });
     }
 

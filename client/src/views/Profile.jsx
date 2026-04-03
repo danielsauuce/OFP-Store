@@ -1,5 +1,5 @@
 import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import {
   User,
   Camera,
@@ -52,12 +52,23 @@ const orderStatusStyles = {
   cancelled: 'bg-destructive/20 text-destructive',
 };
 
+const VALID_TABS = TABS.map((t) => t.key);
+
 const Profile = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { auth, signOut, setAuth } = useAuth();
   const { wishlist, loading: wishlistLoading, removeFromWishlist } = useWishlist();
 
-  const [activeTab, setActiveTab] = useState('profile');
+  const rawTab = searchParams.get('tab');
+  const activeTab = VALID_TABS.includes(rawTab) ? rawTab : 'profile';
+
+  const setActiveTab = useCallback(
+    (tab) => {
+      setSearchParams(tab === 'profile' ? {} : { tab }, { replace: true });
+    },
+    [setSearchParams],
+  );
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
