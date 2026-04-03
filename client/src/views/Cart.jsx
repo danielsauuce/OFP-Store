@@ -19,10 +19,8 @@ const Cart = () => {
     }
   }, [auth.authenticate, cart, fetchCart]);
 
-  // Helper to get image URL from populated product or snapshot
-  const getItemImage = (item) => {
-    return item.product?.primaryImage?.secureUrl || item.imageSnapshot || '';
-  };
+  // Image URL is always resolved server-side and returned in imageSnapshot
+  const getItemImage = (item) => item.imageSnapshot || '';
 
   const getItemName = (item) => {
     return item.product?.name || item.nameSnapshot || 'Product';
@@ -115,12 +113,18 @@ const Cart = () => {
                 >
                   <div className="p-6 flex gap-6">
                     {/* Image */}
-                    <div className="w-32 h-32 shrink-0 rounded-lg overflow-hidden">
-                      <img
-                        src={getItemImage(item)}
-                        alt={getItemName(item)}
-                        className="w-full h-full object-cover"
-                      />
+                    <div className="w-32 h-32 shrink-0 rounded-lg overflow-hidden bg-muted flex items-center justify-center">
+                      {getItemImage(item) ? (
+                        <img
+                          src={getItemImage(item)}
+                          alt={getItemName(item)}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-xs text-muted-foreground text-center px-2">
+                          {getItemName(item)}
+                        </span>
+                      )}
                     </div>
 
                     {/* Details */}

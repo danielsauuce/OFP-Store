@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import Cart from '../models/cart.js';
 import Product from '../models/product.js';
 import Media from '../models/media.js';
@@ -9,6 +10,26 @@ const computeCartTotal = (items) => {
   return items.reduce((sum, item) => sum + (item.priceSnapshot || 0) * item.quantity, 0);
 };
 
+// Resolve an image URL from a populated primaryImage field or a raw ObjectId/string.
+const resolveImageUrl = async (primaryImage) => {
+  if (!primaryImage) return null;
+  // Already populated as a Media doc
+  if (typeof primaryImage === 'object' && (primaryImage.secureUrl || primaryImage.url)) {
+    return primaryImage.secureUrl || primaryImage.url;
+  }
+  // Raw ObjectId — fetch the Media doc
+  const id = primaryImage._id?.toString() || primaryImage.toString();
+  if (mongoose.Types.ObjectId.isValid(id)) {
+    const media = await Media.findById(id).select('secureUrl url').lean();
+    return media?.secureUrl || media?.url || null;
+  }
+  // Legacy plain URL string stored directly
+  if (typeof primaryImage === 'string' && primaryImage.startsWith('http')) {
+    return primaryImage;
+  }
+  return null;
+};
+
 export const getCart = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -17,10 +38,7 @@ export const getCart = async (req, res) => {
       .populate({
         path: 'items.product',
         select: 'name slug primaryImage variants',
-        populate: {
-          path: 'primaryImage',
-          select: 'secureUrl publicId url',
-        },
+        populate: { path: 'primaryImage', select: 'secureUrl publicId url' },
       })
       .lean();
 
@@ -28,20 +46,62 @@ export const getCart = async (req, res) => {
       cart = await Cart.create({ user: userId, items: [] });
       return res.status(200).json({
         success: true,
-        cart: {
-          _id: cart._id,
-          items: [],
-          total: 0,
-        },
+        cart: { _id: cart._id, items: [], total: 0 },
       });
+    }
+
+    // Resolve a guaranteed image URL for every item from the backend.
+    // If the stored imageSnapshot is missing/stale, derive it from the
+    // populated product.primaryImage (or fetch the Media doc directly).
+    // Also back-fill imageSnapshot in the DB so future requests are instant.
+    const snapshotsToFix = []; // { productId, imageUrl }
+
+    const resolvedItems = await Promise.all(
+      cart.items.map(async (item) => {
+        // 1. Try the populated product image (most authoritative source)
+        let imageUrl = await resolveImageUrl(item.product?.primaryImage);
+
+        // 2. Fall back to the stored snapshot if resolution failed
+        if (!imageUrl && item.imageSnapshot) {
+          imageUrl = item.imageSnapshot;
+        }
+
+        // 3. Queue a DB fix if the snapshot was missing or empty
+        if (imageUrl && !item.imageSnapshot) {
+          snapshotsToFix.push({
+            productId: (item.product?._id || item.product).toString(),
+            imageUrl,
+          });
+        }
+
+        return { ...item, imageSnapshot: imageUrl || '' };
+      }),
+    );
+
+    // Best-effort: patch stale imageSnapshots in the background
+    if (snapshotsToFix.length > 0) {
+      Cart.findOne({ user: userId })
+        .then((cartDoc) => {
+          if (!cartDoc) return;
+          let dirty = false;
+          for (const { productId, imageUrl } of snapshotsToFix) {
+            const itemDoc = cartDoc.items.find((i) => i.product.toString() === productId);
+            if (itemDoc && !itemDoc.imageSnapshot) {
+              itemDoc.imageSnapshot = imageUrl;
+              dirty = true;
+            }
+          }
+          if (dirty) cartDoc.save().catch(() => {});
+        })
+        .catch(() => {});
     }
 
     res.status(200).json({
       success: true,
       cart: {
         _id: cart._id,
-        items: cart.items,
-        total: computeCartTotal(cart.items),
+        items: resolvedItems,
+        total: computeCartTotal(resolvedItems),
       },
     });
   } catch (error) {
