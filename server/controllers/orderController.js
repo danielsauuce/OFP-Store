@@ -1,6 +1,7 @@
 import Order from '../models/order.js';
 import Cart from '../models/cart.js';
 import Product from '../models/product.js';
+import Media from '../models/media.js';
 import Payment from '../models/payment.js';
 import Notification from '../models/notification.js';
 import logger from '../utils/logger.js';
@@ -37,8 +38,14 @@ export const createOrder = async (req, res) => {
 
       let itemPrice = product.price;
       let nameSnapshot = product.name;
-      let imageSnapshot = product.primaryImage?.toString() || null;
       let variantStock = product.stockQuantity;
+
+      // Resolve image URL for snapshot (store URL, not ObjectId)
+      let imageSnapshot = null;
+      if (product.primaryImage) {
+        const media = await Media.findById(product.primaryImage).select('secureUrl url').lean();
+        imageSnapshot = media?.secureUrl || media?.url || null;
+      }
 
       // Handle variants
       if (product.variants?.length > 0) {
@@ -87,8 +94,10 @@ export const createOrder = async (req, res) => {
       subtotal += itemPrice * cartItem.quantity;
     }
 
-    // Calculate total (subtotal + shipping)
-    const shippingCost = 0; // ← you can implement real shipping logic here later
+    // Calculate shipping server-side — free above £500, £50 otherwise
+    const FREE_SHIPPING_THRESHOLD = 500;
+    const STANDARD_SHIPPING_COST = 50;
+    const shippingCost = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : STANDARD_SHIPPING_COST;
     const total = subtotal + shippingCost;
 
     // Create the order
