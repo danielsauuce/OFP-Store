@@ -23,7 +23,10 @@ import {
   updateProductService,
   deleteProductService,
 } from '../../services/adminService';
-import { getAllCategoriesAdminService } from '../../services/categoryService';
+import {
+  getAllCategoriesAdminService,
+  createCategoryService,
+} from '../../services/categoryService';
 import { uploadImageService } from '../../services/uploadService';
 
 const PRODUCTS_PER_PAGE = 12;
@@ -61,6 +64,9 @@ const Products = () => {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState(EMPTY_FORM);
+  const [showNewCat, setShowNewCat] = useState(false);
+  const [newCatName, setNewCatName] = useState('');
+  const [creatingCat, setCreatingCat] = useState(false);
   const [imageFile, setImageFile] = useState(null);
   const previewImgRef = useRef(null);
 
@@ -329,6 +335,26 @@ const Products = () => {
   // Products are already filtered server-side by search query
   const filteredProducts = products;
 
+  const handleCreateCategory = async () => {
+    const name = newCatName.trim();
+    if (!name) return;
+    setCreatingCat(true);
+    try {
+      const data = await createCategoryService({ name });
+      if (data?.success && data.category) {
+        setCategories((prev) => [...prev, data.category]);
+        setFormData((prev) => ({ ...prev, category: data.category._id }));
+        setNewCatName('');
+        setShowNewCat(false);
+        toast.success(`Category "${name}" created`);
+      }
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Failed to create category');
+    } finally {
+      setCreatingCat(false);
+    }
+  };
+
   const FieldLabel = ({ children }) => (
     <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
       {children}
@@ -373,20 +399,70 @@ const Products = () => {
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <FieldLabel>Category *</FieldLabel>
-          <select
-            name="category"
-            value={formData.category}
-            onChange={handleInputChange}
-            className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
-          >
-            <option value="">Select category</option>
-            {categories.map((cat) => (
-              <option key={cat._id} value={cat._id}>
-                {cat.name}
-              </option>
-            ))}
-          </select>
+          <div className="flex items-center justify-between mb-1">
+            <FieldLabel>Category *</FieldLabel>
+            {!showNewCat && (
+              <button
+                type="button"
+                onClick={() => setShowNewCat(true)}
+                className="text-[11px] text-primary hover:underline flex items-center gap-0.5"
+              >
+                <Plus className="h-3 w-3" />
+                New
+              </button>
+            )}
+          </div>
+          {showNewCat ? (
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={newCatName}
+                onChange={(e) => setNewCatName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleCreateCategory();
+                  if (e.key === 'Escape') {
+                    setShowNewCat(false);
+                    setNewCatName('');
+                  }
+                }}
+                placeholder="Category name…"
+                className="flex-1 px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+                autoFocus
+              />
+              <button
+                type="button"
+                onClick={handleCreateCategory}
+                disabled={creatingCat || !newCatName.trim()}
+                className="px-3 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-medium disabled:opacity-60 flex items-center gap-1"
+              >
+                {creatingCat ? <Loader className="h-3.5 w-3.5 animate-spin" /> : 'Add'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowNewCat(false);
+                  setNewCatName('');
+                }}
+                className="px-3 py-2 rounded-lg border border-border text-foreground text-xs font-medium hover:bg-muted transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <select
+              name="category"
+              value={formData.category}
+              onChange={handleInputChange}
+              className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+            >
+              <option value="">Select category</option>
+              {categories.map((cat) => (
+                <option key={cat._id} value={cat._id}>
+                  {cat.name}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
         <div>
           <FieldLabel>Stock Quantity</FieldLabel>

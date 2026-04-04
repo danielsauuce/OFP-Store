@@ -1,6 +1,5 @@
 import Review from '../models/review.js';
 import Product from '../models/product.js';
-import Order from '../models/order.js';
 import logger from '../utils/logger.js';
 import {
   createReview as createReviewValidation,
@@ -67,7 +66,7 @@ export const getProductReviews = async (req, res) => {
   }
 };
 
-// Authenticated: Create a new review (only if user purchased the product)
+// Authenticated: Create a new review
 export const createReview = async (req, res) => {
   try {
     const { error } = createReviewValidation.validate(req.body);
@@ -87,19 +86,6 @@ export const createReview = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Product not found' });
     }
 
-    const hasPurchased = await Order.exists({
-      user: userId,
-      'items.product': productId,
-      orderStatus: { $in: ['delivered'] },
-      paymentStatus: { $in: ['paid', 'pending'] },
-    });
-
-    if (!hasPurchased) {
-      return res
-        .status(403)
-        .json({ success: false, message: 'You can only review products you have purchased' });
-    }
-
     const existingReview = await Review.findOne({ product: productId, user: userId });
     if (existingReview) {
       return res
@@ -112,7 +98,7 @@ export const createReview = async (req, res) => {
       user: userId,
       rating,
       content,
-      isVerifiedPurchase: !!hasPurchased,
+      isVerifiedPurchase: false,
       isApproved: false,
     });
 

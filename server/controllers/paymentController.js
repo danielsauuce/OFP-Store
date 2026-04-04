@@ -65,6 +65,33 @@ export const createPaymentIntentController = async (req, res) => {
   }
 };
 
+// Called by client immediately after confirmPayment() returns 'succeeded'
+// Ensures Payment + Order are marked paid even without a working webhook (e.g. local dev)
+export const confirmPaymentSuccess = async (req, res) => {
+  try {
+    const { stripePaymentIntentId } = req.body;
+    if (!stripePaymentIntentId) {
+      return res.status(400).json({ success: false, message: 'stripePaymentIntentId is required' });
+    }
+
+    const intent = await retrievePaymentIntent(stripePaymentIntentId);
+    if (!intent || intent.status !== 'succeeded') {
+      return res.status(400).json({ success: false, message: 'Payment not confirmed by Stripe' });
+    }
+
+    const { orderId } = intent.metadata || {};
+    await Promise.all([
+      Payment.findOneAndUpdate({ stripePaymentIntentId: intent.id }, { status: 'succeeded' }),
+      orderId ? Order.findOneAndUpdate({ _id: orderId }, { paymentStatus: 'paid' }) : null,
+    ]);
+
+    res.status(200).json({ success: true });
+  } catch (error) {
+    logger.error('Confirm payment success error', { error: error.message });
+    res.status(500).json({ success: false, message: 'Failed to confirm payment' });
+  }
+};
+
 export const stripeWebhook = async (req, res) => {
   const sig = req.headers['stripe-signature'];
 

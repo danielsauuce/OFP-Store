@@ -66,21 +66,17 @@ const CollectionGrid = () => {
           ? prodRes.value.data?.products || []
           : [];
 
-      const dbCatIds = new Set(dbCats.map((c) => c._id?.toString()));
-      const extraCats = [];
-      const seen = new Set();
+      // Merge DB categories + categories derived from products, deduplicated by _id
+      const catsMap = new Map();
+      for (const c of dbCats) catsMap.set(c._id.toString(), c);
       for (const p of products) {
         const cat = p.category;
-        if (cat && typeof cat === 'object' && cat._id && cat.name && cat.slug) {
-          const id = cat._id.toString();
-          if (!dbCatIds.has(id) && !seen.has(id)) {
-            seen.add(id);
-            extraCats.push(cat);
-          }
+        if (cat && typeof cat === 'object' && cat._id && cat.name) {
+          catsMap.set(cat._id.toString(), cat);
         }
       }
 
-      setCategories([...dbCats, ...extraCats].slice(0, 5));
+      setCategories([...catsMap.values()].slice(0, 5));
     };
     load();
   }, []);

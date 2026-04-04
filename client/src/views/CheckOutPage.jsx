@@ -41,6 +41,7 @@ const Checkout = () => {
   const [submitting, setSubmitting] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [orderNumber, setOrderNumber] = useState('');
+  const [orderItems, setOrderItems] = useState([]);
   const [stripeClientSecret, setStripeClientSecret] = useState(null);
   const [pendingOrderTotal, setPendingOrderTotal] = useState(0);
   const [pendingOrderId, setPendingOrderId] = useState(null);
@@ -206,6 +207,7 @@ const Checkout = () => {
       if (data?.success) {
         const orderId = data.order._id;
         setOrderNumber(data.order.orderNumber);
+        setOrderItems([...(cart.items || [])]);
         setPendingOrderId(orderId);
 
         if (paymentMethod === 'card') {
@@ -317,7 +319,15 @@ const Checkout = () => {
   }
 
   if (orderPlaced) {
-    return <OrderConfirmation orderNumber={orderNumber} />;
+    return (
+      <OrderConfirmation
+        orderNumber={orderNumber}
+        shippingAddress={formData}
+        items={orderItems}
+        subtotal={subtotal}
+        paymentMethod={paymentMethod}
+      />
+    );
   }
 
   return (

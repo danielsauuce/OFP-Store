@@ -2,8 +2,7 @@ import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Loader } from 'lucide-react';
 import ProductCard from './ProductCard';
-import { getAllProductsService, getProductsByCategoryService } from '../services/productService';
-import { getAllCategoriesService } from '../services/categoryService';
+import { getAllProductsService } from '../services/productService';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
@@ -40,40 +39,49 @@ function CategoryTab({ label, active, onClick }) {
 }
 
 const Features = () => {
+  const [allProducts, setAllProducts] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [activeSlug, setActiveSlug] = useState(null); // null = All
-  const [products, setProducts] = useState([]);
+  const [activeCatId, setActiveCatId] = useState(null); // null = All
   const [loading, setLoading] = useState(true);
   const sectionRef = useRef(null);
   const gridRef = useRef(null);
 
-  // Fetch categories once
-  useEffect(() => {
-    getAllCategoriesService()
-      .then((data) => {
-        if (data?.success) setCategories(data.categories || []);
-      })
-      .catch(() => {});
-  }, []);
-
-  // Fetch products when active category changes
+  // Fetch all products once and derive categories from them
   useEffect(() => {
     setLoading(true);
-    const fetch = activeSlug
-      ? getProductsByCategoryService(activeSlug, { limit: 6 })
-      : getAllProductsService({ limit: 6, isFeatured: true });
-
-    fetch
+    getAllProductsService({ limit: 50 })
       .then((data) => {
         if (data?.success) {
-          setProducts(data.data?.products || data.products || []);
+          const products = data.data?.products || data.products || [];
+          setAllProducts(products);
+
+          // Extract unique populated category objects from products
+          const seen = new Set();
+          const cats = [];
+          for (const p of products) {
+            const cat = p.category;
+            if (cat && typeof cat === 'object' && cat._id && cat.name) {
+              const id = cat._id.toString();
+              if (!seen.has(id)) {
+                seen.add(id);
+                cats.push(cat);
+              }
+            }
+          }
+          setCategories(cats);
         }
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [activeSlug]);
+  }, []);
 
-  // Fade grid in on product change
+  // Derived: products to display for the active tab (first 6)
+  const displayProducts =
+    activeCatId === null
+      ? allProducts.slice(0, 6)
+      : allProducts.filter((p) => p.category?._id?.toString() === activeCatId).slice(0, 6);
+
+  // Fade grid in when products change
   useEffect(() => {
     if (!loading && gridRef.current) {
       gsap.fromTo(
@@ -82,7 +90,7 @@ const Features = () => {
         { opacity: 1, y: 0, duration: 0.5, ease: 'power3.out' },
       );
     }
-  }, [loading, products]);
+  }, [loading, activeCatId]);
 
   // Scroll entrance for section header (once on mount)
   useLayoutEffect(() => {
@@ -103,7 +111,7 @@ const Features = () => {
     return () => ctx.revert();
   }, []);
 
-  // Animate tabs in once categories have loaded (element exists by then)
+  // Animate tabs in once categories have loaded
   const tabsAnimated = useRef(false);
   useEffect(() => {
     if (categories.length === 0 || tabsAnimated.current || window.Cypress) return;
@@ -127,15 +135,15 @@ const Features = () => {
           <div className="features-tabs flex flex-wrap justify-center gap-2 mb-10">
             <CategoryTab
               label="All"
-              active={activeSlug === null}
-              onClick={() => setActiveSlug(null)}
+              active={activeCatId === null}
+              onClick={() => setActiveCatId(null)}
             />
             {categories.map((cat) => (
               <CategoryTab
                 key={cat._id}
                 label={cat.name}
-                active={activeSlug === cat.slug}
-                onClick={() => setActiveSlug(cat.slug)}
+                active={activeCatId === cat._id.toString()}
+                onClick={() => setActiveCatId(cat._id.toString())}
               />
             ))}
           </div>
@@ -147,13 +155,13 @@ const Features = () => {
             <div className="flex items-center justify-center py-20">
               <Loader className="h-7 w-7 animate-spin text-primary" />
             </div>
-          ) : products.length === 0 ? (
+          ) : displayProducts.length === 0 ? (
             <p className="text-center text-muted-foreground py-16">
               No products found in this category.
             </p>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {products.map((product) => (
+              {displayProducts.map((product) => (
                 <ProductCard key={product._id || product.id} product={product} />
               ))}
             </div>

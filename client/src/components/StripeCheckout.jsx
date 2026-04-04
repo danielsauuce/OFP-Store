@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
-import { Loader, ShieldCheck, CreditCard, Lock } from 'lucide-react';
+import { Loader, ShieldCheck, CreditCard, Lock, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { confirmPaymentSuccessService } from '../services/paymentService';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
@@ -35,15 +36,32 @@ function PaymentForm({ onSuccess, total, billingCountry, billingPostalCode }) {
       });
 
       if (error) {
-        toast.error(error.message || 'Payment failed. Please try again.');
+        if (error.code === 'card_declined') {
+          toast.error('Card declined. Please check your card details or use a different card.');
+        } else if (error.code === 'insufficient_funds') {
+          toast.error('Insufficient funds. Please use a different card.');
+        } else if (error.code === 'expired_card') {
+          toast.error('Your card has expired. Please use a different card.');
+        } else {
+          toast.error(error.message || 'Payment failed. Please try again.');
+        }
       } else if (paymentIntent && paymentIntent.status === 'succeeded') {
+        // Confirm server-side immediately (in case webhook hasn't fired yet)
+        await confirmPaymentSuccessService(paymentIntent.id);
         toast.success('Payment successful!');
         onSuccess();
       } else if (paymentIntent && paymentIntent.status === 'processing') {
         toast('Payment is processing. You will be notified when it completes.', { icon: '⏳' });
+        onSuccess();
+      } else if (paymentIntent && paymentIntent.status === 'requires_action') {
+        toast('Additional authentication required. Please follow the prompts.', { icon: '🔐' });
       }
-    } catch {
-      toast.error('An unexpected error occurred. Please try again.');
+    } catch (err) {
+      if (err?.name === 'AbortError' || err?.message?.includes('network')) {
+        toast.error('Network error. Please check your connection and try again.');
+      } else {
+        toast.error('An unexpected error occurred. Please try again.');
+      }
     } finally {
       setProcessing(false);
     }

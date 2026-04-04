@@ -5,7 +5,11 @@ import logger from '../utils/logger.js';
 export const getConversations = async (req, res) => {
   try {
     const conversations = await Conversation.find()
-      .populate('userId', 'fullName email profilePicture')
+      .populate({
+        path: 'userId',
+        select: 'fullName email profilePicture',
+        populate: { path: 'profilePicture', select: 'secureUrl publicId url' },
+      })
       .populate('adminId', 'fullName')
       .sort({ lastMessageAt: -1, createdAt: -1 })
       .lean();
@@ -32,7 +36,11 @@ export const getMessages = async (req, res) => {
 
     const [messages, total] = await Promise.all([
       ChatMessage.find({ conversationId })
-        .populate('sender.userId', 'fullName email')
+        .populate({
+          path: 'sender.userId',
+          select: 'fullName email profilePicture',
+          populate: { path: 'profilePicture', select: 'secureUrl publicId url' },
+        })
         .sort({ createdAt: 1 })
         .skip(skip)
         .limit(limit)
@@ -73,7 +81,11 @@ export const createOrGetConversation = async (req, res) => {
     );
 
     const messages = await ChatMessage.find({ conversationId })
-      .populate('sender.userId', 'fullName email')
+      .populate({
+        path: 'sender.userId',
+        select: 'fullName email profilePicture',
+        populate: { path: 'profilePicture', select: 'secureUrl publicId url' },
+      })
       .sort({ createdAt: 1 })
       .limit(50)
       .lean();

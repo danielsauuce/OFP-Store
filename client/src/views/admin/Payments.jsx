@@ -8,7 +8,21 @@ import {
   Clock,
   RotateCcw,
   Banknote,
+  RefreshCw,
 } from 'lucide-react';
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
+} from 'recharts';
 import { getPaymentStatsService } from '../../services/adminService';
 
 const STATUS_CONFIG = {
@@ -18,6 +32,7 @@ const STATUS_CONFIG = {
     bg: 'bg-emerald-500/10',
     text: 'text-emerald-600 dark:text-emerald-400',
     dot: 'bg-emerald-500',
+    color: '#22c55e',
   },
   pending: {
     label: 'Pending',
@@ -25,6 +40,7 @@ const STATUS_CONFIG = {
     bg: 'bg-amber-500/10',
     text: 'text-amber-600 dark:text-amber-400',
     dot: 'bg-amber-500',
+    color: '#f59e0b',
   },
   failed: {
     label: 'Failed',
@@ -32,6 +48,7 @@ const STATUS_CONFIG = {
     bg: 'bg-destructive/10',
     text: 'text-destructive',
     dot: 'bg-destructive',
+    color: '#ef4444',
   },
   refunded: {
     label: 'Refunded',
@@ -39,6 +56,7 @@ const STATUS_CONFIG = {
     bg: 'bg-muted',
     text: 'text-muted-foreground',
     dot: 'bg-muted-foreground',
+    color: '#94a3b8',
   },
 };
 
@@ -64,15 +82,29 @@ function StatCard({ title, value, sub, icon: Icon, colorClass }) {
   );
 }
 
+const CustomTooltip = ({ active, payload, label }) => {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="bg-card border border-border rounded-lg p-3 shadow-lg text-sm">
+      <p className="font-medium text-foreground mb-1">{label}</p>
+      {payload.map((p) => (
+        <p key={p.name} style={{ color: p.color }}>
+          {p.name === 'revenue' ? `£${Number(p.value).toFixed(2)}` : p.value}{' '}
+          {p.name === 'count' ? 'payments' : ''}
+        </p>
+      ))}
+    </div>
+  );
+};
+
 function Payments() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    fetchStats();
-  }, []);
-
-  const fetchStats = async () => {
+  const load = async (isRefresh = false) => {
+    if (isRefresh) setRefreshing(true);
+    else setLoading(true);
     try {
       const data = await getPaymentStatsService();
       if (data?.success) setStats(data.stats);
@@ -80,8 +112,13 @@ function Payments() {
       // stats remain null
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
+
+  useEffect(() => {
+    load();
+  }, []);
 
   if (loading) {
     return (
@@ -96,6 +133,9 @@ function Payments() {
       <div className="flex flex-col items-center justify-center h-48 gap-2 text-center">
         <CreditCard className="h-10 w-10 text-muted-foreground opacity-30" />
         <p className="text-muted-foreground">Failed to load payment data</p>
+        <button onClick={() => load()} className="text-sm text-primary hover:underline mt-1">
+          Try again
+        </button>
       </div>
     );
   }
@@ -105,20 +145,46 @@ function Payments() {
   const failedCount = stats.statusBreakdown?.failed?.count || 0;
   const refundedCount = stats.statusBreakdown?.refunded?.count || 0;
 
+  // Pie chart data
+  const pieData = Object.entries(STATUS_CONFIG)
+    .map(([status, cfg]) => ({
+      name: cfg.label,
+      value: stats.statusBreakdown?.[status]?.count || 0,
+      color: cfg.color,
+    }))
+    .filter((d) => d.value > 0);
+
+  // Area chart data — fill gaps in daily revenue with 0
+  const areaData = (stats.dailyRevenue || []).map((d) => ({
+    date: new Date(d._id).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
+    revenue: d.revenue,
+    count: d.count,
+  }));
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold font-serif text-foreground">Payments</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">Overview of all transactions</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold font-serif text-foreground">Payments</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">Overview of all transactions</p>
+        </div>
+        <button
+          onClick={() => load(true)}
+          disabled={refreshing}
+          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5 rounded-lg border border-border hover:bg-muted"
+        >
+          <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+          Refresh
+        </button>
       </div>
 
-      {/* Top stats */}
+      {/* Stat cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           title="Total Revenue"
-          value={`£${(stats.totalRevenue / 100).toFixed(2)}`}
-          sub={`${succeededCount} successful payments`}
+          value={`£${stats.totalRevenue.toFixed(2)}`}
+          sub={`${succeededCount} successful`}
           icon={TrendingUp}
           colorClass="text-primary"
         />
@@ -143,15 +209,102 @@ function Payments() {
         />
       </div>
 
+      {/* Charts row */}
+      <div className="grid lg:grid-cols-3 gap-6">
+        {/* Revenue area chart */}
+        <div className="lg:col-span-2 bg-card border border-border rounded-xl p-5 shadow-sm">
+          <h2 className="text-sm font-semibold text-foreground mb-4">Revenue (Last 30 Days)</h2>
+          {areaData.length === 0 ? (
+            <div className="flex items-center justify-center h-40 text-sm text-muted-foreground">
+              No revenue data yet
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height={200}>
+              <AreaChart data={areaData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#7c5c40" stopOpacity={0.2} />
+                    <stop offset="95%" stopColor="#7c5c40" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis
+                  dataKey="date"
+                  tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                  tickLine={false}
+                />
+                <YAxis
+                  tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                  tickLine={false}
+                  axisLine={false}
+                  tickFormatter={(v) => `£${v}`}
+                />
+                <Tooltip content={<CustomTooltip />} />
+                <Area
+                  type="monotone"
+                  dataKey="revenue"
+                  stroke="#7c5c40"
+                  strokeWidth={2}
+                  fill="url(#revenueGrad)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+
+        {/* Status pie chart */}
+        <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
+          <h2 className="text-sm font-semibold text-foreground mb-4">Payment Status</h2>
+          {pieData.length === 0 ? (
+            <div className="flex items-center justify-center h-40 text-sm text-muted-foreground">
+              No data yet
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height={200}>
+              <PieChart>
+                <Pie
+                  data={pieData}
+                  cx="50%"
+                  cy="45%"
+                  innerRadius={50}
+                  outerRadius={75}
+                  paddingAngle={3}
+                  dataKey="value"
+                >
+                  {pieData.map((entry) => (
+                    <Cell key={entry.name} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Legend
+                  iconType="circle"
+                  iconSize={8}
+                  formatter={(value) => (
+                    <span style={{ fontSize: 11, color: 'hsl(var(--foreground))' }}>{value}</span>
+                  )}
+                />
+                <Tooltip
+                  formatter={(value, name) => [value, name]}
+                  contentStyle={{
+                    background: 'hsl(var(--card))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: 8,
+                    fontSize: 12,
+                  }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+      </div>
+
+      {/* Method + status breakdown */}
       <div className="grid lg:grid-cols-2 gap-6">
-        {/* Status breakdown */}
         <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
           <h2 className="text-sm font-semibold text-foreground mb-4">By Status</h2>
           <div className="space-y-3">
             {Object.entries(STATUS_CONFIG).map(([status, cfg]) => {
               const d = stats.statusBreakdown?.[status];
               if (!d) return null;
-              const Icon = cfg.icon;
               return (
                 <div key={status} className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -161,7 +314,7 @@ function Payments() {
                   <div className="flex items-center gap-4">
                     <span className="text-xs text-muted-foreground">{d.count} payments</span>
                     <span className="text-sm font-semibold text-foreground tabular-nums">
-                      £{(d.total / 100).toFixed(2)}
+                      £{d.total.toFixed(2)}
                     </span>
                   </div>
                 </div>
@@ -170,11 +323,10 @@ function Payments() {
           </div>
         </div>
 
-        {/* Revenue by method */}
         <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
           <h2 className="text-sm font-semibold text-foreground mb-4">By Payment Method</h2>
           {Object.keys(stats.revenueByMethod || {}).length === 0 ? (
-            <p className="text-sm text-muted-foreground">No data yet</p>
+            <p className="text-sm text-muted-foreground">No succeeded payments yet</p>
           ) : (
             <div className="space-y-3">
               {Object.entries(stats.revenueByMethod).map(([method, d]) => (
@@ -192,7 +344,7 @@ function Payments() {
                   <div className="flex items-center gap-4">
                     <span className="text-xs text-muted-foreground">{d.count} payments</span>
                     <span className="text-sm font-semibold text-foreground tabular-nums">
-                      £{(d.total / 100).toFixed(2)}
+                      £{d.total.toFixed(2)}
                     </span>
                   </div>
                 </div>
@@ -202,12 +354,12 @@ function Payments() {
         </div>
       </div>
 
-      {/* Recent payments */}
+      {/* Recent payments table */}
       <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
         <div className="px-5 py-4 border-b border-border">
           <h2 className="text-sm font-semibold text-foreground">Recent Payments</h2>
         </div>
-        {stats.recentPayments?.length === 0 ? (
+        {!stats.recentPayments?.length ? (
           <div className="flex flex-col items-center justify-center py-12 gap-2 text-center">
             <CreditCard className="h-8 w-8 text-muted-foreground opacity-20" />
             <p className="text-sm text-muted-foreground">No payments yet</p>
@@ -217,24 +369,14 @@ function Payments() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/30">
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground">
-                    Customer
-                  </th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">
-                    Order
-                  </th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">
-                    Method
-                  </th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">
-                    Amount
-                  </th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">
-                    Status
-                  </th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">
-                    Date
-                  </th>
+                  {['Customer', 'Order', 'Method', 'Amount', 'Status', 'Date'].map((h) => (
+                    <th
+                      key={h}
+                      className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground"
+                    >
+                      {h}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
@@ -246,12 +388,10 @@ function Payments() {
                       className="border-b border-border/50 last:border-0 hover:bg-muted/20 transition-colors"
                     >
                       <td className="px-5 py-3.5">
-                        <div>
-                          <p className="font-medium text-foreground">
-                            {payment.user?.fullName || 'Unknown'}
-                          </p>
-                          <p className="text-xs text-muted-foreground">{payment.user?.email}</p>
-                        </div>
+                        <p className="font-medium text-foreground">
+                          {payment.user?.fullName || 'Unknown'}
+                        </p>
+                        <p className="text-xs text-muted-foreground">{payment.user?.email}</p>
                       </td>
                       <td className="px-4 py-3.5 text-muted-foreground">
                         {payment.order?.orderNumber || '—'}
@@ -267,7 +407,7 @@ function Payments() {
                         </span>
                       </td>
                       <td className="px-4 py-3.5 font-semibold text-foreground tabular-nums">
-                        £{(payment.amount / 100).toFixed(2)}
+                        £{payment.amount.toFixed(2)}
                       </td>
                       <td className="px-4 py-3.5">
                         <span
