@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useLayoutEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Loader } from 'lucide-react';
 import { getAllProductsService } from '../services/productService';
 import { getAllCategoriesService } from '../services/categoryService';
@@ -13,7 +14,15 @@ import LoadMoreButton from '../components/LoadMoreButton';
 
 gsap.registerPlugin(ScrollTrigger);
 
+// Convert a category name to its URL slug (matches server logic)
+const toSlug = (name) =>
+  name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+
 const Shop = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState(['All']);
   const [loading, setLoading] = useState(true);
@@ -21,6 +30,7 @@ const Shop = () => {
   const [priceRange, setPriceRange] = useState([0, 2000]);
   const [sortBy, setSortBy] = useState('newest');
   const [visibleCount, setVisibleCount] = useState(6);
+  const urlCategoryApplied = useRef(false);
 
   const pageRef = useRef(null);
   const sidebarRef = useRef(null);
@@ -63,6 +73,16 @@ const Shop = () => {
       setLoading(false);
     }
   };
+
+  // Apply ?category= URL param once categories are populated
+  useEffect(() => {
+    if (urlCategoryApplied.current || categories.length <= 1) return;
+    const param = searchParams.get('category');
+    if (!param) return;
+    urlCategoryApplied.current = true;
+    const match = categories.find((c) => toSlug(c) === param.toLowerCase());
+    if (match) setSelectedCategory(match);
+  }, [categories, searchParams]);
 
   // GSAP entrance animations
   useLayoutEffect(() => {
@@ -168,6 +188,12 @@ const Shop = () => {
               onChange={(cat) => {
                 setSelectedCategory(cat);
                 setVisibleCount(6);
+                urlCategoryApplied.current = true;
+                if (cat === 'All') {
+                  setSearchParams({});
+                } else {
+                  setSearchParams({ category: toSlug(cat) });
+                }
               }}
             />
 

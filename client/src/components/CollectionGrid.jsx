@@ -2,6 +2,7 @@ import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import { getAllCategoriesService } from '../services/categoryService';
+import { getAllProductsService } from '../services/productService';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
@@ -50,11 +51,38 @@ const CollectionGrid = () => {
   const sectionRef = useRef(null);
 
   useEffect(() => {
-    getAllCategoriesService()
-      .then((data) => {
-        if (data?.success) setCategories((data.categories || []).slice(0, 5));
-      })
-      .catch(() => {});
+    const load = async () => {
+      const [catRes, prodRes] = await Promise.allSettled([
+        getAllCategoriesService(),
+        getAllProductsService({ limit: 100 }),
+      ]);
+
+      const dbCats =
+        catRes.status === 'fulfilled' && catRes.value?.success ? catRes.value.categories || [] : [];
+
+      // Extract unique populated category objects from products
+      const products =
+        prodRes.status === 'fulfilled' && prodRes.value?.success
+          ? prodRes.value.data?.products || []
+          : [];
+
+      const dbCatIds = new Set(dbCats.map((c) => c._id?.toString()));
+      const extraCats = [];
+      const seen = new Set();
+      for (const p of products) {
+        const cat = p.category;
+        if (cat && typeof cat === 'object' && cat._id && cat.name && cat.slug) {
+          const id = cat._id.toString();
+          if (!dbCatIds.has(id) && !seen.has(id)) {
+            seen.add(id);
+            extraCats.push(cat);
+          }
+        }
+      }
+
+      setCategories([...dbCats, ...extraCats].slice(0, 5));
+    };
+    load();
   }, []);
 
   useLayoutEffect(() => {
