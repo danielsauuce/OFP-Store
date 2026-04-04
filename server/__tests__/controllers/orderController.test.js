@@ -24,6 +24,33 @@ jest.mock('../../models/payment.js', () => ({
   __esModule: true,
 }));
 
+jest.mock('../../models/media.js', () => ({
+  default: {
+    findById: jest.fn().mockReturnValue({
+      select: jest.fn().mockReturnValue({
+        lean: jest.fn().mockResolvedValue(null),
+      }),
+    }),
+  },
+  __esModule: true,
+}));
+
+jest.mock('../../models/notification.js', () => ({
+  default: { create: jest.fn().mockResolvedValue({}) },
+  __esModule: true,
+}));
+
+jest.mock('../../socket/notificationHandler.js', () => ({
+  emitNotification: jest.fn(),
+}));
+
+jest.mock('../../config/prometheus.js', () => ({
+  ordersTotal: { inc: jest.fn() },
+  httpRequestDuration: { startTimer: jest.fn(() => jest.fn()), observe: jest.fn() },
+  httpRequestsTotal: { inc: jest.fn() },
+  register: { contentType: 'text/plain', metrics: jest.fn().mockResolvedValue('') },
+}));
+
 jest.mock('../../utils/logger.js', () => ({
   default: { info: jest.fn(), error: jest.fn(), warn: jest.fn() },
   __esModule: true,

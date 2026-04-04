@@ -1194,12 +1194,12 @@ Update your own review. Send only the fields to change (`rating` and/or `content
 
 **Query parameters:**
 
-| Parameter   | Type                  | Description                           |
-| ----------- | --------------------- | ------------------------------------- |
-| `page`      | number                | Page (default: `1`)                   |
-| `limit`     | number                | Max `50` (default: `20`)              |
-| `approved`  | `"true"` \| `"false"` | Filter by approval status             |
-| `productId` | ObjectId string       | Filter by product (24-char hex only)  |
+| Parameter   | Type                  | Description                          |
+| ----------- | --------------------- | ------------------------------------ |
+| `page`      | number                | Page (default: `1`)                  |
+| `limit`     | number                | Max `50` (default: `20`)             |
+| `approved`  | `"true"` \| `"false"` | Filter by approval status            |
+| `productId` | ObjectId string       | Filter by product (24-char hex only) |
 
 **Success `200`:**
 
@@ -1229,7 +1229,9 @@ Update your own review. Send only the fields to change (`rating` and/or `content
 {
   "success": true,
   "message": "Review approved successfully",
-  "review": { /* updated review */ }
+  "review": {
+    /* updated review */
+  }
 }
 ```
 
@@ -1394,7 +1396,9 @@ Returns all conversations sorted by most recent activity, with each conversation
         "_id": "64a...",
         "fullName": "Ade Oluwaseun",
         "email": "ade@example.com",
-        "profilePicture": { /* media object or null */ }
+        "profilePicture": {
+          /* media object or null */
+        }
       },
       "adminId": { "_id": "...", "fullName": "Admin" },
       "status": "active",
@@ -1516,11 +1520,11 @@ Update a ticket's `status`, `priority`, or `assignedTo`. At least one field is r
 
 `"new"` → `"open"` → `"in_progress"` → `"resolved"` / `"closed"`
 
-| Status transition           | Trigger                                |
-| --------------------------- | -------------------------------------- |
-| `"new"` → `"open"`          | Customer replies to a new ticket       |
-| `"new"` → `"in_progress"`   | Admin replies to a new ticket          |
-| Any → `"resolved"/"closed"` | Admin explicitly sets via PATCH        |
+| Status transition           | Trigger                          |
+| --------------------------- | -------------------------------- |
+| `"new"` → `"open"`          | Customer replies to a new ticket |
+| `"new"` → `"in_progress"`   | Admin replies to a new ticket    |
+| Any → `"resolved"/"closed"` | Admin explicitly sets via PATCH  |
 
 ---
 

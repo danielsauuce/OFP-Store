@@ -10,7 +10,7 @@ jest.mock('../../models/user.js', () => ({
 }));
 
 jest.mock('../../models/order.js', () => ({
-  default: { find: jest.fn(), countDocuments: jest.fn() },
+  default: { find: jest.fn(), countDocuments: jest.fn(), aggregate: jest.fn() },
   __esModule: true,
 }));
 
@@ -21,6 +21,15 @@ jest.mock('../../models/product.js', () => ({
 
 jest.mock('../../models/media.js', () => ({
   default: { findByIdAndDelete: jest.fn() },
+  __esModule: true,
+}));
+
+jest.mock('../../models/payment.js', () => ({
+  default: {
+    find: jest.fn(),
+    findOne: jest.fn(),
+    aggregate: jest.fn(),
+  },
   __esModule: true,
 }));
 
@@ -383,6 +392,11 @@ describe('getDashboardStats', () => {
         }),
       }),
     });
+    // aggregate is called 3 times: revenueAgg, ordersByStatus, ordersLast30Days
+    mockOrder.aggregate
+      .mockResolvedValueOnce([{ _id: null, total: 10000 }]) // revenueAgg
+      .mockResolvedValueOnce([{ _id: 'pending', count: 5 }]) // ordersByStatus
+      .mockResolvedValueOnce([{ _id: '2026-01-01', orders: 3, revenue: 500 }]); // ordersLast30Days
 
     const req = mockReq();
     const res = mockRes();
@@ -394,11 +408,27 @@ describe('getDashboardStats', () => {
     expect(data.stats.totalUsers).toBe(50);
     expect(data.stats.totalOrders).toBe(120);
     expect(data.stats.totalProducts).toBe(35);
+    expect(data.stats.totalRevenue).toBe(10000);
     expect(data.stats.recentOrders).toHaveLength(1);
   });
 
   test('returns 500 on error', async () => {
-    mockUser.countDocuments.mockRejectedValue(new Error('DB error'));
+    // Reject via Order.aggregate to ensure Promise.all rejects and catch runs
+    mockUser.countDocuments.mockResolvedValue(0);
+    mockOrder.countDocuments.mockResolvedValue(0);
+    mockProduct.countDocuments.mockResolvedValue(0);
+    mockOrder.find.mockReturnValue({
+      sort: jest.fn().mockReturnValue({
+        limit: jest.fn().mockReturnValue({
+          populate: jest.fn().mockReturnValue({
+            select: jest.fn().mockReturnValue({
+              lean: jest.fn().mockResolvedValue([]),
+            }),
+          }),
+        }),
+      }),
+    });
+    mockOrder.aggregate.mockRejectedValue(new Error('DB error'));
 
     const req = mockReq();
     const res = mockRes();

@@ -72,17 +72,19 @@ jest.mock('../../config/sublyzerProxy.js', () => ({
   sublyzerProxy: jest.fn((_req, res) => res.status(200).json({ ok: true })),
 }));
 jest.mock('../../config/prometheus.js', () => ({
-  httpRequestDuration: { startTimer: jest.fn(() => jest.fn()) },
+  httpRequestDuration: { startTimer: jest.fn(() => jest.fn()), observe: jest.fn() },
   httpRequestsTotal: { inc: jest.fn() },
   register: { contentType: 'text/plain', metrics: jest.fn().mockResolvedValue('') },
 }));
 
 const mockCreatePaymentIntent = jest.fn();
 const mockConstructWebhookEvent = jest.fn();
+const mockRetrievePaymentIntent = jest.fn();
 
 jest.mock('../../services/stripeService.js', () => ({
   createPaymentIntent: (...args) => mockCreatePaymentIntent(...args),
   constructWebhookEvent: (...args) => mockConstructWebhookEvent(...args),
+  retrievePaymentIntent: (...args) => mockRetrievePaymentIntent(...args),
   __esModule: true,
 }));
 
@@ -167,6 +169,94 @@ describe('POST /api/payments/create-payment-intent', () => {
 });
 
 /* ═══════════════════════════════════════════════════════════ */
+describe('POST /api/payments/confirm-success', () => {
+  test('returns 401 without auth token', async () => {
+    const res = await request(app)
+      .post('/api/payments/confirm-success')
+      .send({ stripePaymentIntentId: 'pi_test123' });
+
+    expect(res.status).toBe(401);
+  });
+
+  test('returns 400 when stripePaymentIntentId is missing', async () => {
+    const res = await request(app)
+      .post('/api/payments/confirm-success')
+      .set('Authorization', authHeader(token))
+      .send({});
+
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+  });
+
+  test('returns 400 when Stripe reports payment not succeeded', async () => {
+    mockRetrievePaymentIntent.mockResolvedValue({ id: 'pi_test', status: 'processing' });
+
+    const res = await request(app)
+      .post('/api/payments/confirm-success')
+      .set('Authorization', authHeader(token))
+      .send({ stripePaymentIntentId: 'pi_test' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(res.body.message).toBe('Payment not confirmed by Stripe');
+  });
+
+  test('returns 400 when Stripe returns null intent', async () => {
+    mockRetrievePaymentIntent.mockResolvedValue(null);
+
+    const res = await request(app)
+      .post('/api/payments/confirm-success')
+      .set('Authorization', authHeader(token))
+      .send({ stripePaymentIntentId: 'pi_invalid' });
+
+    expect(res.status).toBe(400);
+  });
+
+  test('returns 200 and updates Payment and Order when Stripe confirms succeeded', async () => {
+    mockRetrievePaymentIntent.mockResolvedValue({
+      id: 'pi_success123',
+      status: 'succeeded',
+      metadata: { orderId: 'b'.repeat(24) },
+    });
+    Payment.findOneAndUpdate.mockResolvedValue({ status: 'succeeded' });
+    Order.findOneAndUpdate.mockResolvedValue({ paymentStatus: 'paid' });
+
+    const res = await request(app)
+      .post('/api/payments/confirm-success')
+      .set('Authorization', authHeader(token))
+      .send({ stripePaymentIntentId: 'pi_success123' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(Payment.findOneAndUpdate).toHaveBeenCalledWith(
+      { stripePaymentIntentId: 'pi_success123' },
+      { status: 'succeeded' },
+    );
+    expect(Order.findOneAndUpdate).toHaveBeenCalledWith(
+      { _id: 'b'.repeat(24) },
+      { paymentStatus: 'paid' },
+    );
+  });
+
+  test('still returns 200 when orderId is missing from metadata', async () => {
+    mockRetrievePaymentIntent.mockResolvedValue({
+      id: 'pi_nometa',
+      status: 'succeeded',
+      metadata: {},
+    });
+    Payment.findOneAndUpdate.mockResolvedValue({});
+
+    const res = await request(app)
+      .post('/api/payments/confirm-success')
+      .set('Authorization', authHeader(token))
+      .send({ stripePaymentIntentId: 'pi_nometa' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+  });
+});
+
+/* ═══════════════════════════════════════════════════════════ */
 describe('POST /api/payments/webhook', () => {
   test('handles payment_intent.succeeded and updates order paymentStatus to paid', async () => {
     const fakeEvent = {
@@ -208,6 +298,7 @@ describe('POST /api/payments/webhook', () => {
       .send(JSON.stringify({}));
 
     expect(res.status).toBe(400);
-    expect(res.body.success).toBe(false);
+    // Controller returns { error: 'invalid_webhook_signature' } on bad sig
+    expect(res.body.error).toBe('invalid_webhook_signature');
   });
 });

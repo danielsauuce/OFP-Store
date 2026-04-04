@@ -16,11 +16,6 @@ jest.mock('../../models/product.js', () => ({
   __esModule: true,
 }));
 
-jest.mock('../../models/order.js', () => ({
-  default: { exists: jest.fn() },
-  __esModule: true,
-}));
-
 jest.mock('../../utils/logger.js', () => ({
   default: { info: jest.fn(), error: jest.fn(), warn: jest.fn() },
   __esModule: true,
@@ -37,7 +32,6 @@ import {
 
 import Review from '../../models/review.js';
 import Product from '../../models/product.js';
-import Order from '../../models/order.js';
 
 // helpers
 const mockRes = () => {
@@ -109,7 +103,7 @@ describe('getProductReviews', () => {
   });
 });
 
-// create review
+// create review — any authenticated user can review (no purchase gate)
 describe('createReview', () => {
   beforeEach(() => jest.clearAllMocks());
 
@@ -138,26 +132,8 @@ describe('createReview', () => {
     );
   });
 
-  test('returns 403 when user has not purchased the product', async () => {
-    Product.findById.mockResolvedValue({ _id: validObjectId });
-    Order.exists.mockResolvedValue(null);
-
-    const req = mockReq({
-      body: { product: validObjectId, rating: 4, content: 'Good product for the price' },
-    });
-    const res = mockRes();
-
-    await createReview(req, res);
-
-    expect(res.status).toHaveBeenCalledWith(403);
-    expect(res.json).toHaveBeenCalledWith(
-      expect.objectContaining({ message: 'You can only review products you have purchased' }),
-    );
-  });
-
   test('returns 400 when user has already reviewed this product', async () => {
     Product.findById.mockResolvedValue({ _id: validObjectId });
-    Order.exists.mockResolvedValue({ _id: 'order1' });
     Review.findOne.mockResolvedValue({ _id: 'existing-review' });
 
     const req = mockReq({
@@ -173,9 +149,8 @@ describe('createReview', () => {
     );
   });
 
-  test('returns 201 on successful review creation', async () => {
+  test('returns 201 on successful review creation without requiring a purchase', async () => {
     Product.findById.mockResolvedValue({ _id: validObjectId });
-    Order.exists.mockResolvedValue({ _id: 'order1' });
     Review.findOne.mockResolvedValue(null);
     Review.create.mockResolvedValue({
       _id: 'rev1',
@@ -183,6 +158,7 @@ describe('createReview', () => {
       user: 'user1',
       rating: 4,
       content: 'Good product for the price',
+      isVerifiedPurchase: false,
       isApproved: false,
     });
 
@@ -195,6 +171,33 @@ describe('createReview', () => {
 
     expect(res.status).toHaveBeenCalledWith(201);
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
+    // isVerifiedPurchase is always false — no purchase gate
+    expect(Review.create).toHaveBeenCalledWith(
+      expect.objectContaining({ isVerifiedPurchase: false }),
+    );
+  });
+
+  test('review is pending admin approval after creation', async () => {
+    Product.findById.mockResolvedValue({ _id: validObjectId });
+    Review.findOne.mockResolvedValue(null);
+    Review.create.mockResolvedValue({
+      _id: 'rev2',
+      product: validObjectId,
+      user: 'user1',
+      rating: 5,
+      content: 'Excellent build quality and finish',
+      isApproved: false,
+    });
+
+    const req = mockReq({
+      body: { product: validObjectId, rating: 5, content: 'Excellent build quality and finish' },
+    });
+    const res = mockRes();
+
+    await createReview(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(201);
+    expect(Review.create).toHaveBeenCalledWith(expect.objectContaining({ isApproved: false }));
   });
 });
 
