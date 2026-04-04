@@ -1,20 +1,27 @@
-FROM node:20-alpine
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
 COPY package*.json ./
 
-RUN npm install
+RUN npm ci
 
 COPY . .
 
+# Use docker-specific env for the production build
 COPY .env.docker .env.production
 
 RUN npm run build
 
-RUN npm install -g serve
+# ── Runtime stage ──────────────────────────────────────────────────────────
+FROM node:20-alpine
 
-RUN chown -R node:node /app
+WORKDIR /app
+
+RUN npm install -g serve && chown -R node:node /app
+
+COPY --from=builder --chown=node:node /app/dist ./dist
+
 USER node
 
 EXPOSE 5173
