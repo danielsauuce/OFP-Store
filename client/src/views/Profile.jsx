@@ -416,21 +416,21 @@ const Profile = () => {
         </div>
 
         <div className="profile-tabs mb-6">
-          <div className="flex flex-wrap bg-muted rounded-lg p-1 gap-1">
+          <div className="flex overflow-x-auto bg-muted rounded-lg p-1 gap-1 scrollbar-hide">
             {TABS.map((tab) => {
               const Icon = tab.icon;
               return (
                 <button
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
-                  className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-md text-sm font-medium transition-colors flex-1 min-w-[80px] ${
+                  className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-md text-sm font-medium transition-colors whitespace-nowrap shrink-0 ${
                     activeTab === tab.key
                       ? 'bg-card text-foreground shadow-sm'
                       : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
-                  <Icon className="h-4 w-4" />
-                  <span className="hidden sm:inline">{tab.label}</span>
+                  <Icon className="h-4 w-4 shrink-0" />
+                  <span>{tab.label}</span>
                 </button>
               );
             })}

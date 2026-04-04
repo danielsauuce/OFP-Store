@@ -23,7 +23,7 @@ import {
   updateProductService,
   deleteProductService,
 } from '../../services/adminService';
-import { getAllCategoriesService } from '../../services/categoryService';
+import { getAllCategoriesAdminService } from '../../services/categoryService';
 import { uploadImageService } from '../../services/uploadService';
 
 const PRODUCTS_PER_PAGE = 12;
@@ -81,12 +81,10 @@ const Products = () => {
       setSearchQuery(search);
     }, 350);
     return () => clearTimeout(searchDebounceRef.current);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search]);
 
   useEffect(() => {
     fetchProducts(currentPage, searchQuery);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage, searchQuery]);
 
   useEffect(() => {
@@ -114,7 +112,7 @@ const Products = () => {
 
   const fetchCategories = async () => {
     try {
-      const data = await getAllCategoriesService();
+      const data = await getAllCategoriesAdminService();
       if (data?.success) setCategories(data.categories || []);
     } catch (err) {
       console.error(err);

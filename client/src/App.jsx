@@ -30,6 +30,7 @@ const Users = lazy(() => import('./views/admin/Users'));
 const Analytics = lazy(() => import('./views/admin/Analytics'));
 const AdminChat = lazy(() => import('./views/admin/Chat'));
 const AdminNotifications = lazy(() => import('./views/admin/Notifications'));
+const AdminPayments = lazy(() => import('./views/admin/Payments'));
 
 function PageLoader() {
   return (
@@ -108,6 +109,7 @@ function App() {
               <Route path="orders" element={<Orders />} />
               <Route path="users" element={<Users />} />
               <Route path="analytics" element={<Analytics />} />
+              <Route path="payments" element={<AdminPayments />} />
               <Route path="chat" element={<AdminChat />} />
               <Route path="notifications" element={<AdminNotifications />} />
             </Route>

@@ -8,7 +8,7 @@ const PriceRangeFilter = ({ range, onChange }) => {
       <input
         type="range"
         min="0"
-        max="5000"
+        max="2000"
         step="50"
         value={range[1]}
         onChange={(e) => onChange([range[0], Number(e.target.value)])}

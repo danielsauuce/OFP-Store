@@ -9,6 +9,7 @@ import {
   Bell,
   LogOut,
   ShieldCheck,
+  CreditCard,
 } from 'lucide-react';
 import { useAuth } from '../../../context/authContext';
 import { useNotifications } from '../../../context/notificationContext';
@@ -17,6 +18,7 @@ export const navigations = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
   { name: 'Products', href: '/admin/products', icon: Package },
   { name: 'Orders', href: '/admin/orders', icon: ShoppingCart },
+  { name: 'Payments', href: '/admin/payments', icon: CreditCard },
   { name: 'Users', href: '/admin/users', icon: Users },
   { name: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
   { name: 'Chat', href: '/admin/chat', icon: MessageSquare },

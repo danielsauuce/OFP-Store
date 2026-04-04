@@ -18,7 +18,7 @@ const Shop = () => {
   const [categories, setCategories] = useState(['All']);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const [priceRange, setPriceRange] = useState([0, 5000]);
+  const [priceRange, setPriceRange] = useState([0, 2000]);
   const [sortBy, setSortBy] = useState('newest');
   const [visibleCount, setVisibleCount] = useState(6);
 
@@ -37,18 +37,26 @@ const Shop = () => {
         getAllCategoriesService(),
       ]);
 
-      if (productsRes.status === 'fulfilled' && productsRes.value?.success) {
-        setProducts(productsRes.value.data?.products || []);
-      }
+      const fetchedProducts =
+        productsRes.status === 'fulfilled' && productsRes.value?.success
+          ? productsRes.value.data?.products || []
+          : [];
 
-      if (
-        categoriesRes.status === 'fulfilled' &&
-        categoriesRes.value?.success &&
-        categoriesRes.value.categories
-      ) {
-        const catNames = categoriesRes.value.categories.map((c) => c.name);
-        setCategories(['All', ...catNames]);
-      }
+      if (fetchedProducts.length > 0) setProducts(fetchedProducts);
+
+      // Build category list: merge API categories + names derived from products
+      // so categories that exist on products always appear even if not in categories DB
+      const apiCats =
+        categoriesRes.status === 'fulfilled' && categoriesRes.value?.success
+          ? categoriesRes.value.categories.map((c) => c.name)
+          : [];
+
+      const productCats = fetchedProducts
+        .map((p) => (p.category && typeof p.category === 'object' ? p.category.name : p.category))
+        .filter(Boolean);
+
+      const merged = [...new Set([...apiCats, ...productCats])].sort();
+      setCategories(['All', ...merged]);
     } catch (error) {
       console.error('Failed to fetch shop data:', error);
     } finally {

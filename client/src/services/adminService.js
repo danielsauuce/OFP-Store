@@ -18,6 +18,16 @@ export async function getDashboardStatsService() {
   }
 }
 
+export async function getPaymentStatsService() {
+  try {
+    const { data } = await axiosInstance.get('/api/admin/payments/stats');
+    return data;
+  } catch (error) {
+    console.error('getPaymentStats error:', error?.response?.data || error.message);
+    throw error;
+  }
+}
+
 // User Management
 
 export async function getAllUsersAdminService(params = {}) {

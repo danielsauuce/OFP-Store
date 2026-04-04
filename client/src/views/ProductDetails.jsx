@@ -18,7 +18,7 @@ import {
   ChevronUp,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { getProductByIdService } from '../services/productService';
+import { getProductByIdService, getProductsByCategoryService } from '../services/productService';
 import { getProductReviewsService, createReviewService } from '../services/reviewService';
 import { useAuth } from '../context/authContext';
 import { useCart } from '../context/cartContext';
@@ -84,6 +84,8 @@ const ProductDetails = () => {
   const [reviewPagination, setReviewPagination] = useState(null);
   const [ratingBreakdown, setRatingBreakdown] = useState({});
 
+  const [relatedProducts, setRelatedProducts] = useState([]);
+
   // New review form
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [reviewRating, setReviewRating] = useState(5);
@@ -103,11 +105,27 @@ const ProductDetails = () => {
     setLoading(true);
     try {
       const data = await getProductByIdService(id);
-      if (data?.success) setProduct(data.product);
+      if (data?.success) {
+        setProduct(data.product);
+        const slug = data.product?.category?.slug;
+        if (slug) fetchRelatedProducts(slug, data.product._id);
+      }
     } catch (error) {
       console.error('Failed to fetch product:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchRelatedProducts = async (categorySlug, currentId) => {
+    try {
+      const data = await getProductsByCategoryService(categorySlug, { limit: 5 });
+      if (data?.success) {
+        const products = data.products || data.data?.products || [];
+        setRelatedProducts(products.filter((p) => p._id !== currentId).slice(0, 4));
+      }
+    } catch {
+      // silently fail — "You May Also Like" is non-critical
     }
   };
 
@@ -669,16 +687,21 @@ const ProductDetails = () => {
                   >
                     <div className="flex items-start gap-4">
                       {/* Avatar */}
-                      <div className="h-10 w-10 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
-                        {review.user?.profilePicture ? (
-                          <img
-                            src={review.user.profilePicture}
-                            alt={review.user.fullName}
-                            className="h-full w-full rounded-full object-cover"
-                          />
-                        ) : (
-                          <span className="text-xs font-bold text-primary">{initials}</span>
-                        )}
+                      <div className="h-10 w-10 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 overflow-hidden">
+                        {(() => {
+                          const pic = review.user?.profilePicture;
+                          const picUrl =
+                            pic && typeof pic !== 'string' ? pic.secureUrl || pic.url : null;
+                          return picUrl ? (
+                            <img
+                              src={picUrl}
+                              alt={review.user.fullName}
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <span className="text-xs font-bold text-primary">{initials}</span>
+                          );
+                        })()}
                       </div>
 
                       <div className="flex-1 min-w-0">
@@ -735,6 +758,60 @@ const ProductDetails = () => {
             </div>
           )}
         </div>
+
+        {/* ── You May Also Like ────────────────────────────────── */}
+        {relatedProducts.length > 0 && (
+          <div className="mt-20">
+            <h2 className="text-2xl font-serif font-bold text-foreground mb-6">
+              You May Also Like
+            </h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {relatedProducts.map((rp) => {
+                const rpImg = (() => {
+                  if (rp.primaryImage && typeof rp.primaryImage === 'object')
+                    return rp.primaryImage.secureUrl || rp.primaryImage.url || '';
+                  if (
+                    typeof rp.primaryImage === 'string' &&
+                    !rp.primaryImage.match(/^[a-f\d]{24}$/i)
+                  )
+                    return rp.primaryImage;
+                  if (rp.image && typeof rp.image === 'object')
+                    return rp.image.secureUrl || rp.image.url || '';
+                  return '';
+                })();
+                return (
+                  <Link
+                    key={rp._id}
+                    to={`/product/${rp._id}`}
+                    className="group bg-card border border-border rounded-2xl overflow-hidden shadow-card hover:shadow-md transition-shadow"
+                  >
+                    <div className="aspect-square bg-muted overflow-hidden">
+                      {rpImg ? (
+                        <img
+                          src={rpImg}
+                          alt={rp.name}
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Package className="h-10 w-10 text-muted-foreground opacity-30" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="p-3">
+                      <p className="text-sm font-semibold text-foreground truncate group-hover:text-primary transition-colors">
+                        {rp.name}
+                      </p>
+                      <p className="text-sm font-bold text-primary mt-0.5">
+                        £{rp.price?.toFixed(2)}
+                      </p>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
