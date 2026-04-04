@@ -66,13 +66,23 @@ const CollectionGrid = () => {
           ? prodRes.value.data?.products || []
           : [];
 
-      // Merge DB categories + categories derived from products, deduplicated by _id
+      // Merge DB categories + categories derived from products.
+      // Key by _id when present, fall back to lowercased name so categories
+      // without a DB document (resolved as { name, slug }) are still included.
       const catsMap = new Map();
-      for (const c of dbCats) catsMap.set(c._id.toString(), c);
+      for (const c of dbCats) {
+        catsMap.set(c._id ? c._id.toString() : c.name.toLowerCase(), c);
+      }
       for (const p of products) {
         const cat = p.category;
-        if (cat && typeof cat === 'object' && cat._id && cat.name) {
-          catsMap.set(cat._id.toString(), cat);
+        if (cat && typeof cat === 'object' && cat.name) {
+          const key = cat._id ? cat._id.toString() : cat.name.toLowerCase();
+          if (!catsMap.has(key)) {
+            if (!cat.slug) {
+              cat.slug = cat.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+            }
+            catsMap.set(key, cat);
+          }
         }
       }
 

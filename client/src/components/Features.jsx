@@ -41,7 +41,7 @@ function CategoryTab({ label, active, onClick }) {
 const Features = () => {
   const [allProducts, setAllProducts] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [activeCatId, setActiveCatId] = useState(null); // null = All
+  const [activeCatKey, setActiveCatKey] = useState(null); // null = All; otherwise lowercased category name
   const [loading, setLoading] = useState(true);
   const sectionRef = useRef(null);
   const gridRef = useRef(null);
@@ -49,21 +49,27 @@ const Features = () => {
   // Fetch all products once and derive categories from them
   useEffect(() => {
     setLoading(true);
-    getAllProductsService({ limit: 50 })
+    getAllProductsService({ limit: 100 })
       .then((data) => {
         if (data?.success) {
           const products = data.data?.products || data.products || [];
           setAllProducts(products);
 
-          // Extract unique populated category objects from products
+          // Extract unique category objects from products.
+          // Use _id when present; fall back to name as the dedup key so
+          // categories without a DB document (resolved as { name, slug }) still appear.
           const seen = new Set();
           const cats = [];
           for (const p of products) {
             const cat = p.category;
-            if (cat && typeof cat === 'object' && cat._id && cat.name) {
-              const id = cat._id.toString();
-              if (!seen.has(id)) {
-                seen.add(id);
+            if (cat && typeof cat === 'object' && cat.name) {
+              const key = cat._id ? cat._id.toString() : cat.name.toLowerCase();
+              if (!seen.has(key)) {
+                seen.add(key);
+                // Ensure slug exists for tab navigation
+                if (!cat.slug) {
+                  cat.slug = cat.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+                }
                 cats.push(cat);
               }
             }
@@ -77,9 +83,9 @@ const Features = () => {
 
   // Derived: products to display for the active tab (first 6)
   const displayProducts =
-    activeCatId === null
+    activeCatKey === null
       ? allProducts.slice(0, 6)
-      : allProducts.filter((p) => p.category?._id?.toString() === activeCatId).slice(0, 6);
+      : allProducts.filter((p) => p.category?.name?.toLowerCase() === activeCatKey).slice(0, 6);
 
   // Fade grid in when products change
   useEffect(() => {
@@ -90,7 +96,7 @@ const Features = () => {
         { opacity: 1, y: 0, duration: 0.5, ease: 'power3.out' },
       );
     }
-  }, [loading, activeCatId]);
+  }, [loading, activeCatKey]);
 
   // Scroll entrance for section header (once on mount)
   useLayoutEffect(() => {
@@ -135,17 +141,20 @@ const Features = () => {
           <div className="features-tabs flex flex-wrap justify-center gap-2 mb-10">
             <CategoryTab
               label="All"
-              active={activeCatId === null}
-              onClick={() => setActiveCatId(null)}
+              active={activeCatKey === null}
+              onClick={() => setActiveCatKey(null)}
             />
-            {categories.map((cat) => (
-              <CategoryTab
-                key={cat._id}
-                label={cat.name}
-                active={activeCatId === cat._id.toString()}
-                onClick={() => setActiveCatId(cat._id.toString())}
-              />
-            ))}
+            {categories.map((cat) => {
+              const key = cat.name.toLowerCase();
+              return (
+                <CategoryTab
+                  key={cat._id || cat.name}
+                  label={cat.name}
+                  active={activeCatKey === key}
+                  onClick={() => setActiveCatKey(key)}
+                />
+              );
+            })}
           </div>
         )}
 
