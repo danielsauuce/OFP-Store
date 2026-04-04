@@ -278,6 +278,8 @@ const Checkout = () => {
             <StripeCheckout
               clientSecret={stripeClientSecret}
               total={pendingOrderTotal}
+              billingCountry="NG"
+              billingPostalCode={formData.postalCode}
               onSuccess={() => {
                 setStripeClientSecret(null);
                 setOrderPlaced(true);
@@ -516,11 +518,17 @@ const Checkout = () => {
 
                       return (
                         <div key={index} className="flex items-center gap-4">
-                          <img
-                            src={image}
-                            alt={name}
-                            className="w-14 h-14 rounded-lg object-cover"
-                          />
+                          {image ? (
+                            <img
+                              src={image}
+                              alt={name}
+                              className="w-14 h-14 rounded-lg object-cover shrink-0"
+                            />
+                          ) : (
+                            <div className="w-14 h-14 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                              <Package className="h-5 w-5 text-muted-foreground opacity-40" />
+                            </div>
+                          )}
                           <div className="flex-1 min-w-0">
                             <p className="font-medium text-foreground truncate">{name}</p>
                             <p className="text-sm text-muted-foreground">Qty: {item.quantity}</p>

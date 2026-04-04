@@ -6,7 +6,7 @@ import toast from 'react-hot-toast';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
-function PaymentForm({ onSuccess, total }) {
+function PaymentForm({ onSuccess, total, billingCountry, billingPostalCode }) {
   const stripe = useStripe();
   const elements = useElements();
   const [processing, setProcessing] = useState(false);
@@ -22,6 +22,14 @@ function PaymentForm({ onSuccess, total }) {
         elements,
         confirmParams: {
           return_url: `${window.location.origin}/profile?tab=orders`,
+          payment_method_data: {
+            billing_details: {
+              address: {
+                country: billingCountry || 'NG',
+                postal_code: billingPostalCode || null,
+              },
+            },
+          },
         },
         redirect: 'if_required',
       });
@@ -93,7 +101,7 @@ function PaymentForm({ onSuccess, total }) {
   );
 }
 
-function StripeCheckout({ clientSecret, onSuccess, total }) {
+function StripeCheckout({ clientSecret, onSuccess, total, billingCountry, billingPostalCode }) {
   const appearance = {
     theme: 'stripe',
     variables: {
@@ -111,7 +119,7 @@ function StripeCheckout({ clientSecret, onSuccess, total }) {
         boxShadow: 'none',
       },
       '.Input:focus': {
-        boxShadow: '0 0 0 2px hsl(25 30% 35% / 0.2)',
+        boxShadow: '0 0 0 2px rgba(116, 85, 62, 0.2)',
         border: '1px solid hsl(25 30% 35%)',
       },
       '.Label': {
@@ -126,7 +134,12 @@ function StripeCheckout({ clientSecret, onSuccess, total }) {
 
   return (
     <Elements stripe={stripePromise} options={{ clientSecret, appearance }}>
-      <PaymentForm onSuccess={onSuccess} total={total} />
+      <PaymentForm
+        onSuccess={onSuccess}
+        total={total}
+        billingCountry={billingCountry}
+        billingPostalCode={billingPostalCode}
+      />
     </Elements>
   );
 }

@@ -84,7 +84,7 @@ const Features = () => {
     }
   }, [loading, products]);
 
-  // Scroll entrance (once)
+  // Scroll entrance for section header (once on mount)
   useLayoutEffect(() => {
     if (window.Cypress) return;
     const ctx = gsap.context(() => {
@@ -99,20 +99,17 @@ const Features = () => {
         duration: 0.9,
         ease: 'power3.out',
       });
-      gsap.from('.features-tabs', {
-        scrollTrigger: {
-          trigger: '.features-tabs',
-          start: 'top 90%',
-          toggleActions: 'play none none none',
-        },
-        y: 30,
-        opacity: 0,
-        duration: 0.7,
-        ease: 'power2.out',
-      });
     }, sectionRef);
     return () => ctx.revert();
   }, []);
+
+  // Animate tabs in once categories have loaded (element exists by then)
+  const tabsAnimated = useRef(false);
+  useEffect(() => {
+    if (categories.length === 0 || tabsAnimated.current || window.Cypress) return;
+    tabsAnimated.current = true;
+    gsap.from('.features-tabs', { y: 20, opacity: 0, duration: 0.6, ease: 'power2.out' });
+  }, [categories]);
 
   return (
     <section ref={sectionRef} className="py-20 bg-muted/30">
