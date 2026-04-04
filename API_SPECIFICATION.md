@@ -15,7 +15,7 @@ This document is the single source of truth for integrating the **OFP Store** mo
 ## Table of Contents
 
 1. [Authentication Flow](#1-authentication-flow)
-2. [Authentication Endpoints](#2-authentication-endpoints-apauth)
+2. [Authentication Endpoints](#2-authentication-endpoints-apiauth)
 3. [User Profile](#3-user-profile-apiuser)
 4. [Addresses](#4-addresses-apiuseraddresses)
 5. [Products](#5-products-apiproduct)
@@ -412,6 +412,8 @@ All routes require authentication.
 
 **Address `type` values:** `"home"` | `"work"` | `"other"`
 
+> `fullName`, `phone`, `state`, and `country` are optional fields. `street`, `city`, and `postalCode` are required.
+
 ---
 
 ### POST `/api/user/addresses`
@@ -420,12 +422,12 @@ All routes require authentication.
 
 ```json
 {
-  "fullName": "Ade Oluwaseun",
-  "phone": "+2348012345678",
   "street": "12 Banana Island Road",
   "city": "Lagos",
-  "state": "Lagos",
   "postalCode": "101233",
+  "fullName": "Ade Oluwaseun",
+  "phone": "+2348012345678",
+  "state": "Lagos",
   "country": "Nigeria",
   "type": "home",
   "isDefault": true
@@ -832,9 +834,11 @@ All routes require authentication.
 
 **`paymentMethod` values:** `"card"` | `"pay_on_delivery"` | `"bank"`
 
+> `shippingAddress.state` and `shippingAddress.country` are optional. All other `shippingAddress` fields are required.
+
 **Shipping cost logic (server-calculated):**
 
-- Subtotal >= £500 → free shipping
+- Subtotal >= £500 → free shipping (£0)
 - Subtotal < £500 → £50 shipping charge
 
 **Success `201`:**
@@ -933,10 +937,11 @@ Only cancellable if `orderStatus` is `"pending"` or `"processing"`.
 
 ## 9. Payments (`/api/payment`)
 
-| Method | Path                                 | Description                                 | Access               |
-| ------ | ------------------------------------ | ------------------------------------------- | -------------------- |
-| POST   | `/api/payment/create-payment-intent` | Create a Stripe payment intent for an order | Authenticated        |
-| POST   | `/api/payment/webhook`               | Stripe webhook receiver                     | Public (Stripe only) |
+| Method | Path                                 | Description                                        | Access               |
+| ------ | ------------------------------------ | -------------------------------------------------- | -------------------- |
+| POST   | `/api/payment/create-payment-intent` | Create a Stripe payment intent for an order        | Authenticated        |
+| POST   | `/api/payment/confirm-success`       | Confirm a succeeded payment intent from the client | Authenticated        |
+| POST   | `/api/payment/webhook`               | Stripe webhook receiver                            | Public (Stripe only) |
 
 ---
 
@@ -962,6 +967,33 @@ Call this after creating an order with `paymentMethod: "card"`.
 > Use `clientSecret` with the **Stripe SDK** on the mobile client to present the payment sheet.  
 > Calling this endpoint again for an order that already has a pending intent returns the existing `clientSecret` (idempotent).  
 > If the order is already paid, returns `400`.
+
+---
+
+### POST `/api/payment/confirm-success`
+
+**Headers:** `Authorization: Bearer <accessToken>`
+
+Call this immediately after the Stripe SDK's `confirmPayment()` resolves with `"succeeded"`. This ensures the `Payment` and `Order` records are marked paid even when the Stripe webhook has not yet arrived (e.g., during local development or network delays).
+
+**Request body:**
+
+```json
+{ "stripePaymentIntentId": "pi_xxx..." }
+```
+
+**Success `200`:**
+
+```json
+{ "success": true }
+```
+
+**Error responses:**
+
+- `400` — `stripePaymentIntentId` missing, or Stripe reports the intent has not yet succeeded.
+- `500` — Internal error while updating records.
+
+> The server re-retrieves the payment intent from Stripe to verify its status before updating records. This endpoint is a safety net — the webhook (`POST /api/payment/webhook`) handles the same update asynchronously.
 
 ---
 
@@ -1074,12 +1106,15 @@ Returns `400` if the product is already in the wishlist.
         "_id": "64a...",
         "fullName": "Ade Oluwaseun",
         "profilePicture": {
-          /* media object or null */
+          "_id": "65a...",
+          "secureUrl": "https://res.cloudinary.com/...",
+          "publicId": "profile-pictures/abc123",
+          "url": "https://res.cloudinary.com/..."
         }
       },
       "rating": 5,
       "content": "Absolutely love this sofa! Great quality and very comfortable.",
-      "isVerifiedPurchase": true,
+      "isVerifiedPurchase": false,
       "isApproved": true,
       "helpfulCount": 3,
       "createdAt": "2026-03-20T00:00:00.000Z"
@@ -1089,11 +1124,14 @@ Returns `400` if the product is already in the wishlist.
 }
 ```
 
+> `profilePicture` on the user object is fully populated (nested populate). It will be `null` if the user has no profile picture.  
+> `isVerifiedPurchase` is always `false` on new reviews — the field is reserved for future use.
+
 ---
 
 ### POST `/api/reviews`
 
-> Only users who have a **delivered** order containing the product can leave a review. One review per user per product.
+Any **authenticated user** may submit a review. No purchase history is required. One review per user per product is enforced.
 
 **Request body:**
 
@@ -1121,6 +1159,81 @@ Returns `400` if the product is already in the wishlist.
 ```
 
 > Reviews are not publicly visible until an admin approves them (`isApproved: false` by default).
+
+---
+
+### PUT `/api/reviews/:reviewId`
+
+Update your own review. Send only the fields to change (`rating` and/or `content`). At least one field is required.
+
+**Success `200`:**
+
+```json
+{
+  "success": true,
+  "message": "Review updated successfully",
+  "review": {
+    /* updated review object */
+  }
+}
+```
+
+---
+
+### DELETE `/api/reviews/:reviewId`
+
+**Success `200`:**
+
+```json
+{ "success": true, "message": "Review deleted successfully" }
+```
+
+---
+
+### GET `/api/reviews/admin` (Admin)
+
+**Query parameters:**
+
+| Parameter   | Type                  | Description                           |
+| ----------- | --------------------- | ------------------------------------- |
+| `page`      | number                | Page (default: `1`)                   |
+| `limit`     | number                | Max `50` (default: `20`)              |
+| `approved`  | `"true"` \| `"false"` | Filter by approval status             |
+| `productId` | ObjectId string       | Filter by product (24-char hex only)  |
+
+**Success `200`:**
+
+```json
+{
+  "success": true,
+  "reviews": [
+    /* reviews with populated product (name, slug) and user (fullName, email) */
+  ],
+  "pagination": { "total": 40, "page": 1, "pages": 2, "limit": 20 }
+}
+```
+
+---
+
+### PATCH `/api/reviews/admin/:reviewId/approve` (Admin)
+
+**Request body:**
+
+```json
+{ "isApproved": true }
+```
+
+**Success `200`:**
+
+```json
+{
+  "success": true,
+  "message": "Review approved successfully",
+  "review": { /* updated review */ }
+}
+```
+
+> Approving a review triggers a re-calculation of the product's `averageRating` and `reviewCount`.
 
 ---
 
@@ -1239,7 +1352,13 @@ Creates a new conversation (or resumes an existing open one) for the authenticat
         "userId": {
           "_id": "64a...",
           "fullName": "Ade Oluwaseun",
-          "email": "ade@example.com"
+          "email": "ade@example.com",
+          "profilePicture": {
+            "_id": "65a...",
+            "secureUrl": "https://res.cloudinary.com/...",
+            "publicId": "profile-pictures/abc123",
+            "url": "https://res.cloudinary.com/..."
+          }
         },
         "role": "customer",
         "senderName": null
@@ -1253,7 +1372,42 @@ Creates a new conversation (or resumes an existing open one) for the authenticat
 }
 ```
 
-> Fetching messages as admin automatically marks all messages in the conversation as read.
+> `sender.userId.profilePicture` is fully populated (nested populate). It will be `null` if the sender has no profile picture.  
+> Fetching messages as admin automatically marks all messages in the conversation as read and resets `unreadByAdmin` to `0`.
+
+---
+
+### GET `/api/chat/conversations` (Admin)
+
+Returns all conversations sorted by most recent activity, with each conversation's `userId` nested-populated (including `profilePicture`).
+
+**Success `200`:**
+
+```json
+{
+  "success": true,
+  "conversations": [
+    {
+      "_id": "...",
+      "conversationId": "conv:64a...",
+      "userId": {
+        "_id": "64a...",
+        "fullName": "Ade Oluwaseun",
+        "email": "ade@example.com",
+        "profilePicture": { /* media object or null */ }
+      },
+      "adminId": { "_id": "...", "fullName": "Admin" },
+      "status": "active",
+      "lastMessage": "Hello, I need help with my order.",
+      "lastMessageAt": "2026-04-04T09:30:00.000Z",
+      "unreadByAdmin": 2,
+      "displayName": "Ade Oluwaseun"
+    }
+  ]
+}
+```
+
+> `displayName` is derived server-side: `userId.fullName` → `userId.email` → `guestName` → `"Guest"`.
 
 ---
 
@@ -1301,7 +1455,8 @@ Can be submitted by guests (provide `name` and `email`) or authenticated users.
 ```
 
 > For authenticated users, `name` and `email` are ignored (taken from user account).  
-> `priority` values: `"low"` | `"medium"` | `"high"` (default: `"medium"`).
+> `priority` values: `"low"` | `"medium"` | `"high"` (default: `"medium"`).  
+> `subject` must be 3–200 characters. `message` must be 10–2000 characters.
 
 **Success `201`:**
 
@@ -1323,14 +1478,49 @@ Can be submitted by guests (provide `name` and `email`) or authenticated users.
 { "text": "Could you please provide the order number so we can investigate?" }
 ```
 
+> `text` must be at least 2 characters.  
 > Replying to a `"new"` ticket transitions its status to `"open"` automatically.  
 > Cannot reply to tickets with status `"closed"` or `"resolved"`.
+
+---
+
+### PATCH `/api/support/admin/:id` (Admin)
+
+Update a ticket's `status`, `priority`, or `assignedTo`. At least one field is required.
+
+**Request body** (all fields optional, at least one required):
+
+```json
+{
+  "status": "in_progress",
+  "priority": "high",
+  "assignedTo": "<adminUserId or null>"
+}
+```
+
+---
+
+### POST `/api/support/admin/:id/reply` (Admin)
+
+**Request body:**
+
+```json
+{ "text": "We have investigated and will dispatch a replacement." }
+```
+
+> Admin replying to a `"new"` ticket transitions its status to `"in_progress"` (not `"open"`).
 
 ---
 
 ### Ticket Status Values
 
 `"new"` → `"open"` → `"in_progress"` → `"resolved"` / `"closed"`
+
+| Status transition           | Trigger                                |
+| --------------------------- | -------------------------------------- |
+| `"new"` → `"open"`          | Customer replies to a new ticket       |
+| `"new"` → `"in_progress"`   | Admin replies to a new ticket          |
+| Any → `"resolved"/"closed"` | Admin explicitly sets via PATCH        |
 
 ---
 
@@ -1369,7 +1559,7 @@ All admin endpoints require `Authorization: Bearer <accessToken>` where the user
     "totalRevenue": 24850.0,
     "newUsersLast7Days": 14,
     "recentOrders": [
-      /* last 8 orders with user, orderNumber, total, orderStatus, paymentStatus */
+      /* last 8 orders with user (fullName, email), orderNumber, total, orderStatus, paymentStatus */
     ],
     "ordersByStatus": {
       "pending": 12,
@@ -1382,6 +1572,8 @@ All admin endpoints require `Authorization: Bearer <accessToken>` where the user
   }
 }
 ```
+
+> `totalProducts` counts only active products. `totalRevenue` is the sum of `total` for all orders with `paymentStatus: "paid"`.
 
 ---
 
@@ -1404,7 +1596,7 @@ All admin endpoints require `Authorization: Bearer <accessToken>` where the user
       "card": { "count": 76, "total": 24850.0 }
     },
     "recentPayments": [
-      /* last 10 payments with user and order */
+      /* last 10 payments with populated user (fullName, email) and order (orderNumber, total) */
     ],
     "dailyRevenue": [{ "_id": "2026-04-01", "revenue": 450.0, "count": 2 }]
   }
@@ -1639,7 +1831,17 @@ const chatSocket = io("http://your-server/chat", {
   "_id": "71f...",
   "conversationId": "conv:64a...",
   "sender": {
-    "userId": { "_id": "...", "fullName": "...", "email": "..." },
+    "userId": {
+      "_id": "64a...",
+      "fullName": "Ade Oluwaseun",
+      "email": "ade@example.com",
+      "profilePicture": {
+        "_id": "65a...",
+        "secureUrl": "https://res.cloudinary.com/...",
+        "publicId": "profile-pictures/abc123",
+        "url": "https://res.cloudinary.com/..."
+      }
+    },
     "role": "customer",
     "senderName": null
   },
@@ -1650,7 +1852,9 @@ const chatSocket = io("http://your-server/chat", {
 }
 ```
 
-> Use `tempId` to match the confirmed server message back to your optimistic UI update.
+> Use `tempId` to match the confirmed server message back to your optimistic UI update.  
+> `sender.userId.profilePicture` is nested-populated and will be `null` if the sender has no profile picture.  
+> For guest senders, `sender.userId` is `null` and `sender.senderName` is `"Guest"`.
 
 ---
 
@@ -1754,4 +1958,4 @@ The following environment variables must be set on the server for full functiona
 
 ---
 
-_Generated: 2026-04-04 — OFP Store API v1_
+_Updated: 2026-04-04 — OFP Store API v1_
