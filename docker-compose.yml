@@ -1,4 +1,13 @@
 services:
+  mongo:
+    image: mongo:7
+    container_name: ofp-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
   server:
     build:
       context: ./server
@@ -6,8 +15,17 @@ services:
     restart: unless-stopped
     env_file:
       - ./server/.env
-    expose:
-      - "3000"
+    environment:
+      - NODE_ENV=development
+      - MONGO_URI=mongodb://mongo:27017/OFPStore
+      - CHOKIDAR_USEPOLLING=true
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./server:/app
+      - /app/node_modules
+    depends_on:
+      - mongo
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/categories"]
       interval: 15s
@@ -20,20 +38,24 @@ services:
       context: ./client
     container_name: ofp-web
     restart: unless-stopped
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./client:/app
+      - /app/node_modules
     depends_on:
-      server:
-        condition: service_healthy
-    expose:
-      - "5173"
+      - server
 
   uptime-kuma:
     image: louislam/uptime-kuma:1
     container_name: ofp-uptime
     restart: unless-stopped
+    ports:
+      - "3001:3001"
     volumes:
       - kuma_data:/app/data
-    expose:
-      - "3001"
 
   caddy:
     image: caddy:2-alpine
@@ -60,10 +82,10 @@ services:
     restart: unless-stopped
     depends_on:
       - server
-    expose:
-      - "9090"
+    ports:
+      - "9090:9090"
     volumes:
-      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
@@ -78,8 +100,8 @@ services:
     restart: unless-stopped
     depends_on:
       - prometheus
-    expose:
-      - "3000"
+    ports:
+      - "3002:3000"
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
       - GF_USERS_ALLOW_SIGN_UP=false
@@ -87,8 +109,8 @@ services:
       - GF_SERVER_SERVE_FROM_SUB_PATH=true
     volumes:
       - grafana_data:/var/lib/grafana
-      - ./grafana/provisioning:/etc/grafana/provisioning:ro
-      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
 
   node_exporter:
     image: prom/node-exporter:v1.8.2
@@ -97,17 +119,17 @@ services:
     command:
       - "--path.rootfs=/host"
     pid: host
+    ports:
+      - "9100:9100"
     volumes:
       - "/:/host:ro,rslave"
-    expose:
-      - "9100"
 
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:v0.49.1
     container_name: ofp-cadvisor
     restart: unless-stopped
-    expose:
-      - "8080"
+    ports:
+      - "8080:8080"
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:ro
@@ -118,14 +140,15 @@ services:
     image: prom/blackbox-exporter:v0.25.0
     container_name: ofp-blackbox
     restart: unless-stopped
+    ports:
+      - "9115:9115"
     volumes:
-      - ./prometheus/blackbox.yml:/etc/blackbox_exporter/config.yml:ro
+      - ./observability/prometheus/blackbox.yml:/etc/blackbox_exporter/config.yml:ro
     command:
       - "--config.file=/etc/blackbox_exporter/config.yml"
-    expose:
-      - "9115"
 
 volumes:
+  mongo_data:
   kuma_data:
   caddy_data:
   caddy_config:
