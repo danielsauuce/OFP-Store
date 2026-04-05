@@ -4,16 +4,13 @@ WORKDIR /app
 
 COPY package*.json ./
 
-RUN npm ci --omit=dev
+RUN npm install
 
 COPY . .
 
 ENV PORT=3000
-ENV NODE_ENV=production
-
-RUN chown -R node:node /app
-USER node
+ENV NODE_ENV=development
 
 EXPOSE 3000
 
-CMD ["node", "server.js"]
+CMD ["npm", "run", "dev"]
