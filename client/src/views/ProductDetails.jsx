@@ -77,6 +77,7 @@ const ProductDetails = () => {
   const [quantity, setQuantity] = useState(1);
   const [wishlistLoading, setWishlistLoading] = useState(false);
   const [descExpanded, setDescExpanded] = useState(false);
+  const [activeImageUrl, setActiveImageUrl] = useState(null);
 
   // Reviews state
   const [reviews, setReviews] = useState([]);
@@ -107,6 +108,7 @@ const ProductDetails = () => {
       const data = await getProductByIdService(id);
       if (data?.success) {
         setProduct(data.product);
+        setActiveImageUrl(null); // reset to primary on product change
         const slug = data.product?.category?.slug;
         if (slug) fetchRelatedProducts(slug, data.product._id);
       }
@@ -248,17 +250,25 @@ const ProductDetails = () => {
   }
 
   const isObjectId = (val) => typeof val === 'string' && /^[a-f\d]{24}$/i.test(val);
-  const resolveImg = () => {
-    if (product.primaryImage && typeof product.primaryImage === 'object')
-      return product.primaryImage.secureUrl || product.primaryImage.url || '';
-    if (typeof product.primaryImage === 'string' && !isObjectId(product.primaryImage))
-      return product.primaryImage;
-    if (product.image && typeof product.image === 'object')
-      return product.image.secureUrl || product.image.url || '';
-    if (typeof product.image === 'string' && !isObjectId(product.image)) return product.image;
+  const resolveImgUrl = (img) => {
+    if (!img) return '';
+    if (typeof img === 'object') return img.secureUrl || img.url || '';
+    if (typeof img === 'string' && !isObjectId(img)) return img;
     return '';
   };
-  const imageUrl = resolveImg();
+  const primaryUrl = (() => {
+    const url = resolveImgUrl(product.primaryImage);
+    if (url) return url;
+    return resolveImgUrl(product.image);
+  })();
+
+  // Build full gallery: primaryImage + images[]
+  const allImages = [
+    primaryUrl,
+    ...(Array.isArray(product.images) ? product.images.map(resolveImgUrl) : []),
+  ].filter(Boolean);
+
+  const imageUrl = activeImageUrl || primaryUrl;
   const categoryName =
     typeof product.category === 'object' ? product.category?.name : product.category;
 
@@ -314,6 +324,7 @@ const ProductDetails = () => {
         <div className="grid lg:grid-cols-2 gap-12 mb-20">
           {/* Image Panel */}
           <div className="space-y-3">
+            {/* Main image */}
             <div className="relative aspect-[4/5] rounded-2xl overflow-hidden bg-muted border border-border shadow-card group">
               {imageUrl ? (
                 <img
@@ -340,7 +351,38 @@ const ProductDetails = () => {
                   </span>
                 </div>
               )}
+              {/* Image counter badge */}
+              {allImages.length > 1 && (
+                <div className="absolute bottom-3 right-3">
+                  <span className="px-2.5 py-1 bg-black/60 text-white text-xs font-medium rounded-full backdrop-blur-sm">
+                    {allImages.indexOf(imageUrl) + 1} / {allImages.length}
+                  </span>
+                </div>
+              )}
             </div>
+
+            {/* Thumbnail strip */}
+            {allImages.length > 1 && (
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {allImages.map((url, i) => {
+                  const isActive = url === imageUrl;
+                  return (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => setActiveImageUrl(url)}
+                      className={`shrink-0 h-16 w-16 rounded-xl overflow-hidden border-2 transition-all ${
+                        isActive
+                          ? 'border-primary shadow-sm scale-105'
+                          : 'border-border hover:border-primary/50 opacity-70 hover:opacity-100'
+                      }`}
+                    >
+                      <img src={url} alt={`View ${i + 1}`} className="h-full w-full object-cover" />
+                    </button>
+                  );
+                })}
+              </div>
+            )}
 
             {/* Trust strip under image */}
             <div className="grid grid-cols-3 gap-2">
