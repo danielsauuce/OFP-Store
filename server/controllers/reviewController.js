@@ -99,13 +99,15 @@ export const createReview = async (req, res) => {
       rating,
       content,
       isVerifiedPurchase: false,
-      isApproved: false,
+      isApproved: true,
     });
+
+    const populated = await review.populate('user', 'fullName profilePicture');
 
     res.status(201).json({
       success: true,
-      message: 'Review submitted successfully. It will appear after admin approval.',
-      review,
+      message: 'Review submitted successfully.',
+      review: populated,
     });
   } catch (error) {
     logger.error('Create review error', { error: error.message, userId: req.user?.id });
@@ -241,11 +243,33 @@ export const approveReview = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: `Review ${isApproved ? 'approved' : 'rejected'} successfully`,
+      message: `Review ${isApproved ? 'restored' : 'hidden'} successfully`,
       review,
     });
   } catch (error) {
     logger.error('Approve review error', { reviewId: req.params.reviewId, error: error.message });
-    res.status(500).json({ success: false, message: 'Failed to update review approval' });
+    res.status(500).json({ success: false, message: 'Failed to update review visibility' });
+  }
+};
+
+// Admin: permanently delete any review
+export const deleteReviewAdmin = async (req, res) => {
+  try {
+    const { reviewId } = req.params;
+
+    const review = await Review.findById(reviewId);
+    if (!review) {
+      return res.status(404).json({ success: false, message: 'Review not found' });
+    }
+
+    await review.deleteOne();
+
+    res.status(200).json({ success: true, message: 'Review deleted successfully' });
+  } catch (error) {
+    logger.error('Admin delete review error', {
+      reviewId: req.params.reviewId,
+      error: error.message,
+    });
+    res.status(500).json({ success: false, message: 'Failed to delete review' });
   }
 };
