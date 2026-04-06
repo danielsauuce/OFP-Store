@@ -4,7 +4,7 @@ import { CheckCircle2, Package, Truck, ShieldCheck, MapPin, CreditCard } from 'l
 import gsap from 'gsap';
 
 const SHIPPING_THRESHOLD = 500;
-const SHIPPING_COST = 20;
+const SHIPPING_COST = 15;
 
 function OrderConfirmation({
   orderNumber,

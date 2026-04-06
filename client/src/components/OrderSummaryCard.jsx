@@ -1,7 +1,7 @@
 import { ShieldCheck, Truck } from 'lucide-react';
 
 const SHIPPING_THRESHOLD = 500;
-const SHIPPING_COST = 50;
+const SHIPPING_COST = 15;
 
 const OrderSummaryCard = ({ items, subtotal }) => {
   const shipping = subtotal >= SHIPPING_THRESHOLD ? 0 : SHIPPING_COST;
