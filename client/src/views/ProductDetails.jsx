@@ -203,10 +203,17 @@ const ProductDetails = () => {
         content: trimmedContent,
       });
       if (data?.success) {
-        toast.success(data.message || 'Review submitted! It will appear after approval.');
+        toast.success('Review submitted successfully.');
         setReviewContent('');
         setReviewRating(5);
         setShowReviewForm(false);
+        // Prepend the new review and update pagination count
+        setReviews((prev) => [data.review, ...prev]);
+        setReviewPagination((prev) => (prev ? { ...prev, total: prev.total + 1 } : prev));
+        setRatingBreakdown((prev) => ({
+          ...prev,
+          [reviewRating]: (prev[reviewRating] || 0) + 1,
+        }));
       }
     } catch (error) {
       toast.error(error?.response?.data?.message || 'Failed to submit review');

@@ -42,3 +42,36 @@ export async function deleteReviewService(reviewId) {
     throw error;
   }
 }
+
+// Admin
+export async function getAllReviewsAdminService(params = {}) {
+  try {
+    const { data } = await axiosInstance.get('/api/reviews/admin', { params });
+    return data;
+  } catch (error) {
+    console.error('getAllReviewsAdmin error:', error?.response?.data || error.message);
+    throw error;
+  }
+}
+
+export async function toggleReviewVisibilityService(reviewId, isApproved) {
+  try {
+    const { data } = await axiosInstance.patch(`/api/reviews/admin/${reviewId}/visibility`, {
+      isApproved,
+    });
+    return data;
+  } catch (error) {
+    console.error('toggleReviewVisibility error:', error?.response?.data || error.message);
+    throw error;
+  }
+}
+
+export async function deleteReviewAdminService(reviewId) {
+  try {
+    const { data } = await axiosInstance.delete(`/api/reviews/admin/${reviewId}`);
+    return data;
+  } catch (error) {
+    console.error('deleteReviewAdmin error:', error?.response?.data || error.message);
+    throw error;
+  }
+}
