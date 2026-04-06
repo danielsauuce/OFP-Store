@@ -12,4 +12,4 @@ ENV NODE_ENV=development
 
 EXPOSE 5173
 
-CMD ["npx", "vite", "--host"]
+CMD ["npm", "run", "dev", "--", "--host"]
