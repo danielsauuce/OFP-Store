@@ -3,7 +3,6 @@ import {
   Edit,
   Trash2,
   Plus,
-  Eye,
   Loader,
   Search,
   Package,
@@ -14,6 +13,7 @@ import {
   XCircle,
   ChevronLeft,
   ChevronRight,
+  X,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Modal from './components/Modal';
@@ -27,11 +27,12 @@ import {
   getAllCategoriesAdminService,
   createCategoryService,
 } from '../../services/categoryService';
-import { uploadImageService } from '../../services/uploadService';
+import { uploadImageService, uploadMultipleImagesService } from '../../services/uploadService';
 
 const PRODUCTS_PER_PAGE = 12;
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const ALLOWED_IMAGE_MIMES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/avif'];
+const MAX_GALLERY_IMAGES = 10;
 
 const isAllowedImageType = (file) => ALLOWED_IMAGE_MIMES.includes(file.type);
 
@@ -43,6 +44,13 @@ const EMPTY_FORM = {
   shortDescription: '',
   material: '',
   stockQuantity: 0,
+};
+
+// Resolve a Media object or plain URL from whatever shape the API returns
+const resolveUrl = (img) => {
+  if (!img) return null;
+  if (typeof img === 'string') return img;
+  return img.secureUrl || img.url || null;
 };
 
 const Products = () => {
@@ -67,10 +75,18 @@ const Products = () => {
   const [showNewCat, setShowNewCat] = useState(false);
   const [newCatName, setNewCatName] = useState('');
   const [creatingCat, setCreatingCat] = useState(false);
+
+  // Primary image
   const [imageFile, setImageFile] = useState(null);
   const previewImgRef = useRef(null);
 
-  // Set the preview src imperatively so no blob URL ever flows through a JSX prop
+  // Gallery images
+  const [galleryFiles, setGalleryFiles] = useState([]); // new File objects pending upload
+  const [galleryPreviews, setGalleryPreviews] = useState([]); // object URLs for new files
+  const [existingGallery, setExistingGallery] = useState([]); // Media objects already saved
+  const [removedGalleryIds, setRemovedGalleryIds] = useState([]); // IDs removed during edit
+
+  // Set primary image preview imperatively
   useEffect(() => {
     if (!imageFile || !previewImgRef.current) return;
     const url = URL.createObjectURL(imageFile);
@@ -78,7 +94,14 @@ const Products = () => {
     return () => URL.revokeObjectURL(url);
   }, [imageFile]);
 
-  // Debounce search input → update searchQuery and reset to page 1
+  // Build / revoke object URLs for gallery previews
+  useEffect(() => {
+    const urls = galleryFiles.map((f) => URL.createObjectURL(f));
+    setGalleryPreviews(urls);
+    return () => urls.forEach((u) => URL.revokeObjectURL(u));
+  }, [galleryFiles]);
+
+  // Debounce search
   const searchDebounceRef = useRef(null);
   useEffect(() => {
     clearTimeout(searchDebounceRef.current);
@@ -128,6 +151,10 @@ const Products = () => {
   const resetForm = () => {
     setFormData(EMPTY_FORM);
     setImageFile(null);
+    setGalleryFiles([]);
+    setGalleryPreviews([]);
+    setExistingGallery([]);
+    setRemovedGalleryIds([]);
   };
 
   const handleInputChange = (e) => {
@@ -147,14 +174,51 @@ const Products = () => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!isAllowedImageType(file)) {
-      toast.error('Please select PNG, JPEG, GIF, or WebP');
+      toast.error('Please select PNG, JPEG, GIF, WebP or AVIF');
       return;
     }
     if (file.size > MAX_FILE_SIZE) {
-      toast.error('Image must be under 5MB');
+      toast.error('Image must be under 5 MB');
       return;
     }
     setImageFile(file);
+  };
+
+  const handleGalleryChange = (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+
+    const totalSlots = existingGallery.length + galleryFiles.length;
+    const available = MAX_GALLERY_IMAGES - totalSlots;
+    if (available <= 0) {
+      toast.error(`Maximum ${MAX_GALLERY_IMAGES} gallery images allowed`);
+      return;
+    }
+
+    const valid = [];
+    for (const file of files.slice(0, available)) {
+      if (!isAllowedImageType(file)) {
+        toast.error(`${file.name}: unsupported type`);
+        continue;
+      }
+      if (file.size > MAX_FILE_SIZE) {
+        toast.error(`${file.name}: must be under 5 MB`);
+        continue;
+      }
+      valid.push(file);
+    }
+    if (valid.length) setGalleryFiles((prev) => [...prev, ...valid]);
+    // Reset input so the same file can be re-selected if removed
+    e.target.value = '';
+  };
+
+  const removeNewGalleryFile = (index) => {
+    setGalleryFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const removeExistingGalleryImage = (mediaId) => {
+    setExistingGallery((prev) => prev.filter((m) => (m._id || m.id) !== mediaId));
+    setRemovedGalleryIds((prev) => [...prev, mediaId]);
   };
 
   const openAdd = () => {
@@ -175,6 +239,11 @@ const Products = () => {
       stockQuantity: product.stockQuantity || 0,
     });
     setImageFile(null);
+    setGalleryFiles([]);
+    setGalleryPreviews([]);
+    setRemovedGalleryIds([]);
+    // Pre-populate existing gallery images
+    setExistingGallery(Array.isArray(product.images) ? product.images.filter(Boolean) : []);
     setIsEditOpen(true);
   };
 
@@ -188,7 +257,6 @@ const Products = () => {
     setIsViewOpen(true);
   };
 
-  // Strip empty optional strings so Joi doesn't reject them; preserve explicit null for clearing fields
   const sanitisePayload = (obj) => {
     const result = {};
     for (const [k, v] of Object.entries(obj)) {
@@ -202,19 +270,31 @@ const Products = () => {
     return result;
   };
 
-  const uploadImage = async () => {
+  const uploadPrimaryImage = async () => {
     if (!imageFile) return null;
-    if (!isAllowedImageType(imageFile)) {
-      toast.error('Invalid image type');
-      return null;
-    }
     try {
       const data = await uploadImageService(imageFile, 'products');
       if (data?.success && data.media) return data.media.id || data.media._id;
       return null;
     } catch {
-      toast.error('Image upload failed');
+      toast.error('Primary image upload failed');
       return null;
+    }
+  };
+
+  // Upload all new gallery files, return array of Media IDs
+  const uploadGalleryImages = async () => {
+    if (!galleryFiles.length) return [];
+    try {
+      const data = await uploadMultipleImagesService(galleryFiles, 'products');
+      if (data?.success && Array.isArray(data.media)) {
+        return data.media.map((m) => m.id || m._id);
+      }
+      toast.error('Some gallery images failed to upload');
+      return [];
+    } catch {
+      toast.error('Gallery upload failed');
+      return [];
     }
   };
 
@@ -228,13 +308,17 @@ const Products = () => {
       return;
     }
     if (!imageFile) {
-      toast.error('Please select a product image');
+      toast.error('Please select a primary product image');
       return;
     }
 
     setSubmitting(true);
     try {
-      const primaryImage = await uploadImage();
+      const [primaryImage, galleryIds] = await Promise.all([
+        uploadPrimaryImage(),
+        uploadGalleryImages(),
+      ]);
+
       if (!primaryImage) {
         setSubmitting(false);
         return;
@@ -245,6 +329,7 @@ const Products = () => {
         primaryImage,
         price: Number(formData.price),
         stockQuantity: Number(formData.stockQuantity) || 0,
+        ...(galleryIds.length ? { images: galleryIds } : {}),
       });
 
       const data = await createProductService(payload);
@@ -274,23 +359,28 @@ const Products = () => {
 
     setSubmitting(true);
     try {
-      let primaryImage;
-      if (imageFile) {
-        primaryImage = await uploadImage();
-        if (!primaryImage) {
-          setSubmitting(false);
-          return;
-        }
+      const [primaryImage, newGalleryIds] = await Promise.all([
+        imageFile ? uploadPrimaryImage() : Promise.resolve(null),
+        uploadGalleryImages(),
+      ]);
+
+      if (imageFile && !primaryImage) {
+        setSubmitting(false);
+        return;
       }
+
+      // Compose final images array: kept existing + newly uploaded
+      const keptIds = existingGallery.map((m) => m._id || m.id).filter(Boolean);
+      const finalImages = [...keptIds, ...newGalleryIds];
 
       const payload = sanitisePayload({
         ...formData,
         price: Number(formData.price),
         stockQuantity: Number(formData.stockQuantity) || 0,
-        // Explicitly send null for optional text fields so the server can clear them
         shortDescription: formData.shortDescription === '' ? null : formData.shortDescription,
         material: formData.material === '' ? null : formData.material,
         ...(primaryImage ? { primaryImage } : {}),
+        images: finalImages,
       });
 
       const data = await updateProductService(selectedProduct._id, payload);
@@ -332,9 +422,6 @@ const Products = () => {
   const getCategoryName = (product) =>
     typeof product.category === 'object' ? product.category?.name : product.category || '—';
 
-  // Products are already filtered server-side by search query
-  const filteredProducts = products;
-
   const handleCreateCategory = async () => {
     const name = newCatName.trim();
     if (!name) return;
@@ -370,6 +457,9 @@ const Products = () => {
       {...rest}
     />
   );
+
+  const galleryInputRef = useRef(null);
+  const totalGalleryCount = existingGallery.length + galleryFiles.length;
 
   const renderFormFields = () => (
     <div className="space-y-4">
@@ -513,8 +603,9 @@ const Products = () => {
         </p>
       </div>
 
+      {/* ── Primary Image ── */}
       <div>
-        <FieldLabel>Product Image {!selectedProduct && '*'}</FieldLabel>
+        <FieldLabel>Primary Image {!selectedProduct && '*'}</FieldLabel>
         <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-border rounded-xl cursor-pointer hover:border-primary/50 hover:bg-muted/30 transition-all">
           <input
             type="file"
@@ -528,13 +619,127 @@ const Products = () => {
               alt="Preview"
               className="h-full w-full object-contain rounded-xl"
             />
+          ) : selectedProduct && getProductImage(selectedProduct) ? (
+            <div className="relative h-full w-full">
+              <img
+                src={getProductImage(selectedProduct)}
+                alt="Current"
+                className="h-full w-full object-contain rounded-xl opacity-70"
+              />
+              <span className="absolute bottom-1 left-1/2 -translate-x-1/2 text-[10px] bg-black/60 text-white px-2 py-0.5 rounded-full">
+                Click to replace
+              </span>
+            </div>
           ) : (
             <div className="flex flex-col items-center gap-2 text-muted-foreground">
               <ImageIcon className="h-8 w-8 opacity-40" />
-              <p className="text-xs">Click to upload PNG, JPEG, WebP (max 5MB)</p>
+              <p className="text-xs">Click to upload PNG, JPEG, WebP (max 5 MB)</p>
             </div>
           )}
         </label>
+      </div>
+
+      {/* ── Gallery Images ── */}
+      <div>
+        <div className="flex items-center justify-between mb-1">
+          <FieldLabel>
+            Gallery Images{' '}
+            <span className="normal-case font-normal text-muted-foreground">
+              ({totalGalleryCount}/{MAX_GALLERY_IMAGES})
+            </span>
+          </FieldLabel>
+          {totalGalleryCount < MAX_GALLERY_IMAGES && (
+            <button
+              type="button"
+              onClick={() => galleryInputRef.current?.click()}
+              className="text-[11px] text-primary hover:underline flex items-center gap-0.5"
+            >
+              <Plus className="h-3 w-3" />
+              Add images
+            </button>
+          )}
+        </div>
+
+        <input
+          ref={galleryInputRef}
+          type="file"
+          accept={ALLOWED_IMAGE_MIMES.join(',')}
+          multiple
+          onChange={handleGalleryChange}
+          className="hidden"
+        />
+
+        {totalGalleryCount === 0 ? (
+          <button
+            type="button"
+            onClick={() => galleryInputRef.current?.click()}
+            className="flex flex-col items-center justify-center w-full h-20 border-2 border-dashed border-border rounded-xl hover:border-primary/50 hover:bg-muted/30 transition-all text-muted-foreground"
+          >
+            <ImageIcon className="h-6 w-6 opacity-40 mb-1" />
+            <p className="text-xs">Add up to {MAX_GALLERY_IMAGES} additional images</p>
+          </button>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {/* Existing saved images */}
+            {existingGallery.map((img) => {
+              const url = resolveUrl(img);
+              const id = img._id || img.id;
+              return (
+                <div key={id} className="relative h-20 w-20 group">
+                  <img
+                    src={url}
+                    alt="Gallery"
+                    className="h-full w-full object-cover rounded-lg border border-border"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeExistingGalleryImage(id)}
+                    className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              );
+            })}
+
+            {/* Newly selected files (not yet uploaded) */}
+            {galleryPreviews.map((url, i) => (
+              <div key={url} className="relative h-20 w-20 group">
+                <img
+                  src={url}
+                  alt="New gallery"
+                  className="h-full w-full object-cover rounded-lg border border-primary/40"
+                />
+                <button
+                  type="button"
+                  onClick={() => removeNewGalleryFile(i)}
+                  className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+                {/* "New" badge */}
+                <span className="absolute bottom-0.5 left-0.5 text-[8px] bg-primary text-primary-foreground px-1 rounded">
+                  NEW
+                </span>
+              </div>
+            ))}
+
+            {/* Add more slot */}
+            {totalGalleryCount < MAX_GALLERY_IMAGES && (
+              <button
+                type="button"
+                onClick={() => galleryInputRef.current?.click()}
+                className="h-20 w-20 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center text-muted-foreground hover:border-primary/50 hover:bg-muted/30 transition-all"
+              >
+                <Plus className="h-5 w-5 opacity-50" />
+                <span className="text-[10px] mt-0.5">Add</span>
+              </button>
+            )}
+          </div>
+        )}
+        <p className="text-[11px] text-muted-foreground mt-1">
+          These appear as additional product images customers can browse.
+        </p>
       </div>
     </div>
   );
@@ -583,7 +788,7 @@ const Products = () => {
       )}
 
       {/* Product grid */}
-      {filteredProducts.length === 0 ? (
+      {products.length === 0 ? (
         <div className="bg-card rounded-xl border border-border p-16 text-center">
           <Package className="h-14 w-14 mx-auto text-muted-foreground opacity-30 mb-4" />
           <p className="font-medium text-foreground mb-1">No products found</p>
@@ -593,15 +798,15 @@ const Products = () => {
         </div>
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {filteredProducts.map((product) => {
+          {products.map((product) => {
             const img = getProductImage(product);
             const catName = getCategoryName(product);
+            const galleryCount = Array.isArray(product.images) ? product.images.length : 0;
             return (
               <div
                 key={product._id}
                 className="bg-card border border-border rounded-xl overflow-hidden hover:shadow-md transition-shadow group"
               >
-                {/* Image */}
                 <div className="relative h-44 bg-muted">
                   {img ? (
                     <img
@@ -614,8 +819,7 @@ const Products = () => {
                       <Package className="h-10 w-10 text-muted-foreground opacity-30" />
                     </div>
                   )}
-                  {/* Stock badge */}
-                  <div className="absolute top-2 right-2">
+                  <div className="absolute top-2 right-2 flex flex-col gap-1 items-end">
                     {product.inStock ? (
                       <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-[10px] font-semibold">
                         <CheckCircle2 className="h-2.5 w-2.5" />
@@ -627,10 +831,14 @@ const Products = () => {
                         Out of Stock
                       </span>
                     )}
+                    {galleryCount > 0 && (
+                      <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/50 text-white text-[10px] font-semibold">
+                        <ImageIcon className="h-2.5 w-2.5" />+{galleryCount}
+                      </span>
+                    )}
                   </div>
                 </div>
 
-                {/* Info */}
                 <div className="p-4 space-y-2">
                   <div className="flex items-start justify-between gap-2">
                     <h3 className="font-semibold text-foreground text-sm leading-tight line-clamp-2">
@@ -654,7 +862,6 @@ const Products = () => {
                     </span>
                   </div>
 
-                  {/* Actions */}
                   <div className="flex items-center gap-1 pt-1 border-t border-border">
                     <button
                       aria-label={`View ${product.name}`}
@@ -791,99 +998,124 @@ const Products = () => {
         title="Product Details"
         maxWidth="max-w-lg"
       >
-        {selectedProduct && (
-          <div className="space-y-4">
-            {getProductImage(selectedProduct) && (
-              <div className="w-full h-52 rounded-xl overflow-hidden bg-muted">
-                <img
-                  src={getProductImage(selectedProduct)}
-                  alt={selectedProduct.name}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            )}
+        {selectedProduct &&
+          (() => {
+            const allImages = [
+              selectedProduct.primaryImage,
+              ...(Array.isArray(selectedProduct.images) ? selectedProduct.images : []),
+            ]
+              .map(resolveUrl)
+              .filter(Boolean);
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-muted/40 rounded-lg p-3">
-                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-0.5">
-                  Name
-                </p>
-                <p className="text-sm font-medium text-foreground">{selectedProduct.name}</p>
-              </div>
-              <div className="bg-muted/40 rounded-lg p-3">
-                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-0.5">
-                  Price
-                </p>
-                <p className="text-sm font-bold text-primary">
-                  £{Number(selectedProduct.price).toFixed(2)}
-                </p>
-              </div>
-              <div className="bg-muted/40 rounded-lg p-3">
-                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-0.5">
-                  Category
-                </p>
-                <p className="text-sm text-foreground">{getCategoryName(selectedProduct)}</p>
-              </div>
-              <div className="bg-muted/40 rounded-lg p-3">
-                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-0.5">
-                  Stock
-                </p>
-                <p className="text-sm text-foreground">
-                  {selectedProduct.stockQuantity ?? 0} units
-                </p>
-              </div>
-              {selectedProduct.material && (
-                <div className="bg-muted/40 rounded-lg p-3 col-span-2">
-                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-0.5">
-                    Material
-                  </p>
-                  <p className="text-sm text-foreground">{selectedProduct.material}</p>
+            return (
+              <div className="space-y-4">
+                {/* Main image */}
+                {allImages.length > 0 && (
+                  <div className="w-full h-52 rounded-xl overflow-hidden bg-muted">
+                    <img
+                      src={allImages[0]}
+                      alt={selectedProduct.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
+
+                {/* Thumbnail strip */}
+                {allImages.length > 1 && (
+                  <div className="flex gap-2 overflow-x-auto pb-1">
+                    {allImages.map((url, i) => (
+                      <img
+                        key={i}
+                        src={url}
+                        alt={`View ${i + 1}`}
+                        className="h-14 w-14 object-cover rounded-lg border border-border shrink-0"
+                      />
+                    ))}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-muted/40 rounded-lg p-3">
+                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-0.5">
+                      Name
+                    </p>
+                    <p className="text-sm font-medium text-foreground">{selectedProduct.name}</p>
+                  </div>
+                  <div className="bg-muted/40 rounded-lg p-3">
+                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-0.5">
+                      Price
+                    </p>
+                    <p className="text-sm font-bold text-primary">
+                      £{Number(selectedProduct.price).toFixed(2)}
+                    </p>
+                  </div>
+                  <div className="bg-muted/40 rounded-lg p-3">
+                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-0.5">
+                      Category
+                    </p>
+                    <p className="text-sm text-foreground">{getCategoryName(selectedProduct)}</p>
+                  </div>
+                  <div className="bg-muted/40 rounded-lg p-3">
+                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-0.5">
+                      Stock
+                    </p>
+                    <p className="text-sm text-foreground">
+                      {selectedProduct.stockQuantity ?? 0} units
+                    </p>
+                  </div>
+                  {selectedProduct.material && (
+                    <div className="bg-muted/40 rounded-lg p-3 col-span-2">
+                      <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-0.5">
+                        Material
+                      </p>
+                      <p className="text-sm text-foreground">{selectedProduct.material}</p>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
 
-            {selectedProduct.description && (
-              <div>
-                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">
-                  Description
-                </p>
-                <p className="text-sm text-foreground leading-relaxed">
-                  {selectedProduct.description}
-                </p>
-              </div>
-            )}
+                {selectedProduct.description && (
+                  <div>
+                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">
+                      Description
+                    </p>
+                    <p className="text-sm text-foreground leading-relaxed">
+                      {selectedProduct.description}
+                    </p>
+                  </div>
+                )}
 
-            <div className="flex justify-between items-center pt-2">
-              <span
-                className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                  selectedProduct.inStock
-                    ? 'bg-green-100 text-green-700'
-                    : 'bg-destructive/15 text-destructive'
-                }`}
-              >
-                {selectedProduct.inStock ? 'In Stock' : 'Out of Stock'}
-              </span>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => {
-                    setIsViewOpen(false);
-                    openEdit(selectedProduct);
-                  }}
-                  className="px-3 py-1.5 text-sm font-medium text-primary border border-primary/30 rounded-lg hover:bg-primary/5 transition-colors flex items-center gap-1.5"
-                >
-                  <Edit className="h-3.5 w-3.5" />
-                  Edit
-                </button>
-                <button
-                  onClick={() => setIsViewOpen(false)}
-                  className="px-3 py-1.5 text-sm font-medium border border-border rounded-lg hover:bg-muted transition-colors"
-                >
-                  Close
-                </button>
+                <div className="flex justify-between items-center pt-2">
+                  <span
+                    className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                      selectedProduct.inStock
+                        ? 'bg-green-100 text-green-700'
+                        : 'bg-destructive/15 text-destructive'
+                    }`}
+                  >
+                    {selectedProduct.inStock ? 'In Stock' : 'Out of Stock'}
+                  </span>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        setIsViewOpen(false);
+                        openEdit(selectedProduct);
+                      }}
+                      className="px-3 py-1.5 text-sm font-medium text-primary border border-primary/30 rounded-lg hover:bg-primary/5 transition-colors flex items-center gap-1.5"
+                    >
+                      <Edit className="h-3.5 w-3.5" />
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => setIsViewOpen(false)}
+                      className="px-3 py-1.5 text-sm font-medium border border-border rounded-lg hover:bg-muted transition-colors"
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-        )}
+            );
+          })()}
       </Modal>
 
       {/* ── DELETE MODAL ── */}
