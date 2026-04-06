@@ -33,7 +33,11 @@ export const createPaymentIntentController = async (req, res) => {
     if (existingPayment?.stripePaymentIntentId) {
       const existingIntent = await retrievePaymentIntent(existingPayment.stripePaymentIntentId);
       if (existingIntent && existingIntent.status !== 'canceled') {
-        return res.status(200).json({ success: true, clientSecret: existingIntent.client_secret, paymentIntentId: existingIntent.id });
+        return res.status(200).json({
+          success: true,
+          clientSecret: existingIntent.client_secret,
+          paymentIntentId: existingIntent.id,
+        });
       }
     }
 
@@ -58,7 +62,9 @@ export const createPaymentIntentController = async (req, res) => {
       { upsert: true, new: true },
     );
 
-    res.status(200).json({ success: true, clientSecret: intent.client_secret, paymentIntentId: intent.id });
+    res
+      .status(200)
+      .json({ success: true, clientSecret: intent.client_secret, paymentIntentId: intent.id });
   } catch (error) {
     logger.error('Create payment intent error', { error: error.message, userId: req.user?.id });
     res.status(500).json({ success: false, message: 'Failed to create payment intent' });
