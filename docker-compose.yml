@@ -117,12 +117,11 @@ services:
     container_name: ofp-node-exporter
     restart: unless-stopped
     command:
-      - "--path.rootfs=/host"
-    pid: host
+      - "--no-collector.hwmon"
+      - "--no-collector.ipvs"
     ports:
       - "9100:9100"
-    volumes:
-      - "/:/host:ro,rslave"
+    # Root filesystem mount removed — not supported on macOS Docker Desktop
 
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:v0.49.1
@@ -131,9 +130,7 @@ services:
     ports:
       - "8080:8080"
     volumes:
-      - /:/rootfs:ro
-      - /var/run:/var/run:ro
-      - /sys:/sys:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
       - /var/lib/docker/:/var/lib/docker:ro
 
   blackbox:
