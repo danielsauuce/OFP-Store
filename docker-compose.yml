@@ -121,8 +121,7 @@ services:
       - "--no-collector.ipvs"
     ports:
       - "9100:9100"
-    # Root filesystem mount removed — not supported on macOS Docker Desktop
-
+      
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:v0.49.1
     container_name: ofp-cadvisor
