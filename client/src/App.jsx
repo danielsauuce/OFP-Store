@@ -31,6 +31,7 @@ const Analytics = lazy(() => import('./views/admin/Analytics'));
 const AdminChat = lazy(() => import('./views/admin/Chat'));
 const AdminNotifications = lazy(() => import('./views/admin/Notifications'));
 const AdminPayments = lazy(() => import('./views/admin/Payments'));
+const AdminReviews = lazy(() => import('./views/admin/Reviews'));
 
 function PageLoader() {
   return (
@@ -110,6 +111,7 @@ function App() {
               <Route path="users" element={<Users />} />
               <Route path="analytics" element={<Analytics />} />
               <Route path="payments" element={<AdminPayments />} />
+              <Route path="reviews" element={<AdminReviews />} />
               <Route path="chat" element={<AdminChat />} />
               <Route path="notifications" element={<AdminNotifications />} />
             </Route>

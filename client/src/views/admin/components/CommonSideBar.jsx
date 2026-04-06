@@ -10,6 +10,7 @@ import {
   LogOut,
   ShieldCheck,
   CreditCard,
+  Star,
 } from 'lucide-react';
 import { useAuth } from '../../../context/authContext';
 import { useNotifications } from '../../../context/notificationContext';
@@ -21,6 +22,7 @@ export const navigations = [
   { name: 'Payments', href: '/admin/payments', icon: CreditCard },
   { name: 'Users', href: '/admin/users', icon: Users },
   { name: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
+  { name: 'Reviews', href: '/admin/reviews', icon: Star },
   { name: 'Chat', href: '/admin/chat', icon: MessageSquare },
   { name: 'Notifications', href: '/admin/notifications', icon: Bell },
 ];
