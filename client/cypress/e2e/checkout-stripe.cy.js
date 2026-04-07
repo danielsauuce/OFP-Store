@@ -127,11 +127,13 @@ describe('Checkout Stripe — Authenticated', () => {
         });
 
         // Complete order (confirm button should appear)
-        cy.get('button').contains(/confirm|place order|complete/i, { timeout: 8000 }).then(($btn) => {
-          if ($btn.length > 0) {
-            cy.wrap($btn).click();
-          }
-        });
+        cy.get('button')
+          .contains(/confirm|place order|complete/i, { timeout: 8000 })
+          .then(($btn) => {
+            if ($btn.length > 0) {
+              cy.wrap($btn).click();
+            }
+          });
 
         // Verify confirmation UI appears
         cy.contains(/thank you/i, { timeout: 8000 }).should('exist');

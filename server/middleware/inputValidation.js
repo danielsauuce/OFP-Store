@@ -53,7 +53,7 @@ function validateObject(obj, depth = 0) {
       // Allow alphanumeric, common special chars, and URLs
       if (
         /(^|\s)(eval|exec|spawn|chmod|rm|rmdir|dd|mkfs|mount|sh|bash|cmd|powershell)\s*\(/.test(
-          value
+          value,
         )
       ) {
         throw new Error('Suspicious command pattern detected');

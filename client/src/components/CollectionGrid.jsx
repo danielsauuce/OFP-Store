@@ -79,7 +79,10 @@ const CollectionGrid = () => {
           const key = cat._id ? cat._id.toString() : cat.name.toLowerCase();
           if (!catsMap.has(key)) {
             if (!cat.slug) {
-              cat.slug = cat.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+              cat.slug = cat.name
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, '-')
+                .replace(/^-+|-+$/g, '');
             }
             catsMap.set(key, cat);
           }

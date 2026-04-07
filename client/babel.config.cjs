@@ -22,7 +22,7 @@ module.exports = {
                 ) {
                   const envName = node.property.name;
                   path.replaceWithSourceString(
-                    `(globalThis.import?.meta?.env?.${envName} || process.env.${envName})`
+                    `(globalThis.import?.meta?.env?.${envName} || process.env.${envName})`,
                   );
                 }
               },

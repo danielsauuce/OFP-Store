@@ -300,7 +300,10 @@ const Reviews = () => {
 
       {/* Delete confirm modal */}
       {deleteConfirm && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setDeleteConfirm(null)}>
+        <div
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          onClick={() => setDeleteConfirm(null)}
+        >
           <div
             className="bg-card border border-border rounded-xl p-6 max-w-sm w-full shadow-xl"
             role="dialog"
@@ -309,7 +312,9 @@ const Reviews = () => {
             onClick={(e) => e.stopPropagation()}
             onKeyDown={(e) => e.key === 'Escape' && setDeleteConfirm(null)}
           >
-            <h3 id="delete-review-title" className="text-lg font-semibold text-foreground mb-2">Delete Review</h3>
+            <h3 id="delete-review-title" className="text-lg font-semibold text-foreground mb-2">
+              Delete Review
+            </h3>
             <p className="text-sm text-muted-foreground mb-6">
               This action is permanent and cannot be undone.
             </p>

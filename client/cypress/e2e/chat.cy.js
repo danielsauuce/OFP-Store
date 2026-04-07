@@ -43,7 +43,9 @@ describe('Chat Widget — Authenticated', () => {
       .first()
       .click();
     // After clicking, the chat panel should become visible with messaging UI
-    cy.get('div[class*="shadow-2xl"][class*="rounded-2xl"]', { timeout: 5000 }).should('be.visible');
+    cy.get('div[class*="shadow-2xl"][class*="rounded-2xl"]', { timeout: 5000 }).should(
+      'be.visible',
+    );
     cy.get('textarea, input[placeholder*="message" i]', { timeout: 5000 }).should('exist');
   });
 

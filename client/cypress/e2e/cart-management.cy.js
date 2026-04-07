@@ -72,7 +72,9 @@ describe('Cart — Authenticated (requires user session)', () => {
     cy.get('body').then(($b) => {
       if (hasItems($b)) {
         // Look for the minus button inside quantity wrapper
-        cy.get('div[class*="flex"][class*="items-center"][class*="border"][class*="rounded-md"] button')
+        cy.get(
+          'div[class*="flex"][class*="items-center"][class*="border"][class*="rounded-md"] button',
+        )
           .first()
           .should('exist');
       }
@@ -85,7 +87,9 @@ describe('Cart — Authenticated (requires user session)', () => {
     cy.get('body').then(($b) => {
       if (hasItems($b)) {
         // Look for the plus button (should have 2 buttons in quantity wrapper: minus, plus)
-        cy.get('div[class*="flex"][class*="items-center"][class*="border"][class*="rounded-md"] button')
+        cy.get(
+          'div[class*="flex"][class*="items-center"][class*="border"][class*="rounded-md"] button',
+        )
           .first()
           .parent()
           .find('button')

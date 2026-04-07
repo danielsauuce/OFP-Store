@@ -15,7 +15,8 @@ function OrderConfirmation({
   paymentMethod = 'card',
 }) {
   const pageRef = useRef(null);
-  const finalShipping = shipping !== null ? shipping : (subtotal >= SHIPPING_THRESHOLD ? 0 : SHIPPING_COST);
+  const finalShipping =
+    shipping !== null ? shipping : subtotal >= SHIPPING_THRESHOLD ? 0 : SHIPPING_COST;
   const total = subtotal + finalShipping;
 
   useLayoutEffect(() => {

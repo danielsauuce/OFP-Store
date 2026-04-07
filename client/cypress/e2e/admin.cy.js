@@ -109,9 +109,11 @@ describe('Admin — Panel (requires admin session)', () => {
     cy.get('body').then(($body) => {
       // Check that at least one user is displayed with email visible
       if (!$body.text().toLowerCase().includes('no users')) {
-        cy.get('table tbody tr').first().within(() => {
-          cy.get('p[class*="text-xs"][class*="text-muted-foreground"]').should('exist');
-        });
+        cy.get('table tbody tr')
+          .first()
+          .within(() => {
+            cy.get('p[class*="text-xs"][class*="text-muted-foreground"]').should('exist');
+          });
       }
     });
   });

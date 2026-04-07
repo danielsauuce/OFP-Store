@@ -176,7 +176,9 @@ const AdminProfile = () => {
           className="bg-card border border-border rounded-xl p-6 space-y-5"
         >
           <div>
-            <label htmlFor="fullName" className="block text-sm font-medium text-foreground mb-1.5">Full Name</label>
+            <label htmlFor="fullName" className="block text-sm font-medium text-foreground mb-1.5">
+              Full Name
+            </label>
             <div className="relative">
               <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <input
@@ -190,7 +192,9 @@ const AdminProfile = () => {
           </div>
 
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-foreground mb-1.5">Email</label>
+            <label htmlFor="email" className="block text-sm font-medium text-foreground mb-1.5">
+              Email
+            </label>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <input
@@ -204,7 +208,9 @@ const AdminProfile = () => {
           </div>
 
           <div>
-            <label htmlFor="phone" className="block text-sm font-medium text-foreground mb-1.5">Phone</label>
+            <label htmlFor="phone" className="block text-sm font-medium text-foreground mb-1.5">
+              Phone
+            </label>
             <div className="relative">
               <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <input
@@ -251,7 +257,9 @@ const AdminProfile = () => {
                   : 'Confirm New Password';
             return (
               <div key={field}>
-                <label htmlFor={key} className="block text-sm font-medium text-foreground mb-1.5">{label}</label>
+                <label htmlFor={key} className="block text-sm font-medium text-foreground mb-1.5">
+                  {label}
+                </label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <input
