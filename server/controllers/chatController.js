@@ -17,7 +17,7 @@ export const getConversations = async (req, res) => {
     // Normalise: for guest conversations without a userId, expose a display name
     const normalised = conversations.map((c) => ({
       ...c,
-      displayName: c.userId?.fullName || c.guestName || 'Guest',
+      displayName: c.userId?.fullName || c.userId?.email || c.guestName || 'Guest',
     }));
 
     res.status(200).json({ success: true, conversations: normalised });

@@ -152,7 +152,7 @@ describe('createReview', () => {
   test('returns 201 on successful review creation without requiring a purchase', async () => {
     Product.findById.mockResolvedValue({ _id: validObjectId });
     Review.findOne.mockResolvedValue(null);
-    Review.create.mockResolvedValue({
+    const mockReview = {
       _id: 'rev1',
       product: validObjectId,
       user: 'user1',
@@ -160,7 +160,17 @@ describe('createReview', () => {
       content: 'Good product for the price',
       isVerifiedPurchase: false,
       isApproved: false,
-    });
+      populate: jest.fn().mockResolvedValue({
+        _id: 'rev1',
+        product: validObjectId,
+        user: { _id: 'user1', fullName: 'Test User', profilePicture: null },
+        rating: 4,
+        content: 'Good product for the price',
+        isVerifiedPurchase: false,
+        isApproved: false,
+      }),
+    };
+    Review.create.mockResolvedValue(mockReview);
 
     const req = mockReq({
       body: { product: validObjectId, rating: 4, content: 'Good product for the price' },
@@ -180,14 +190,25 @@ describe('createReview', () => {
   test('review is pending admin approval after creation', async () => {
     Product.findById.mockResolvedValue({ _id: validObjectId });
     Review.findOne.mockResolvedValue(null);
-    Review.create.mockResolvedValue({
+    const mockReview = {
       _id: 'rev2',
       product: validObjectId,
       user: 'user1',
       rating: 5,
       content: 'Excellent build quality and finish',
+      isVerifiedPurchase: false,
       isApproved: false,
-    });
+      populate: jest.fn().mockResolvedValue({
+        _id: 'rev2',
+        product: validObjectId,
+        user: { _id: 'user1', fullName: 'Test User', profilePicture: null },
+        rating: 5,
+        content: 'Excellent build quality and finish',
+        isVerifiedPurchase: false,
+        isApproved: false,
+      }),
+    };
+    Review.create.mockResolvedValue(mockReview);
 
     const req = mockReq({
       body: { product: validObjectId, rating: 5, content: 'Excellent build quality and finish' },
