@@ -247,9 +247,17 @@ const Users = () => {
                       <td className="px-4 py-3.5">
                         <div className="flex items-center gap-3">
                           <div className="h-9 w-9 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 text-xs font-semibold text-primary overflow-hidden">
-                            {user.profilePicture?.secureUrl || user.profilePicture?.url ? (
+                            {(
+                              typeof user.profilePicture === 'string'
+                                ? user.profilePicture
+                                : user.profilePicture?.secureUrl || user.profilePicture?.url
+                            ) ? (
                               <img
-                                src={user.profilePicture.secureUrl || user.profilePicture.url}
+                                src={
+                                  typeof user.profilePicture === 'string'
+                                    ? user.profilePicture
+                                    : user.profilePicture.secureUrl || user.profilePicture.url
+                                }
                                 alt={user.fullName}
                                 className="h-full w-full rounded-full object-cover"
                               />

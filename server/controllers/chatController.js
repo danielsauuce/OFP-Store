@@ -7,7 +7,7 @@ export const getConversations = async (req, res) => {
     const conversations = await Conversation.find()
       .populate({
         path: 'userId',
-        select: 'fullName email profilePicture',
+        select: 'fullName profilePicture',
         populate: { path: 'profilePicture', select: 'secureUrl publicId url' },
       })
       .populate('adminId', 'fullName')
@@ -17,7 +17,7 @@ export const getConversations = async (req, res) => {
     // Normalise: for guest conversations without a userId, expose a display name
     const normalised = conversations.map((c) => ({
       ...c,
-      displayName: c.userId?.fullName || c.userId?.email || c.guestName || 'Guest',
+      displayName: c.userId?.fullName || c.guestName || 'Guest',
     }));
 
     res.status(200).json({ success: true, conversations: normalised });
@@ -38,7 +38,7 @@ export const getMessages = async (req, res) => {
       ChatMessage.find({ conversationId })
         .populate({
           path: 'sender.userId',
-          select: 'fullName email profilePicture',
+          select: 'fullName profilePicture',
           populate: { path: 'profilePicture', select: 'secureUrl publicId url' },
         })
         .sort({ createdAt: 1 })
@@ -83,7 +83,7 @@ export const createOrGetConversation = async (req, res) => {
     const messages = await ChatMessage.find({ conversationId })
       .populate({
         path: 'sender.userId',
-        select: 'fullName email profilePicture',
+        select: 'fullName profilePicture',
         populate: { path: 'profilePicture', select: 'secureUrl publicId url' },
       })
       .sort({ createdAt: 1 })

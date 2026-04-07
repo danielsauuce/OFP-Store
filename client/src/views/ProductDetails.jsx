@@ -109,6 +109,7 @@ const ProductDetails = () => {
       if (data?.success) {
         setProduct(data.product);
         setActiveImageUrl(null); // reset to primary on product change
+        setRelatedProducts([]); // clear stale related products
         const slug = data.product?.category?.slug;
         if (slug) fetchRelatedProducts(slug, data.product._id);
       }
@@ -127,7 +128,7 @@ const ProductDetails = () => {
         setRelatedProducts(products.filter((p) => p._id !== currentId).slice(0, 4));
       }
     } catch {
-      // silently fail — "You May Also Like" is non-critical
+      setRelatedProducts([]); // clear on error
     }
   };
 
@@ -272,12 +273,9 @@ const ProductDetails = () => {
   const categoryName =
     typeof product.category === 'object' ? product.category?.name : product.category;
 
-  const avgRating =
-    reviews.length > 0
-      ? Math.round((reviews.reduce((s, r) => s + r.rating, 0) / reviews.length) * 10) / 10
-      : 0;
-
-  const totalReviews = reviewPagination?.total || 0;
+  // Use product's aggregated rating data instead of deriving from paginated reviews
+  const avgRating = product?.averageRating || 0;
+  const totalReviews = product?.reviewCount || reviewPagination?.total || 0;
   const DESCRIPTION_LIMIT = 300;
   const longDesc = product.description && product.description.length > DESCRIPTION_LIMIT;
 
@@ -614,7 +612,7 @@ const ProductDetails = () => {
                     key={star}
                     star={star}
                     count={ratingBreakdown[star] || 0}
-                    total={reviews.length}
+                    total={totalReviews}
                   />
                 ))}
               </div>
@@ -646,6 +644,10 @@ const ProductDetails = () => {
                       type="button"
                       onClick={() => setReviewRating(star)}
                       onMouseEnter={() => setHoverRating(star)}
+                      onFocus={() => setHoverRating(star)}
+                      onBlur={() => setHoverRating(0)}
+                      aria-label={`Rate ${star} star${star === 1 ? '' : 's'}`}
+                      aria-pressed={reviewRating === star}
                       className="p-1 group"
                     >
                       <Star

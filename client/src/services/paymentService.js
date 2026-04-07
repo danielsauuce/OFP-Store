@@ -11,8 +11,14 @@ export const confirmPaymentSuccessService = async (stripePaymentIntentId) => {
       stripePaymentIntentId,
     });
     return data;
-  } catch {
+  } catch (error) {
     // Non-critical — webhook may handle it; do not block UX
+    // But log for diagnostics
+    console.error('Payment confirmation error (non-blocking):', {
+      stripePaymentIntentId,
+      message: error?.message,
+      status: error?.response?.status,
+    });
     return null;
   }
 };

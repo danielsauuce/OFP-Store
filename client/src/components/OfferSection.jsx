@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef } from 'react';
 import { PackageCheck, Truck, RefreshCw } from 'lucide-react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { SHIPPING_THRESHOLD } from '../lib/shippingConstants';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -14,7 +15,7 @@ const OFFERS = [
   {
     icon: Truck,
     title: 'Free Delivery',
-    description: 'Free delivery for order worth £150',
+    description: `Free delivery for order worth £${SHIPPING_THRESHOLD}`,
   },
   {
     icon: RefreshCw,

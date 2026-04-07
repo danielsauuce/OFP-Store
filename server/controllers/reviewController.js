@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import Review from '../models/review.js';
 import Product from '../models/product.js';
 import logger from '../utils/logger.js';
@@ -98,8 +99,6 @@ export const createReview = async (req, res) => {
       user: userId,
       rating,
       content,
-      isVerifiedPurchase: false,
-      isApproved: true,
     });
 
     const populated = await review.populate('user', 'fullName profilePicture');
@@ -256,6 +255,10 @@ export const approveReview = async (req, res) => {
 export const deleteReviewAdmin = async (req, res) => {
   try {
     const { reviewId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(reviewId)) {
+      return res.status(400).json({ success: false, message: 'Invalid review id' });
+    }
 
     const review = await Review.findById(reviewId);
     if (!review) {

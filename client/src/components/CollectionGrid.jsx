@@ -79,7 +79,7 @@ const CollectionGrid = () => {
           const key = cat._id ? cat._id.toString() : cat.name.toLowerCase();
           if (!catsMap.has(key)) {
             if (!cat.slug) {
-              cat.slug = cat.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+              cat.slug = cat.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
             }
             catsMap.set(key, cat);
           }
@@ -151,7 +151,7 @@ const CollectionGrid = () => {
 
           {/* Smaller cards filling the right column */}
           {rest.slice(0, 4).map((cat, i) => (
-            <div key={cat._id} className="cg-card">
+            <div key={cat._id || cat.slug || `cat-fallback-${i}`} className="cg-card">
               <CollectionCard cat={cat} index={i + 1} large={false} />
             </div>
           ))}

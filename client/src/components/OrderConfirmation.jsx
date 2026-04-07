@@ -11,11 +11,12 @@ function OrderConfirmation({
   shippingAddress,
   items = [],
   subtotal = 0,
+  shipping = null,
   paymentMethod = 'card',
 }) {
   const pageRef = useRef(null);
-  const shipping = subtotal >= SHIPPING_THRESHOLD ? 0 : SHIPPING_COST;
-  const total = subtotal + shipping;
+  const finalShipping = shipping !== null ? shipping : (subtotal >= SHIPPING_THRESHOLD ? 0 : SHIPPING_COST);
+  const total = subtotal + finalShipping;
 
   useLayoutEffect(() => {
     if (!pageRef.current) return;
@@ -67,12 +68,12 @@ function OrderConfirmation({
         <div className="grid lg:grid-cols-5 gap-6">
           {/* Left column — billing info + next steps */}
           <div className="oc-left lg:col-span-2 space-y-5">
-            {/* Billing address */}
+            {/* Shipping address */}
             {shippingAddress && (
               <div className="bg-card border border-border rounded-2xl p-5 shadow-sm">
                 <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground mb-4">
                   <MapPin className="h-4 w-4 text-primary" />
-                  Billing address
+                  Shipping address
                 </h3>
                 <dl className="space-y-1.5 text-sm">
                   {[
@@ -243,10 +244,10 @@ function OrderConfirmation({
                 <div className="flex justify-between text-sm text-muted-foreground">
                   <span>Shipping</span>
                   <span className="tabular-nums">
-                    {shipping === 0 ? (
+                    {finalShipping === 0 ? (
                       <span className="text-emerald-600 dark:text-emerald-400">Free</span>
                     ) : (
-                      `£${shipping.toFixed(2)}`
+                      `£${finalShipping.toFixed(2)}`
                     )}
                   </span>
                 </div>

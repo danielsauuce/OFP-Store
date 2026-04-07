@@ -127,7 +127,7 @@ The web storefront and REST API for **Olayinka Furniture Palace (OFP)** — a fu
 
 ## Project Structure
 
-```
+```text
 .
 ├── client/                         # React / Vite web application
 │   └── src/
@@ -407,7 +407,7 @@ Lightweight uptime monitoring dashboard accessible at `http://localhost/kuma`.
 
 ## Architecture
 
-```
+```text
 Browser / Mobile App
         │
         ▼

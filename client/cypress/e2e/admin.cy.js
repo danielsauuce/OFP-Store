@@ -117,11 +117,8 @@ describe('Admin — Panel (requires admin session)', () => {
     if (!email) return;
 
     cy.visit(`/admin/payments`);
-    cy.get('body', { timeout: 8000 }).then(($b) => {
-      if (!$b.text().match(/failed to load/i)) {
-        cy.contains(/total revenue|total payments|succeeded/i).should('exist');
-      }
-    });
+    cy.get('body', { timeout: 8000 }).should('not.contain.text', /failed to load/i);
+    cy.contains(/total revenue|total payments|succeeded/i).should('exist');
   });
 
   it('admin Products — category select is populated', () => {

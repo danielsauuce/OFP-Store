@@ -84,6 +84,13 @@ const Shop = () => {
     if (match) setSelectedCategory(match);
   }, [categories, searchParams]);
 
+  // Reset ref on unmount so URL param is re-applied when navigating back
+  useEffect(() => {
+    return () => {
+      urlCategoryApplied.current = false;
+    };
+  }, []);
+
   // GSAP entrance animations
   useLayoutEffect(() => {
     if (loading || window.Cypress) return;

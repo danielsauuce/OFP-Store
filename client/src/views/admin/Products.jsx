@@ -155,6 +155,10 @@ const Products = () => {
     setGalleryPreviews([]);
     setExistingGallery([]);
     setRemovedGalleryIds([]);
+    setSelectedProduct(null);
+    if (previewImgRef.current) {
+      previewImgRef.current.src = '';
+    }
   };
 
   const handleInputChange = (e) => {
@@ -324,6 +328,12 @@ const Products = () => {
         return;
       }
 
+      if (galleryFiles.length > 0 && galleryIds.length !== galleryFiles.length) {
+        toast.error('Some gallery images failed to upload. Please try again.');
+        setSubmitting(false);
+        return;
+      }
+
       const payload = sanitisePayload({
         ...formData,
         primaryImage,
@@ -365,6 +375,12 @@ const Products = () => {
       ]);
 
       if (imageFile && !primaryImage) {
+        setSubmitting(false);
+        return;
+      }
+
+      if (galleryFiles.length > 0 && newGalleryIds.length !== galleryFiles.length) {
+        toast.error('Some gallery images failed to upload. Please try again.');
         setSubmitting(false);
         return;
       }

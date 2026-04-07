@@ -100,20 +100,32 @@ describe('Checkout Stripe — Authenticated', () => {
   });
 
   it('order confirmation page shows thank you UI after successful payment', () => {
-    // Directly visit the checkout page and verify the order confirmation component
-    // renders correctly when shown (it replaces the form after successful payment)
     cy.visit('/checkout');
-    cy.get('body').then(($body) => {
-      if ($body.text().match(/thank you|order confirmed|order number/i)) {
-        cy.contains(/thank you/i).should('exist');
-        cy.contains(/order/i).should('exist');
-        cy.contains(/billing address|shipping/i).should('exist');
-        cy.contains(/order summary/i).should('exist');
-        cy.contains(/track your order|continue shopping/i).should('exist');
-      } else {
-        cy.log('Order confirmation not shown — requires a completed payment flow');
-      }
-    });
+    // Stub successful order and payment creation
+    cy.intercept('POST', '/api/orders', {
+      success: true,
+      order: {
+        _id: '123',
+        orderNumber: 'ORD-001',
+        items: [],
+      },
+    }).as('createOrder');
+    cy.intercept('POST', '/api/payments/intent', {
+      success: true,
+      clientSecret: 'test-secret',
+    }).as('createPayment');
+
+    // Fill checkout form and submit
+    cy.get('input[name="fullName"]').type('Test User');
+    cy.get('input[name="email"]').type('test@example.com');
+    cy.get('button').contains(/continue|next|review/i).click();
+
+    // Verify confirmation UI appears
+    cy.contains(/thank you/i).should('exist', { timeout: 8000 });
+    cy.contains(/order/i).should('exist');
+    cy.contains(/billing address|shipping/i).should('exist');
+    cy.contains(/order summary/i).should('exist');
+    cy.contains(/track your order|continue shopping/i).should('exist');
   });
 
   it('Stripe payment element renders when card method selected and key is configured', () => {

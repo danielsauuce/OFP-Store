@@ -6,3 +6,13 @@ node_modules
 logs
 __tests__
 *.test.js
+npm-debug.log*
+yarn-error.log*
+.DS_Store
+coverage
+.vscode
+.idea
+*.swp
+*.swo
+README.md
+*.md

@@ -59,9 +59,23 @@ const Reviews = () => {
     try {
       const data = await toggleReviewVisibilityService(review._id, !review.isApproved);
       if (data?.success) {
-        setReviews((prev) =>
-          prev.map((r) => (r._id === review._id ? { ...r, isApproved: !r.isApproved } : r)),
-        );
+        const nextApproved = !review.isApproved;
+        setReviews((prev) => {
+          const next = prev.map((r) =>
+            r._id === review._id ? { ...r, isApproved: nextApproved } : r,
+          );
+
+          // Remove from list if it no longer matches the current filter
+          if (filter === 'visible' && !nextApproved) {
+            return next.filter((r) => r._id !== review._id);
+          }
+
+          if (filter === 'hidden' && nextApproved) {
+            return next.filter((r) => r._id !== review._id);
+          }
+
+          return next;
+        });
         toast.success(data.message);
       }
     } catch {
@@ -286,9 +300,16 @@ const Reviews = () => {
 
       {/* Delete confirm modal */}
       {deleteConfirm && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-card border border-border rounded-xl p-6 max-w-sm w-full shadow-xl">
-            <h3 className="text-lg font-semibold text-foreground mb-2">Delete Review</h3>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setDeleteConfirm(null)}>
+          <div
+            className="bg-card border border-border rounded-xl p-6 max-w-sm w-full shadow-xl"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-review-title"
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.key === 'Escape' && setDeleteConfirm(null)}
+          >
+            <h3 id="delete-review-title" className="text-lg font-semibold text-foreground mb-2">Delete Review</h3>
             <p className="text-sm text-muted-foreground mb-6">
               This action is permanent and cannot be undone.
             </p>

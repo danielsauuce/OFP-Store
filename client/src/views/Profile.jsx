@@ -423,7 +423,7 @@ const Profile = () => {
                 <button
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
-                  className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-md text-sm font-medium transition-colors whitespace-nowrap shrink-0 ${
+                  className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-md text-sm font-medium transition-colors whitespace-nowrap shrink-0 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
                     activeTab === tab.key
                       ? 'bg-card text-foreground shadow-sm'
                       : 'text-muted-foreground hover:text-foreground'

@@ -100,15 +100,15 @@ services:
     depends_on:
       - prometheus
     ports:
-      - "3002:3000"
+      - "127.0.0.1:3002:3000"
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
       - GF_USERS_ALLOW_SIGN_UP=false
       - GF_SERVER_ROOT_URL=%(protocol)s://%(domain)s:3002/
       - GF_SERVER_SERVE_FROM_SUB_PATH=false
       - GF_SECURITY_ALLOW_EMBEDDING=true
       - GF_AUTH_DISABLE_LOGIN_FORM=false
-      - GF_SECURITY_CSRF_ALWAYS_CHECK=false
+      - GF_SECURITY_CSRF_ALWAYS_CHECK=true
     volumes:
       - grafana_data:/var/lib/grafana
       - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro

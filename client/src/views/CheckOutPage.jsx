@@ -22,10 +22,8 @@ import { shippingSchema, validateForm } from '../validation/formSchemas';
 import FormField from '../components/FormField';
 import StepProgressBar from '../components/StepProgressBar';
 import PaymentMethodSelector from '../components/PaymentMethodSelector';
-import OrderSummaryCard, {
-  SHIPPING_THRESHOLD,
-  SHIPPING_COST,
-} from '../components/OrderSummaryCard';
+import OrderSummaryCard from '../components/OrderSummaryCard';
+import { SHIPPING_THRESHOLD, SHIPPING_COST } from '../lib/shippingConstants';
 import OrderConfirmation from '../components/OrderConfirmation';
 import StripeCheckout from '../components/StripeCheckout';
 
@@ -42,6 +40,8 @@ const Checkout = () => {
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [orderNumber, setOrderNumber] = useState('');
   const [orderItems, setOrderItems] = useState([]);
+  const [confirmedSubtotal, setConfirmedSubtotal] = useState(0);
+  const [confirmedShipping, setConfirmedShipping] = useState(0);
   const [stripeClientSecret, setStripeClientSecret] = useState(null);
   const [pendingOrderTotal, setPendingOrderTotal] = useState(0);
   const [pendingOrderId, setPendingOrderId] = useState(null);
@@ -208,6 +208,8 @@ const Checkout = () => {
         const orderId = data.order._id;
         setOrderNumber(data.order.orderNumber);
         setOrderItems([...(cart.items || [])]);
+        setConfirmedSubtotal(subtotal);
+        setConfirmedShipping(shipping);
         setPendingOrderId(orderId);
 
         if (paymentMethod === 'card') {
@@ -324,7 +326,8 @@ const Checkout = () => {
         orderNumber={orderNumber}
         shippingAddress={formData}
         items={orderItems}
-        subtotal={subtotal}
+        subtotal={confirmedSubtotal}
+        shipping={confirmedShipping}
         paymentMethod={paymentMethod}
       />
     );

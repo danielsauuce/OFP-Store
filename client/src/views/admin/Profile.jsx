@@ -124,9 +124,19 @@ const AdminProfile = () => {
             src={auth?.user?.profilePicture?.secureUrl || auth?.user?.profilePicture?.url}
             name={auth?.user?.fullName}
           />
-          <label className="absolute -bottom-1 -right-1 h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center cursor-pointer hover:bg-primary/90 transition-colors">
+          <label
+            htmlFor="avatarInput"
+            className="absolute -bottom-1 -right-1 h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center cursor-pointer hover:bg-primary/90 transition-colors"
+            aria-label="Change avatar"
+          >
             <Camera className="h-4 w-4" />
-            <input type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
+            <input
+              id="avatarInput"
+              type="file"
+              accept="image/*"
+              className="sr-only"
+              onChange={handleAvatarChange}
+            />
           </label>
         </div>
         <div>
@@ -166,10 +176,11 @@ const AdminProfile = () => {
           className="bg-card border border-border rounded-xl p-6 space-y-5"
         >
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1.5">Full Name</label>
+            <label htmlFor="fullName" className="block text-sm font-medium text-foreground mb-1.5">Full Name</label>
             <div className="relative">
               <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <input
+                id="fullName"
                 type="text"
                 value={form.fullName}
                 onChange={(e) => setForm({ ...form, fullName: e.target.value })}
@@ -179,10 +190,11 @@ const AdminProfile = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1.5">Email</label>
+            <label htmlFor="email" className="block text-sm font-medium text-foreground mb-1.5">Email</label>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <input
+                id="email"
                 type="email"
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
@@ -192,10 +204,11 @@ const AdminProfile = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1.5">Phone</label>
+            <label htmlFor="phone" className="block text-sm font-medium text-foreground mb-1.5">Phone</label>
             <div className="relative">
               <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <input
+                id="phone"
                 type="tel"
                 value={form.phone}
                 onChange={(e) => setForm({ ...form, phone: e.target.value })}
@@ -238,10 +251,11 @@ const AdminProfile = () => {
                   : 'Confirm New Password';
             return (
               <div key={field}>
-                <label className="block text-sm font-medium text-foreground mb-1.5">{label}</label>
+                <label htmlFor={key} className="block text-sm font-medium text-foreground mb-1.5">{label}</label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <input
+                    id={key}
                     type={showPasswords[field] ? 'text' : 'password'}
                     value={passwordForm[key]}
                     onChange={(e) => setPasswordForm({ ...passwordForm, [key]: e.target.value })}
@@ -253,6 +267,8 @@ const AdminProfile = () => {
                     onClick={() =>
                       setShowPasswords({ ...showPasswords, [field]: !showPasswords[field] })
                     }
+                    aria-label={showPasswords[field] ? 'Hide password' : 'Show password'}
+                    aria-pressed={showPasswords[field]}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                   >
                     {showPasswords[field] ? (

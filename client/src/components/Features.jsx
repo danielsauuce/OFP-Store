@@ -43,6 +43,7 @@ const Features = () => {
   const [categories, setCategories] = useState([]);
   const [activeCatKey, setActiveCatKey] = useState(null); // null = All; otherwise lowercased category name
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
   const sectionRef = useRef(null);
   const gridRef = useRef(null);
 
@@ -52,6 +53,7 @@ const Features = () => {
     getAllProductsService({ limit: 100 })
       .then((data) => {
         if (data?.success) {
+          setLoadError(null);
           const products = data.data?.products || data.products || [];
           setAllProducts(products);
 
@@ -77,7 +79,9 @@ const Features = () => {
           setCategories(cats);
         }
       })
-      .catch(() => {})
+      .catch(() => {
+        setLoadError('Failed to load collections. Please try again.');
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -164,6 +168,8 @@ const Features = () => {
             <div className="flex items-center justify-center py-20">
               <Loader className="h-7 w-7 animate-spin text-primary" />
             </div>
+          ) : loadError ? (
+            <p className="text-center text-destructive py-16">{loadError}</p>
           ) : displayProducts.length === 0 ? (
             <p className="text-center text-muted-foreground py-16">
               No products found in this category.

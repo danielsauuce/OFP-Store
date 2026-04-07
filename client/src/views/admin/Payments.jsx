@@ -155,11 +155,34 @@ function Payments() {
     .filter((d) => d.value > 0);
 
   // Area chart data — fill gaps in daily revenue with 0
-  const areaData = (stats.dailyRevenue || []).map((d) => ({
-    date: new Date(d._id).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
-    revenue: d.revenue,
-    count: d.count,
-  }));
+  const areaData = (() => {
+    const today = new Date();
+    const thirtyDaysAgo = new Date(today);
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 29);
+
+    // Create lookup from backend data
+    const lookup = {};
+    (stats.dailyRevenue || []).forEach((d) => {
+      const dateStr = d._id; // Assuming _id is already in 'YYYY-MM-DD' format
+      lookup[dateStr] = { revenue: d.revenue, count: d.count };
+    });
+
+    // Generate all dates in range
+    const result = [];
+    for (let i = 0; i < 30; i++) {
+      const d = new Date(thirtyDaysAgo);
+      d.setDate(d.getDate() + i);
+      const dateStr = d.toISOString().split('T')[0]; // 'YYYY-MM-DD'
+      const data = lookup[dateStr] || { revenue: 0, count: 0 };
+
+      result.push({
+        date: d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
+        revenue: data.revenue,
+        count: data.count,
+      });
+    }
+    return result;
+  })();
 
   return (
     <div className="space-y-6">
