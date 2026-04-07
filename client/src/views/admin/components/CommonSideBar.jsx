@@ -11,9 +11,13 @@ import {
   ShieldCheck,
   CreditCard,
   Star,
+  UserCog,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { useAuth } from '../../../context/authContext';
 import { useNotifications } from '../../../context/notificationContext';
+import useDarkMode from '../../../hooks/useDarkMode';
 
 export const navigations = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
@@ -25,6 +29,7 @@ export const navigations = [
   { name: 'Reviews', href: '/admin/reviews', icon: Star },
   { name: 'Chat', href: '/admin/chat', icon: MessageSquare },
   { name: 'Notifications', href: '/admin/notifications', icon: Bell },
+  { name: 'Profile', href: '/admin/profile', icon: UserCog },
 ];
 
 const CommonSideBar = () => {
@@ -32,6 +37,7 @@ const CommonSideBar = () => {
   const navigate = useNavigate();
   const { signOut, auth } = useAuth();
   const { unreadCount } = useNotifications();
+  const [theme, setTheme] = useDarkMode();
 
   const handleSignOut = async () => {
     await signOut();
@@ -95,8 +101,19 @@ const CommonSideBar = () => {
           })}
         </nav>
 
-        {/* Sign out */}
-        <div className="p-4 border-t border-border">
+        {/* Theme toggle + Sign out */}
+        <div className="p-4 border-t border-border space-y-1">
+          <button
+            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            className="flex items-center gap-3 w-full px-4 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+          >
+            {theme === 'dark' ? (
+              <Sun className="h-4 w-4 shrink-0" />
+            ) : (
+              <Moon className="h-4 w-4 shrink-0" />
+            )}
+            {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+          </button>
           <button
             onClick={handleSignOut}
             className="flex items-center gap-3 w-full px-4 py-2.5 rounded-lg text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors"
