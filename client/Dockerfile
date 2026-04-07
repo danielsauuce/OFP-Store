@@ -6,10 +6,8 @@ COPY package*.json ./
 
 RUN npm install
 
-COPY . .
-
 ENV NODE_ENV=development
 
 EXPOSE 5173
 
-CMD ["npm", "run", "dev", "--", "--host"]
+CMD ["sh", "-c", "npm install && ./node_modules/.bin/vite --host"]

@@ -23,7 +23,6 @@ services:
       - "3000:3000"
     volumes:
       - ./server:/app
-      - /app/node_modules
     depends_on:
       - mongo
     healthcheck:
@@ -44,7 +43,6 @@ services:
       - "5173:5173"
     volumes:
       - ./client:/app
-      - /app/node_modules
     depends_on:
       - server
 
