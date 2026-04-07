@@ -74,7 +74,10 @@ function getCustomerEmail(conv) {
 }
 
 function getCustomerAvatar(conv) {
-  return conv.userId?.profilePicture || null;
+  const pic = conv.userId?.profilePicture;
+  if (!pic) return null;
+  if (typeof pic === 'string') return pic;
+  return pic.secureUrl || pic.url || null;
 }
 
 function getInitials(name) {
@@ -484,7 +487,12 @@ function Chat() {
                     msg.sender?.userId?.fullName ||
                     msg.sender?.senderName ||
                     (msg.sender?.role === 'guest' ? 'Guest' : 'Customer');
-                  const avatarUrl = msg.sender?.userId?.profilePicture || null;
+                  const rawPic = msg.sender?.userId?.profilePicture;
+                  const avatarUrl = rawPic
+                    ? typeof rawPic === 'string'
+                      ? rawPic
+                      : rawPic.secureUrl || rawPic.url || null
+                    : null;
 
                   return (
                     <div

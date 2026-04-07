@@ -6,6 +6,7 @@ import {
   deleteReview,
   getAllReviewsAdmin,
   approveReview,
+  deleteReviewAdmin,
 } from '../controllers/reviewController.js';
 import { authenticate } from '../middleware/checkAuthMiddleware.js';
 import { isAdmin } from '../middleware/adminAuth.js';
@@ -20,7 +21,8 @@ router.get('/product/:productId', cacheMiddleware(1800), getProductReviews);
 router.use(authenticate);
 
 router.get('/admin', isAdmin, getAllReviewsAdmin);
-router.patch('/admin/:reviewId/approve', isAdmin, approveReview);
+router.patch('/admin/:reviewId/visibility', isAdmin, approveReview);
+router.delete('/admin/:reviewId', isAdmin, deleteReviewAdmin);
 
 // User review CRUD
 router.post('/', createReview);

@@ -10,6 +10,10 @@ export default defineConfig({
     }),
   ],
 
+  server: {
+    allowedHosts: ['localhost', '127.0.0.1', '::1'],
+  },
+
   build: {
     chunkSizeWarningLimit: 500,
     reportCompressedSize: false,

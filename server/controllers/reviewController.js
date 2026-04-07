@@ -1,6 +1,6 @@
+import mongoose from 'mongoose';
 import Review from '../models/review.js';
 import Product from '../models/product.js';
-import Order from '../models/order.js';
 import logger from '../utils/logger.js';
 import {
   createReview as createReviewValidation,
@@ -67,7 +67,7 @@ export const getProductReviews = async (req, res) => {
   }
 };
 
-// Authenticated: Create a new review (only if user purchased the product)
+// Authenticated: Create a new review
 export const createReview = async (req, res) => {
   try {
     const { error } = createReviewValidation.validate(req.body);
@@ -87,19 +87,6 @@ export const createReview = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Product not found' });
     }
 
-    const hasPurchased = await Order.exists({
-      user: userId,
-      'items.product': productId,
-      orderStatus: { $in: ['delivered'] },
-      paymentStatus: { $in: ['paid', 'pending'] },
-    });
-
-    if (!hasPurchased) {
-      return res
-        .status(403)
-        .json({ success: false, message: 'You can only review products you have purchased' });
-    }
-
     const existingReview = await Review.findOne({ product: productId, user: userId });
     if (existingReview) {
       return res
@@ -112,14 +99,14 @@ export const createReview = async (req, res) => {
       user: userId,
       rating,
       content,
-      isVerifiedPurchase: !!hasPurchased,
-      isApproved: false,
     });
+
+    const populated = await review.populate('user', 'fullName profilePicture');
 
     res.status(201).json({
       success: true,
-      message: 'Review submitted successfully. It will appear after admin approval.',
-      review,
+      message: 'Review submitted successfully.',
+      review: populated,
     });
   } catch (error) {
     logger.error('Create review error', { error: error.message, userId: req.user?.id });
@@ -255,11 +242,37 @@ export const approveReview = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: `Review ${isApproved ? 'approved' : 'rejected'} successfully`,
+      message: `Review ${isApproved ? 'restored' : 'hidden'} successfully`,
       review,
     });
   } catch (error) {
     logger.error('Approve review error', { reviewId: req.params.reviewId, error: error.message });
-    res.status(500).json({ success: false, message: 'Failed to update review approval' });
+    res.status(500).json({ success: false, message: 'Failed to update review visibility' });
+  }
+};
+
+// Admin: permanently delete any review
+export const deleteReviewAdmin = async (req, res) => {
+  try {
+    const { reviewId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(reviewId)) {
+      return res.status(400).json({ success: false, message: 'Invalid review id' });
+    }
+
+    const review = await Review.findById(reviewId);
+    if (!review) {
+      return res.status(404).json({ success: false, message: 'Review not found' });
+    }
+
+    await review.deleteOne();
+
+    res.status(200).json({ success: true, message: 'Review deleted successfully' });
+  } catch (error) {
+    logger.error('Admin delete review error', {
+      reviewId: req.params.reviewId,
+      error: error.message,
+    });
+    res.status(500).json({ success: false, message: 'Failed to delete review' });
   }
 };

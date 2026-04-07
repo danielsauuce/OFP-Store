@@ -1,9 +1,20 @@
 import { useState, useLayoutEffect, useRef, useCallback } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
-import { ShoppingCart, UserCircle, Users, Menu, X, Sun, Moon, LogOut } from 'lucide-react';
+import {
+  ShoppingCart,
+  UserCircle,
+  Users,
+  Menu,
+  X,
+  Sun,
+  Moon,
+  LogOut,
+  BellRing,
+} from 'lucide-react';
 import useDarkMode from '../hooks/useDarkMode';
 import { useAuth } from '../context/authContext';
 import { useCart } from '../context/cartContext';
+import { useNotifications } from '../context/notificationContext';
 import gsap from 'gsap';
 import NotificationBell from './NotificationBell';
 
@@ -19,7 +30,10 @@ function Navbar() {
   const [theme, setTheme] = useDarkMode();
   const { auth, signOut } = useAuth();
   const { itemCount } = useCart();
+  const { unreadCount } = useNotifications();
   const navigate = useNavigate();
+
+  const avatarUrl = auth.user?.profilePicture?.secureUrl || auth.user?.profilePicture?.url || null;
 
   const navRef = useRef(null);
   const mobileMenuRef = useRef(null);
@@ -176,7 +190,15 @@ function Navbar() {
                 className="nav-action-icon hover:text-primary transition-colors"
                 aria-label="My Profile"
               >
-                <UserCircle size={18} />
+                {avatarUrl ? (
+                  <img
+                    src={avatarUrl}
+                    alt="Profile"
+                    className="h-7 w-7 rounded-full object-cover ring-2 ring-primary/20"
+                  />
+                ) : (
+                  <UserCircle size={18} />
+                )}
               </Link>
               <button
                 onClick={handleLogout}
@@ -253,16 +275,37 @@ function Navbar() {
                   Logged in as:{' '}
                   <span className="font-medium text-foreground">{auth.user?.fullName}</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <NotificationBell />
-                  <span className="text-sm">Notifications</span>
-                </div>
+                <Link
+                  to="/notifications"
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-2 hover:text-primary transition-colors relative"
+                >
+                  <span className="relative">
+                    <BellRing size={18} />
+                    {unreadCount > 0 && (
+                      <span className="absolute -top-1.5 -right-1.5 bg-primary text-primary-foreground text-[9px] font-bold min-w-[14px] h-3.5 flex items-center justify-center rounded-full px-0.5">
+                        {unreadCount > 99 ? '99+' : unreadCount}
+                      </span>
+                    )}
+                  </span>
+                  <span className="text-sm">
+                    Notifications{unreadCount > 0 ? ` (${unreadCount})` : ''}
+                  </span>
+                </Link>
                 <Link
                   to="/profile"
                   onClick={() => setOpen(false)}
                   className="flex items-center gap-2 hover:text-primary transition-colors"
                 >
-                  <UserCircle size={18} />
+                  {avatarUrl ? (
+                    <img
+                      src={avatarUrl}
+                      alt="Profile"
+                      className="h-5 w-5 rounded-full object-cover ring-1 ring-primary/20"
+                    />
+                  ) : (
+                    <UserCircle size={18} />
+                  )}
                   <span>My Profile</span>
                 </Link>
                 <button

@@ -6,7 +6,7 @@ import { useAuth } from '../context/authContext';
 import { useCart } from '../context/cartContext';
 
 const SHIPPING_THRESHOLD = 500;
-const SHIPPING_COST = 50;
+const SHIPPING_COST = 15;
 
 const Cart = () => {
   const { auth } = useAuth();

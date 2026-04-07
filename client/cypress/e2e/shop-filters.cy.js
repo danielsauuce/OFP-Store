@@ -17,11 +17,34 @@ describe('Shop Filters', () => {
     cy.get('[class*="CategoryFilter"] button, [class*="category"] button', { timeout: 5000 })
       .not(':contains("All")')
       .first()
-      .then(($btn) => {
-        const categoryName = $btn.text().trim();
-        cy.wrap($btn).click();
-        cy.get('.shop-product-card, article', { timeout: 8000 }).should('exist');
-      });
+      .click();
+    cy.get('.shop-product-card, article', { timeout: 8000 }).should('exist');
+  });
+
+  it('clicking a category updates the URL ?category= param', () => {
+    cy.get('[class*="CategoryFilter"] button, [class*="category"] button', { timeout: 5000 })
+      .not(':contains("All")')
+      .first()
+      .click();
+    cy.url().should('include', 'category=');
+  });
+
+  it('clicking "All" clears the category URL param', () => {
+    // First click a non-all category
+    cy.get('[class*="CategoryFilter"] button, [class*="category"] button', { timeout: 5000 })
+      .not(':contains("All")')
+      .first()
+      .click();
+    cy.url().should('include', 'category=');
+    // Then click All
+    cy.contains('button, [role="tab"], label', /^all$/i).click();
+    cy.url().should('not.include', 'category=');
+  });
+
+  it('shows more than just one category option', () => {
+    cy.get('[class*="CategoryFilter"] button, [class*="category"] button', { timeout: 5000 })
+      .not(':contains("All")')
+      .should('have.length.greaterThan', 0);
   });
 
   it('clicking "All" category shows all products', () => {

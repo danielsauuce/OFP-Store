@@ -1,6 +1,7 @@
 import User from '../models/user.js';
 import Order from '../models/order.js';
 import Product from '../models/product.js';
+import Payment from '../models/payment.js';
 import Media from '../models/media.js';
 import logger from '../utils/logger.js';
 import { deleteMediaFromCloudinary } from '../config/cloudinary.js';
@@ -257,5 +258,67 @@ export const getDashboardStats = async (req, res) => {
   } catch (error) {
     logger.error('Admin dashboard stats error', { error: error.message });
     res.status(500).json({ success: false, message: 'Failed to fetch dashboard stats' });
+  }
+};
+
+// Payment Stats
+export const getPaymentStats = async (req, res) => {
+  try {
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+    const [statusBreakdown, revenueByMethod, recentPayments, dailyRevenue] = await Promise.all([
+      Payment.aggregate([
+        { $group: { _id: '$status', count: { $sum: 1 }, total: { $sum: '$amount' } } },
+      ]),
+      Payment.aggregate([
+        { $match: { status: 'succeeded' } },
+        { $group: { _id: '$paymentMethod', count: { $sum: 1 }, total: { $sum: '$amount' } } },
+      ]),
+      Payment.find()
+        .sort({ createdAt: -1 })
+        .limit(10)
+        .populate('user', 'fullName email')
+        .populate('order', 'orderNumber total')
+        .lean(),
+      Payment.aggregate([
+        { $match: { status: 'succeeded', createdAt: { $gte: thirtyDaysAgo } } },
+        {
+          $group: {
+            _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+            revenue: { $sum: '$amount' },
+            count: { $sum: 1 },
+          },
+        },
+        { $sort: { _id: 1 } },
+      ]),
+    ]);
+
+    const statusMap = {};
+    statusBreakdown.forEach((s) => {
+      statusMap[s._id] = { count: s.count, total: s.total };
+    });
+
+    const methodMap = {};
+    revenueByMethod.forEach((m) => {
+      methodMap[m._id] = { count: m.count, total: m.total };
+    });
+
+    const totalRevenue = statusMap.succeeded?.total || 0;
+    const totalPayments = Object.values(statusMap).reduce((acc, s) => acc + s.count, 0);
+
+    res.status(200).json({
+      success: true,
+      stats: {
+        totalRevenue,
+        totalPayments,
+        statusBreakdown: statusMap,
+        revenueByMethod: methodMap,
+        recentPayments,
+        dailyRevenue,
+      },
+    });
+  } catch (error) {
+    logger.error('Admin payment stats error', { error: error.message });
+    res.status(500).json({ success: false, message: 'Failed to fetch payment stats' });
   }
 };

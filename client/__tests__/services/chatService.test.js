@@ -59,9 +59,12 @@ describe('getMessagesService', () => {
 
     await getMessagesService('conv:user1');
 
-    expect(axiosInstance.get).toHaveBeenCalledWith('/api/chat/conversations/conv:user1/messages', {
-      params: { page: 1, limit: 50 },
-    });
+    expect(axiosInstance.get).toHaveBeenCalledWith(
+      '/api/chat/conversations/conv%3Auser1/messages',
+      {
+        params: { page: 1, limit: 50 },
+      },
+    );
   });
 
   test('passes custom page and limit params', async () => {
@@ -71,9 +74,12 @@ describe('getMessagesService', () => {
 
     await getMessagesService('conv:user1', 2, 25);
 
-    expect(axiosInstance.get).toHaveBeenCalledWith('/api/chat/conversations/conv:user1/messages', {
-      params: { page: 2, limit: 25 },
-    });
+    expect(axiosInstance.get).toHaveBeenCalledWith(
+      '/api/chat/conversations/conv%3Auser1/messages',
+      {
+        params: { page: 2, limit: 25 },
+      },
+    );
   });
 
   test('returns message data', async () => {

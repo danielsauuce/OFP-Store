@@ -13,3 +13,7 @@ process.env.CLIENT_URL = 'http://localhost:3000';
 
 // Ensure NODE_ENV is set
 process.env.NODE_ENV = 'test';
+
+// Stripe requires an API key at module instantiation — provide a dummy test key
+// so stripeService.js can be imported without throwing
+process.env.STRIPE_SECRET_KEY = 'sk_test_dummy_key_for_tests';

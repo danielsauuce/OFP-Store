@@ -6,187 +6,110 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
 gsap.registerPlugin(ScrollTrigger);
 
+// Product images shown inside testimonial cards
+const PRODUCT_IMAGES = [
+  'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=400&q=70',
+  'https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?w=400&q=70',
+  'https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?w=400&q=70',
+];
+
+function StarRating({ rating }) {
+  return (
+    <div className="flex items-center gap-0.5">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <Star
+          key={i}
+          className={`w-3.5 h-3.5 ${i < rating ? 'fill-amber-400 text-amber-400' : 'fill-muted text-muted'}`}
+        />
+      ))}
+    </div>
+  );
+}
+
+function TestimonialCard({ item, productImage }) {
+  return (
+    <div className="testimonial-card bg-card rounded-2xl border border-border overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-default">
+      {/* Product image */}
+      <div className="relative h-44 overflow-hidden bg-muted">
+        <img src={productImage} alt="Product" className="w-full h-full object-cover" />
+      </div>
+
+      {/* Content */}
+      <div className="p-5">
+        {/* Rating + name row */}
+        <div className="flex items-start justify-between gap-2 mb-3">
+          <div>
+            <p className="font-semibold text-foreground text-sm">{item.name}</p>
+            <p className="text-xs text-muted-foreground">{item.role}</p>
+          </div>
+          <StarRating rating={item.rating} />
+        </div>
+
+        {/* Quote */}
+        <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3">
+          &ldquo;{item.comment}&rdquo;
+        </p>
+      </div>
+    </div>
+  );
+}
+
 const Testimonials = () => {
   const sectionRef = useRef(null);
 
   useLayoutEffect(() => {
-    const hoverHandlers = [];
-
+    if (window.Cypress) return;
     const ctx = gsap.context(() => {
-      // Section header entrance
-      const headerTL = gsap.timeline({
+      gsap.from('.testimonials-header', {
         scrollTrigger: {
           trigger: '.testimonials-header',
           start: 'top 85%',
           toggleActions: 'play none none none',
         },
+        y: 40,
+        opacity: 0,
+        duration: 0.8,
+        ease: 'power3.out',
       });
-
-      headerTL
-        .from('.testimonials-title', {
-          y: 60,
-          opacity: 0,
-          duration: 1,
-          ease: 'power4.out',
-        })
-        .from(
-          '.testimonials-subtitle',
-          {
-            y: 30,
-            opacity: 0,
-            duration: 0.7,
-            ease: 'power3.out',
-          },
-          '-=0.5',
-        )
-        .fromTo(
-          '.testimonials-divider',
-          { scaleX: 0 },
-          {
-            scaleX: 1,
-            duration: 0.6,
-            ease: 'power2.inOut',
-            transformOrigin: 'center center',
-          },
-          '-=0.3',
-        );
-
-      // Cards cascade entrance with stagger
-      const cards = gsap.utils.toArray('.testimonial-card');
-      cards.forEach((card, i) => {
-        const tl = gsap.timeline({
-          scrollTrigger: {
-            trigger: card,
-            start: 'top 90%',
-            toggleActions: 'play none none none',
-          },
-        });
-
-        // Card entrance — cascade from bottom with slight rotation
-        tl.from(card, {
-          y: 80,
-          opacity: 0,
-          rotateX: 8,
-          scale: 0.95,
-          duration: 0.9,
-          delay: i * 0.15,
-          ease: 'power3.out',
-          clearProps: 'transform',
-        });
-
-        // Stars stagger within each card
-        const stars = card.querySelectorAll('.testimonial-star');
-        tl.from(
-          stars,
-          {
-            scale: 0,
-            opacity: 0,
-            rotation: -180,
-            duration: 0.4,
-            stagger: 0.08,
-            ease: 'back.out(2)',
-          },
-          '-=0.4',
-        );
-
-        // Quote text fade in
-        tl.from(
-          card.querySelector('.testimonial-quote'),
-          {
-            y: 20,
-            opacity: 0,
-            duration: 0.6,
-            ease: 'power2.out',
-          },
-          '-=0.3',
-        );
-
-        // Author info slide in
-        tl.from(
-          card.querySelector('.testimonial-author'),
-          {
-            x: -30,
-            opacity: 0,
-            duration: 0.5,
-            ease: 'power2.out',
-          },
-          '-=0.2',
-        );
-      });
-
-      // Card hover lift effect — store references for cleanup
-      cards.forEach((card) => {
-        const hoverTL = gsap.timeline({ paused: true });
-        hoverTL.to(card, {
-          y: -8,
-          boxShadow: '0 20px 50px rgba(0,0,0,0.12)',
-          duration: 0.35,
-          ease: 'power2.out',
-        });
-
-        const onEnter = () => hoverTL.play();
-        const onLeave = () => hoverTL.reverse();
-        card.addEventListener('mouseenter', onEnter);
-        card.addEventListener('mouseleave', onLeave);
-        hoverHandlers.push({ card, onEnter, onLeave });
+      gsap.from('.testimonial-card', {
+        scrollTrigger: {
+          trigger: '.testimonials-grid',
+          start: 'top 85%',
+          toggleActions: 'play none none none',
+        },
+        y: 60,
+        opacity: 0,
+        duration: 0.9,
+        stagger: 0.15,
+        ease: 'power3.out',
       });
     }, sectionRef);
-
-    return () => {
-      // Clean up manually added event listeners
-      hoverHandlers.forEach(({ card, onEnter, onLeave }) => {
-        card.removeEventListener('mouseenter', onEnter);
-        card.removeEventListener('mouseleave', onLeave);
-      });
-      ctx.revert();
-    };
+    return () => ctx.revert();
   }, []);
 
   return (
-    <section ref={sectionRef} className="py-24 bg-muted overflow-hidden">
+    <section ref={sectionRef} className="py-20 bg-muted/30 overflow-hidden">
       <div className="container mx-auto px-4">
-        {/* Section Header */}
-        <div className="testimonials-header text-center mb-14">
-          <h2 className="testimonials-title text-4xl md:text-5xl font-serif font-bold mb-4 text-foreground">
-            What Our Customers Say
+        <div className="testimonials-header text-center mb-12">
+          <span className="inline-block text-xs uppercase tracking-[0.25em] text-primary font-semibold mb-3">
+            Reviews
+          </span>
+          <h2 className="text-3xl md:text-4xl font-serif font-bold text-foreground mb-3">
+            Word From Our Happy Customers
           </h2>
-          <div className="testimonials-divider h-[3px] w-16 bg-primary mx-auto mb-4 rounded-full" />
-          <p className="testimonials-subtitle text-muted-foreground text-lg">
-            Don't just take our word for it
+          <div className="h-[2px] w-14 bg-primary mx-auto mb-4 rounded-full" />
+          <p className="text-muted-foreground text-sm max-w-md mx-auto">
+            Hear from our clients to see how our furniture brings their visions to life
           </p>
         </div>
 
-        {/* Testimonials Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {testimonials.map((item) => (
-            <div
+        <div className="testimonials-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {testimonials.map((item, i) => (
+            <TestimonialCard
               key={item.id}
-              className="testimonial-card bg-card p-8 rounded-2xl shadow-md border border-border/50 cursor-default"
-              style={{ perspective: '800px' }}
-            >
-              {/* Stars */}
-              <div className="flex items-center gap-1 mb-5">
-                {Array.from({ length: item.rating }).map((_, i) => (
-                  <Star key={i} className="testimonial-star w-5 h-5 fill-gold text-gold" />
-                ))}
-              </div>
-
-              {/* Quote */}
-              <p className="testimonial-quote text-muted-foreground italic mb-6 leading-relaxed text-[15px]">
-                &ldquo;{item.comment}&rdquo;
-              </p>
-
-              {/* Author */}
-              <div className="testimonial-author flex items-center gap-4 pt-4 border-t border-border/50">
-                <div className="w-10 h-10 rounded-full bg-primary/15 flex items-center justify-center">
-                  <span className="text-primary font-bold text-sm">{item.name.charAt(0)}</span>
-                </div>
-                <div>
-                  <p className="font-semibold text-foreground">{item.name}</p>
-                  <p className="text-sm text-muted-foreground">{item.role}</p>
-                </div>
-              </div>
-            </div>
+              item={item}
+              productImage={PRODUCT_IMAGES[i % PRODUCT_IMAGES.length]}
+            />
           ))}
         </div>
       </div>

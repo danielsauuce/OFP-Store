@@ -25,6 +25,11 @@ describe('Admin — Access Control', () => {
     cy.visit(`/admin/analytics`);
     cy.url().should('not.include', '/admin/analytics').or('include', '/auth');
   });
+
+  it('redirects unauthenticated visitor from /admin/payments', () => {
+    cy.visit(`/admin/payments`);
+    cy.url().should('not.include', '/admin/payments').or('include', '/auth');
+  });
 });
 
 describe('Admin — Panel (requires admin session)', () => {
@@ -42,7 +47,7 @@ describe('Admin — Panel (requires admin session)', () => {
     }
   });
 
-  it('renders the admin sidebar with all nav links', () => {
+  it('renders the admin sidebar with all nav links including Payments', () => {
     const email = Cypress.env('ADMIN_EMAIL');
     const password = Cypress.env('ADMIN_PASSWORD');
     if (!email || !password) return;
@@ -58,6 +63,7 @@ describe('Admin — Panel (requires admin session)', () => {
     cy.contains('a', 'Orders').should('be.visible');
     cy.contains('a', 'Users').should('be.visible');
     cy.contains('a', 'Analytics').should('be.visible');
+    cy.contains('a', 'Payments').should('be.visible');
   });
 
   it('renders "Back to Store" link in sidebar', () => {
@@ -93,5 +99,61 @@ describe('Admin — Panel (requires admin session)', () => {
 
     cy.visit(`/admin/users`);
     cy.url().should('include', '/admin/users');
+  });
+
+  it('users table shows email column', () => {
+    const email = Cypress.env('ADMIN_EMAIL');
+    if (!email) return;
+
+    cy.visit(`/admin/users`);
+    cy.get('body').then(($body) => {
+      // Check that at least one user is displayed with email visible
+      if (!$body.text().toLowerCase().includes('no users')) {
+        cy.get('table tbody tr')
+          .first()
+          .within(() => {
+            cy.get('p[class*="text-xs"][class*="text-muted-foreground"]').should('exist');
+          });
+      }
+    });
+  });
+
+  it('navigates to Payments admin page and shows analytics', () => {
+    const email = Cypress.env('ADMIN_EMAIL');
+    if (!email) return;
+
+    cy.visit(`/admin/payments`);
+    cy.url().should('include', '/admin/payments');
+    cy.get('body', { timeout: 8000 }).should('satisfy', ($b) =>
+      $b.text().match(/payments|revenue|transactions/i),
+    );
+  });
+
+  it('admin Payments page shows stat cards', () => {
+    const email = Cypress.env('ADMIN_EMAIL');
+    if (!email) return;
+
+    cy.visit(`/admin/payments`);
+    cy.get('body', { timeout: 8000 }).should('not.contain.text', /failed to load/i);
+    cy.contains(/total revenue|total payments|succeeded/i).should('exist');
+  });
+
+  it('admin Products — category select is populated', () => {
+    const email = Cypress.env('ADMIN_EMAIL');
+    if (!email) return;
+
+    cy.visit(`/admin/products`);
+    cy.contains('button', /add product/i).click();
+    cy.get('select[name="category"]').should('exist');
+    cy.get('select[name="category"] option').should('have.length.greaterThan', 1);
+  });
+
+  it('admin Products — quick-add category button is visible', () => {
+    const email = Cypress.env('ADMIN_EMAIL');
+    if (!email) return;
+
+    cy.visit(`/admin/products`);
+    cy.contains('button', /add product/i).click();
+    cy.contains('button', /new/i).should('exist');
   });
 });

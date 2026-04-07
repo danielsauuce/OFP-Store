@@ -10,6 +10,15 @@ jest.mock('../../models/chatMessage.js', () => ({
   __esModule: true,
 }));
 
+jest.mock('../../models/conversation.js', () => ({
+  default: {
+    find: jest.fn(),
+    findOne: jest.fn(),
+    findOneAndUpdate: jest.fn(),
+  },
+  __esModule: true,
+}));
+
 jest.mock('../../utils/logger.js', () => ({
   default: { info: jest.fn(), error: jest.fn(), warn: jest.fn() },
   __esModule: true,
@@ -22,6 +31,7 @@ import {
 } from '../../controllers/chatController.js';
 
 import ChatMessage from '../../models/chatMessage.js';
+import Conversation from '../../models/conversation.js';
 
 // helpers
 const mockRes = () => {
@@ -39,16 +49,50 @@ const mockReq = (overrides = {}) => ({
   ...overrides,
 });
 
+// Helper: builds a chainable mock for .populate().populate().sort().lean()
+const makeConversationFindChain = (result) => ({
+  populate: jest.fn().mockReturnValue({
+    populate: jest.fn().mockReturnValue({
+      sort: jest.fn().mockReturnValue({
+        lean: jest.fn().mockResolvedValue(result),
+      }),
+    }),
+  }),
+});
+
+// Helper: builds a chainable mock for ChatMessage.find with nested populate
+const makeMessageFindChain = (result) => ({
+  populate: jest.fn().mockReturnValue({
+    sort: jest.fn().mockReturnValue({
+      skip: jest.fn().mockReturnValue({
+        limit: jest.fn().mockReturnValue({
+          lean: jest.fn().mockResolvedValue(result),
+        }),
+      }),
+    }),
+  }),
+});
+
+// Helper: ChatMessage.find chain for createOrGetConversation (no skip)
+const makeMessageFindChainNoSkip = (result) => ({
+  populate: jest.fn().mockReturnValue({
+    sort: jest.fn().mockReturnValue({
+      limit: jest.fn().mockReturnValue({
+        lean: jest.fn().mockResolvedValue(result),
+      }),
+    }),
+  }),
+});
+
 // getConversations (admin only)
 describe('getConversations', () => {
   beforeEach(() => jest.clearAllMocks());
 
   test('returns 200 with conversation list', async () => {
     const fakeConversations = [
-      { _id: 'conv:user1', lastMessage: { content: 'Hello' }, totalMessages: 3 },
+      { _id: 'conv1', userId: { fullName: 'Alice', email: 'a@b.com' }, lastMessageAt: new Date() },
     ];
-    ChatMessage.aggregate.mockResolvedValue(fakeConversations);
-    ChatMessage.countDocuments.mockResolvedValue(1);
+    Conversation.find.mockReturnValue(makeConversationFindChain(fakeConversations));
 
     const req = mockReq();
     const res = mockRes();
@@ -59,10 +103,11 @@ describe('getConversations', () => {
     const body = res.json.mock.calls[0][0];
     expect(body.success).toBe(true);
     expect(Array.isArray(body.conversations)).toBe(true);
+    expect(body.conversations[0].displayName).toBe('Alice');
   });
 
   test('returns 200 with empty conversations array when none exist', async () => {
-    ChatMessage.aggregate.mockResolvedValue([]);
+    Conversation.find.mockReturnValue(makeConversationFindChain([]));
 
     const req = mockReq();
     const res = mockRes();
@@ -73,8 +118,41 @@ describe('getConversations', () => {
     expect(res.json.mock.calls[0][0].conversations).toEqual([]);
   });
 
+  test('normalises displayName to email when fullName absent', async () => {
+    const fakeConversations = [{ _id: 'conv2', userId: { email: 'guest@example.com' } }];
+    Conversation.find.mockReturnValue(makeConversationFindChain(fakeConversations));
+
+    const req = mockReq();
+    const res = mockRes();
+
+    await getConversations(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json.mock.calls[0][0].conversations[0].displayName).toBe('guest@example.com');
+  });
+
+  test('normalises displayName to "Guest" when no userId', async () => {
+    const fakeConversations = [{ _id: 'conv3', guestName: null }];
+    Conversation.find.mockReturnValue(makeConversationFindChain(fakeConversations));
+
+    const req = mockReq();
+    const res = mockRes();
+
+    await getConversations(req, res);
+
+    expect(res.json.mock.calls[0][0].conversations[0].displayName).toBe('Guest');
+  });
+
   test('returns 500 on database error', async () => {
-    ChatMessage.aggregate.mockRejectedValue(new Error('DB error'));
+    Conversation.find.mockReturnValue({
+      populate: jest.fn().mockReturnValue({
+        populate: jest.fn().mockReturnValue({
+          sort: jest.fn().mockReturnValue({
+            lean: jest.fn().mockRejectedValue(new Error('DB error')),
+          }),
+        }),
+      }),
+    });
 
     const req = mockReq();
     const res = mockRes();
@@ -91,19 +169,10 @@ describe('getMessages', () => {
 
   test('returns 200 with paginated messages', async () => {
     const fakeMessages = [{ _id: 'msg1', content: 'Hello' }];
-    ChatMessage.find.mockReturnValue({
-      populate: jest.fn().mockReturnValue({
-        sort: jest.fn().mockReturnValue({
-          skip: jest.fn().mockReturnValue({
-            limit: jest.fn().mockReturnValue({
-              lean: jest.fn().mockResolvedValue(fakeMessages),
-            }),
-          }),
-        }),
-      }),
-    });
+    ChatMessage.find.mockReturnValue(makeMessageFindChain(fakeMessages));
     ChatMessage.countDocuments.mockResolvedValue(1);
     ChatMessage.updateMany.mockResolvedValue({ modifiedCount: 1 });
+    Conversation.findOneAndUpdate.mockResolvedValue({});
 
     const req = mockReq({ params: { conversationId: 'conv:user1' }, query: {} });
     const res = mockRes();
@@ -118,19 +187,10 @@ describe('getMessages', () => {
   });
 
   test('marks messages as read for current user', async () => {
-    ChatMessage.find.mockReturnValue({
-      populate: jest.fn().mockReturnValue({
-        sort: jest.fn().mockReturnValue({
-          skip: jest.fn().mockReturnValue({
-            limit: jest.fn().mockReturnValue({
-              lean: jest.fn().mockResolvedValue([]),
-            }),
-          }),
-        }),
-      }),
-    });
+    ChatMessage.find.mockReturnValue(makeMessageFindChain([]));
     ChatMessage.countDocuments.mockResolvedValue(0);
     ChatMessage.updateMany.mockResolvedValue({ modifiedCount: 0 });
+    Conversation.findOneAndUpdate.mockResolvedValue({});
 
     const req = mockReq({ params: { conversationId: 'conv:user1' }, query: {} });
     const res = mockRes();
@@ -172,14 +232,13 @@ describe('createOrGetConversation', () => {
 
   test('returns 200 with conversationId and existing messages', async () => {
     const fakeMessages = [{ _id: 'msg1', content: 'Hi there' }];
-    ChatMessage.find.mockReturnValue({
-      populate: jest.fn().mockReturnValue({
-        sort: jest.fn().mockReturnValue({
-          limit: jest.fn().mockReturnValue({
-            lean: jest.fn().mockResolvedValue(fakeMessages),
-          }),
-        }),
-      }),
+    Conversation.findOneAndUpdate.mockResolvedValue({
+      conversationId: 'conv:user1',
+      status: 'open',
+    });
+    ChatMessage.find.mockReturnValue(makeMessageFindChainNoSkip(fakeMessages));
+    Conversation.findOne.mockReturnValue({
+      lean: jest.fn().mockResolvedValue({ conversationId: 'conv:user1', status: 'open' }),
     });
 
     const req = mockReq({ user: { id: 'user1', role: 'customer' } });
@@ -192,17 +251,17 @@ describe('createOrGetConversation', () => {
     expect(body.success).toBe(true);
     expect(body.conversationId).toBe('conv:user1');
     expect(body.messages).toEqual(fakeMessages);
+    expect(body.status).toBe('open');
   });
 
   test('returns 200 with empty messages when no prior conversation', async () => {
-    ChatMessage.find.mockReturnValue({
-      populate: jest.fn().mockReturnValue({
-        sort: jest.fn().mockReturnValue({
-          limit: jest.fn().mockReturnValue({
-            lean: jest.fn().mockResolvedValue([]),
-          }),
-        }),
-      }),
+    Conversation.findOneAndUpdate.mockResolvedValue({
+      conversationId: 'conv:user2',
+      status: 'pending',
+    });
+    ChatMessage.find.mockReturnValue(makeMessageFindChainNoSkip([]));
+    Conversation.findOne.mockReturnValue({
+      lean: jest.fn().mockResolvedValue({ conversationId: 'conv:user2', status: 'pending' }),
     });
 
     const req = mockReq({ user: { id: 'user2', role: 'customer' } });
@@ -212,18 +271,27 @@ describe('createOrGetConversation', () => {
 
     expect(res.status).toHaveBeenCalledWith(200);
     expect(res.json.mock.calls[0][0].messages).toEqual([]);
+    expect(res.json.mock.calls[0][0].status).toBe('pending');
+  });
+
+  test('defaults status to "pending" when no conversation document found', async () => {
+    Conversation.findOneAndUpdate.mockResolvedValue(null);
+    ChatMessage.find.mockReturnValue(makeMessageFindChainNoSkip([]));
+    Conversation.findOne.mockReturnValue({
+      lean: jest.fn().mockResolvedValue(null),
+    });
+
+    const req = mockReq({ user: { id: 'user3', role: 'customer' } });
+    const res = mockRes();
+
+    await createOrGetConversation(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json.mock.calls[0][0].status).toBe('pending');
   });
 
   test('returns 500 on database error', async () => {
-    ChatMessage.find.mockReturnValue({
-      populate: jest.fn().mockReturnValue({
-        sort: jest.fn().mockReturnValue({
-          limit: jest.fn().mockReturnValue({
-            lean: jest.fn().mockRejectedValue(new Error('DB error')),
-          }),
-        }),
-      }),
-    });
+    Conversation.findOneAndUpdate.mockRejectedValue(new Error('DB error'));
 
     const req = mockReq();
     const res = mockRes();

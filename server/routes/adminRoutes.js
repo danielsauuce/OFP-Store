@@ -6,6 +6,7 @@ import {
   updateUserRole,
   deleteUser,
   getDashboardStats,
+  getPaymentStats,
 } from '../controllers/adminController.js';
 import {
   createProduct,
@@ -24,6 +25,9 @@ router.use(authenticate, isAdmin);
 
 // Dashboard
 router.get('/dashboard/stats', getDashboardStats);
+
+// Payments
+router.get('/payments/stats', getPaymentStats);
 
 // User management
 router.get('/users', getAllUsers);

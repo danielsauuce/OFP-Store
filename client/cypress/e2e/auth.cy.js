@@ -40,11 +40,14 @@ describe('Authentication', () => {
 
   it('shows validation errors on empty login submit', () => {
     cy.visit(`/auth`);
-    cy.get('button[type="submit"]').click();
-    cy.get('body')
-      .should('contain.text', 'required')
-      .or('contain.text', 'email')
-      .or('contain.text', 'invalid');
+    // The submit button should be disabled when fields are empty
+    cy.get('button[type="submit"]').first().should('be.disabled');
+    // Fill email but not password
+    cy.get('input[type="email"]').first().type('test@example.com');
+    cy.get('button[type="submit"]').first().should('not.be.disabled');
+    // Clear email to verify it disables again
+    cy.get('input[type="email"]').first().clear();
+    cy.get('button[type="submit"]').first().should('be.disabled');
   });
 
   it('stays on /auth with an error after invalid credentials', () => {
@@ -59,8 +62,17 @@ describe('Authentication', () => {
   it('shows validation errors on incomplete registration', () => {
     cy.visit(`/auth`);
     cy.contains(/sign up|register|create account/i).click();
-    cy.get('button[type="submit"]').click();
-    cy.get('body').should('not.be.empty');
+    // Submit button should be disabled when signup form is empty
+    cy.get('button[type="submit"]').should('be.disabled');
+    // Fill only name
+    cy.get('input[placeholder*="name" i], input[name="fullName"]').type('Test User');
+    cy.get('button[type="submit"]').should('be.disabled');
+    // Add email
+    cy.get('input[type="email"]').type('test@example.com');
+    cy.get('button[type="submit"]').should('be.disabled');
+    // Add password to enable
+    cy.get('input[type="password"]').type('Password123!');
+    cy.get('button[type="submit"]').should('not.be.disabled');
   });
 
   it('login link navigates to /auth', () => {

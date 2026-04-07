@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
-import { Loader, ShieldCheck, CreditCard, Lock } from 'lucide-react';
+import { Loader, ShieldCheck, CreditCard, Lock, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { confirmPaymentSuccessService } from '../services/paymentService';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
-function PaymentForm({ onSuccess, total }) {
+function PaymentForm({ onSuccess, total, billingCountry, billingPostalCode }) {
   const stripe = useStripe();
   const elements = useElements();
   const [processing, setProcessing] = useState(false);
@@ -22,20 +23,45 @@ function PaymentForm({ onSuccess, total }) {
         elements,
         confirmParams: {
           return_url: `${window.location.origin}/profile?tab=orders`,
+          payment_method_data: {
+            billing_details: {
+              address: {
+                country: billingCountry || 'NG',
+                postal_code: billingPostalCode || null,
+              },
+            },
+          },
         },
         redirect: 'if_required',
       });
 
       if (error) {
-        toast.error(error.message || 'Payment failed. Please try again.');
+        if (error.code === 'card_declined') {
+          toast.error('Card declined. Please check your card details or use a different card.');
+        } else if (error.code === 'insufficient_funds') {
+          toast.error('Insufficient funds. Please use a different card.');
+        } else if (error.code === 'expired_card') {
+          toast.error('Your card has expired. Please use a different card.');
+        } else {
+          toast.error(error.message || 'Payment failed. Please try again.');
+        }
       } else if (paymentIntent && paymentIntent.status === 'succeeded') {
+        // Confirm server-side immediately (in case webhook hasn't fired yet)
+        await confirmPaymentSuccessService(paymentIntent.id);
         toast.success('Payment successful!');
         onSuccess();
       } else if (paymentIntent && paymentIntent.status === 'processing') {
         toast('Payment is processing. You will be notified when it completes.', { icon: '⏳' });
+        onSuccess();
+      } else if (paymentIntent && paymentIntent.status === 'requires_action') {
+        toast('Additional authentication required. Please follow the prompts.', { icon: '🔐' });
       }
-    } catch {
-      toast.error('An unexpected error occurred. Please try again.');
+    } catch (err) {
+      if (err?.name === 'AbortError' || err?.message?.includes('network')) {
+        toast.error('Network error. Please check your connection and try again.');
+      } else {
+        toast.error('An unexpected error occurred. Please try again.');
+      }
     } finally {
       setProcessing(false);
     }
@@ -93,7 +119,7 @@ function PaymentForm({ onSuccess, total }) {
   );
 }
 
-function StripeCheckout({ clientSecret, onSuccess, total }) {
+function StripeCheckout({ clientSecret, onSuccess, total, billingCountry, billingPostalCode }) {
   const appearance = {
     theme: 'stripe',
     variables: {
@@ -111,7 +137,7 @@ function StripeCheckout({ clientSecret, onSuccess, total }) {
         boxShadow: 'none',
       },
       '.Input:focus': {
-        boxShadow: '0 0 0 2px hsl(25 30% 35% / 0.2)',
+        boxShadow: '0 0 0 2px rgba(116, 85, 62, 0.2)',
         border: '1px solid hsl(25 30% 35%)',
       },
       '.Label': {
@@ -126,7 +152,12 @@ function StripeCheckout({ clientSecret, onSuccess, total }) {
 
   return (
     <Elements stripe={stripePromise} options={{ clientSecret, appearance }}>
-      <PaymentForm onSuccess={onSuccess} total={total} />
+      <PaymentForm
+        onSuccess={onSuccess}
+        total={total}
+        billingCountry={billingCountry}
+        billingPostalCode={billingPostalCode}
+      />
     </Elements>
   );
 }

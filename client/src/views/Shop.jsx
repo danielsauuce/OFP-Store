@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useLayoutEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Loader } from 'lucide-react';
 import { getAllProductsService } from '../services/productService';
 import { getAllCategoriesService } from '../services/categoryService';
@@ -13,14 +14,23 @@ import LoadMoreButton from '../components/LoadMoreButton';
 
 gsap.registerPlugin(ScrollTrigger);
 
+// Convert a category name to its URL slug (matches server logic)
+const toSlug = (name) =>
+  name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+
 const Shop = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState(['All']);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const [priceRange, setPriceRange] = useState([0, 5000]);
+  const [priceRange, setPriceRange] = useState([0, 2000]);
   const [sortBy, setSortBy] = useState('newest');
   const [visibleCount, setVisibleCount] = useState(6);
+  const urlCategoryApplied = useRef(false);
 
   const pageRef = useRef(null);
   const sidebarRef = useRef(null);
@@ -37,24 +47,49 @@ const Shop = () => {
         getAllCategoriesService(),
       ]);
 
-      if (productsRes.status === 'fulfilled' && productsRes.value?.success) {
-        setProducts(productsRes.value.data?.products || []);
-      }
+      const fetchedProducts =
+        productsRes.status === 'fulfilled' && productsRes.value?.success
+          ? productsRes.value.data?.products || []
+          : [];
 
-      if (
-        categoriesRes.status === 'fulfilled' &&
-        categoriesRes.value?.success &&
-        categoriesRes.value.categories
-      ) {
-        const catNames = categoriesRes.value.categories.map((c) => c.name);
-        setCategories(['All', ...catNames]);
-      }
+      if (fetchedProducts.length > 0) setProducts(fetchedProducts);
+
+      // Build category list: merge API categories + names derived from products
+      // so categories that exist on products always appear even if not in categories DB
+      const apiCats =
+        categoriesRes.status === 'fulfilled' && categoriesRes.value?.success
+          ? categoriesRes.value.categories.map((c) => c.name)
+          : [];
+
+      const productCats = fetchedProducts
+        .map((p) => (p.category && typeof p.category === 'object' ? p.category.name : p.category))
+        .filter(Boolean);
+
+      const merged = [...new Set([...apiCats, ...productCats])].sort();
+      setCategories(['All', ...merged]);
     } catch (error) {
       console.error('Failed to fetch shop data:', error);
     } finally {
       setLoading(false);
     }
   };
+
+  // Apply ?category= URL param once categories are populated
+  useEffect(() => {
+    if (urlCategoryApplied.current || categories.length <= 1) return;
+    const param = searchParams.get('category');
+    if (!param) return;
+    urlCategoryApplied.current = true;
+    const match = categories.find((c) => toSlug(c) === param.toLowerCase());
+    if (match) setSelectedCategory(match);
+  }, [categories, searchParams]);
+
+  // Reset ref on unmount so URL param is re-applied when navigating back
+  useEffect(() => {
+    return () => {
+      urlCategoryApplied.current = false;
+    };
+  }, []);
 
   // GSAP entrance animations
   useLayoutEffect(() => {
@@ -160,6 +195,12 @@ const Shop = () => {
               onChange={(cat) => {
                 setSelectedCategory(cat);
                 setVisibleCount(6);
+                urlCategoryApplied.current = true;
+                if (cat === 'All') {
+                  setSearchParams({});
+                } else {
+                  setSearchParams({ category: toSlug(cat) });
+                }
               }}
             />
 

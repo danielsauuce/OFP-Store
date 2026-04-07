@@ -3,16 +3,11 @@ FROM node:20-alpine
 WORKDIR /app
 
 COPY package*.json ./
-
-RUN npm install
+RUN npm ci
 
 COPY . .
 
-ENV PORT=3000
-
-RUN chown -R node:node /app
-USER node
-
+ENV NODE_ENV=development
 EXPOSE 3000
 
-CMD ["node", "server.js"]
+CMD ["npm", "run", "dev"]

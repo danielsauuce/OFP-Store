@@ -88,4 +88,17 @@ describe('Product Details', () => {
   it('shows back arrow link to return to shop', () => {
     cy.get('a[href="/shop"]').should('exist');
   });
+
+  it('shows "You May Also Like" section with related products', () => {
+    cy.contains(/you may also like/i).should('exist');
+    cy.get('.shop-product-card, [class*="ProductCard"], [class*="product-card"]').should(
+      'have.length.greaterThan',
+      0,
+    );
+  });
+
+  it('review form requires authentication — unauthenticated user sees sign-in prompt', () => {
+    cy.contains(/write a review|leave a review/i).click();
+    cy.get('body').should('contain.text', /sign in|log in|login/i);
+  });
 });

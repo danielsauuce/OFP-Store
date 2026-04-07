@@ -22,10 +22,8 @@ import { shippingSchema, validateForm } from '../validation/formSchemas';
 import FormField from '../components/FormField';
 import StepProgressBar from '../components/StepProgressBar';
 import PaymentMethodSelector from '../components/PaymentMethodSelector';
-import OrderSummaryCard, {
-  SHIPPING_THRESHOLD,
-  SHIPPING_COST,
-} from '../components/OrderSummaryCard';
+import OrderSummaryCard from '../components/OrderSummaryCard';
+import { SHIPPING_THRESHOLD, SHIPPING_COST } from '../lib/shippingConstants';
 import OrderConfirmation from '../components/OrderConfirmation';
 import StripeCheckout from '../components/StripeCheckout';
 
@@ -41,6 +39,9 @@ const Checkout = () => {
   const [submitting, setSubmitting] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [orderNumber, setOrderNumber] = useState('');
+  const [orderItems, setOrderItems] = useState([]);
+  const [confirmedSubtotal, setConfirmedSubtotal] = useState(0);
+  const [confirmedShipping, setConfirmedShipping] = useState(0);
   const [stripeClientSecret, setStripeClientSecret] = useState(null);
   const [pendingOrderTotal, setPendingOrderTotal] = useState(0);
   const [pendingOrderId, setPendingOrderId] = useState(null);
@@ -206,6 +207,9 @@ const Checkout = () => {
       if (data?.success) {
         const orderId = data.order._id;
         setOrderNumber(data.order.orderNumber);
+        setOrderItems([...(cart.items || [])]);
+        setConfirmedSubtotal(subtotal);
+        setConfirmedShipping(shipping);
         setPendingOrderId(orderId);
 
         if (paymentMethod === 'card') {
@@ -278,6 +282,8 @@ const Checkout = () => {
             <StripeCheckout
               clientSecret={stripeClientSecret}
               total={pendingOrderTotal}
+              billingCountry="NG"
+              billingPostalCode={formData.postalCode}
               onSuccess={() => {
                 setStripeClientSecret(null);
                 setOrderPlaced(true);
@@ -315,7 +321,16 @@ const Checkout = () => {
   }
 
   if (orderPlaced) {
-    return <OrderConfirmation orderNumber={orderNumber} />;
+    return (
+      <OrderConfirmation
+        orderNumber={orderNumber}
+        shippingAddress={formData}
+        items={orderItems}
+        subtotal={confirmedSubtotal}
+        shipping={confirmedShipping}
+        paymentMethod={paymentMethod}
+      />
+    );
   }
 
   return (
@@ -516,11 +531,17 @@ const Checkout = () => {
 
                       return (
                         <div key={index} className="flex items-center gap-4">
-                          <img
-                            src={image}
-                            alt={name}
-                            className="w-14 h-14 rounded-lg object-cover"
-                          />
+                          {image ? (
+                            <img
+                              src={image}
+                              alt={name}
+                              className="w-14 h-14 rounded-lg object-cover shrink-0"
+                            />
+                          ) : (
+                            <div className="w-14 h-14 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                              <Package className="h-5 w-5 text-muted-foreground opacity-40" />
+                            </div>
+                          )}
                           <div className="flex-1 min-w-0">
                             <p className="font-medium text-foreground truncate">{name}</p>
                             <p className="text-sm text-muted-foreground">Qty: {item.quantity}</p>

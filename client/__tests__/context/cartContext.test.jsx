@@ -122,7 +122,7 @@ describe('addItem', () => {
       act(async () => {
         await result.current.addItem('p1', 99);
       }),
-    ).rejects.toEqual({ message: 'Quantity exceeds stock' });
+    ).rejects.toThrow('Quantity exceeds stock');
   });
 });
 
