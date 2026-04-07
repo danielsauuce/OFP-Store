@@ -17,7 +17,6 @@ services:
       - ./server/.env
     environment:
       - NODE_ENV=development
-      - MONGO_URI=mongodb://mongo:27017/OFPStore
       - CHOKIDAR_USEPOLLING=true
     ports:
       - "3000:3000"
@@ -105,8 +104,11 @@ services:
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
       - GF_USERS_ALLOW_SIGN_UP=false
-      - GF_SERVER_ROOT_URL=%(protocol)s://%(domain)s/grafana/
-      - GF_SERVER_SERVE_FROM_SUB_PATH=true
+      - GF_SERVER_ROOT_URL=%(protocol)s://%(domain)s:3002/
+      - GF_SERVER_SERVE_FROM_SUB_PATH=false
+      - GF_SECURITY_ALLOW_EMBEDDING=true
+      - GF_AUTH_DISABLE_LOGIN_FORM=false
+      - GF_SECURITY_CSRF_ALWAYS_CHECK=false
     volumes:
       - grafana_data:/var/lib/grafana
       - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro

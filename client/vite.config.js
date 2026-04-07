@@ -10,6 +10,10 @@ export default defineConfig({
     }),
   ],
 
+  server: {
+    allowedHosts: true,
+  },
+
   build: {
     chunkSizeWarningLimit: 500,
     reportCompressedSize: false,
