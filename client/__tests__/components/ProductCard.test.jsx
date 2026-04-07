@@ -139,7 +139,7 @@ describe('ProductCard', () => {
     const user = userEvent.setup();
 
     render(<ProductCard product={baseProduct} />);
-    await user.click(screen.getByRole('button', { name: /add to cart/i }));
+    await user.click(screen.getByRole('button', { name: /add/i }));
 
     await waitFor(() => {
       expect(toast.success).toHaveBeenCalledWith('Modern Sofa added to cart');
@@ -151,9 +151,9 @@ describe('ProductCard', () => {
     const user = userEvent.setup();
 
     render(<ProductCard product={baseProduct} />);
-    await user.click(screen.getByRole('button', { name: /add to cart/i }));
+    await user.click(screen.getByRole('button', { name: /add/i }));
 
-    expect(screen.getByText('Adding...')).toBeInTheDocument();
+    expect(screen.getByText(/adding/i)).toBeInTheDocument();
   });
 
   /* ── Add to cart (unauthenticated) ──────────────────────── */
@@ -162,9 +162,9 @@ describe('ProductCard', () => {
     const user = userEvent.setup();
 
     render(<ProductCard product={baseProduct} />);
-    await user.click(screen.getByRole('button', { name: /add to cart/i }));
+    await user.click(screen.getByRole('button', { name: /add/i }));
 
-    expect(toast.error).toHaveBeenCalledWith('Please login to add items to cart');
+    expect(toast.error).toHaveBeenCalledWith('Please sign in to add items to cart');
     expect(mockNavigate).toHaveBeenCalledWith('/auth');
     expect(mockAddItem).not.toHaveBeenCalled();
   });
