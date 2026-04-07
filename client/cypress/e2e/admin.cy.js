@@ -101,6 +101,21 @@ describe('Admin — Panel (requires admin session)', () => {
     cy.url().should('include', '/admin/users');
   });
 
+  it('users table shows email column', () => {
+    const email = Cypress.env('ADMIN_EMAIL');
+    if (!email) return;
+
+    cy.visit(`/admin/users`);
+    cy.get('body').then(($body) => {
+      // Check that at least one user is displayed with email visible
+      if (!$body.text().toLowerCase().includes('no users')) {
+        cy.get('table tbody tr').first().within(() => {
+          cy.get('p[class*="text-xs"][class*="text-muted-foreground"]').should('exist');
+        });
+      }
+    });
+  });
+
   it('navigates to Payments admin page and shows analytics', () => {
     const email = Cypress.env('ADMIN_EMAIL');
     if (!email) return;

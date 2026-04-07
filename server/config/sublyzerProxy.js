@@ -39,7 +39,23 @@ export async function sublyzerProxy(req, res) {
 
     res.status(r.status);
     const ct = r.headers.get('content-type');
-    if (ct) res.setHeader('content-type', ct);
+
+    // Only allow JSON responses from proxy to prevent XSS/RCE
+    if (ct && ct.includes('application/json')) {
+      res.setHeader('content-type', 'application/json');
+      return res.send(text);
+    }
+
+    // Reject non-JSON responses
+    if (r.ok) {
+      return res.status(406).json({
+        ok: false,
+        error: {
+          message: 'Invalid content type from upstream server',
+          detail: 'Only JSON responses are allowed',
+        },
+      });
+    }
 
     return res.send(text);
   } catch (e) {

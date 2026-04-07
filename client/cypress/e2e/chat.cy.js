@@ -30,85 +30,47 @@ describe('Chat Widget — Authenticated', () => {
   it('chat widget button is visible after login on a public page', () => {
     if (!Cypress.env('USER_EMAIL')) return;
     cy.visit('/');
-    // Give the widget time to mount
-    cy.get('body', { timeout: 8000 }).then(($body) => {
-      const hasWidget =
-        $body.find('[aria-label*="chat" i], [aria-label*="open chat" i], [class*="MessageCircle"]')
-          .length > 0 || $body.find('svg').length > 0;
-      cy.log(hasWidget ? 'Chat widget found' : 'Chat widget selector may differ');
-    });
+    // The chat FAB button should be visible
+    cy.get('button[aria-label*="chat" i], button[aria-label*="support" i]', { timeout: 8000 })
+      .should('exist')
+      .and('be.visible');
   });
 
   it('clicking the chat button opens the chat modal', () => {
     if (!Cypress.env('USER_EMAIL')) return;
     cy.visit('/');
-    cy.get('body', { timeout: 8000 }).then(($body) => {
-      // Look for any chat trigger button by common patterns
-      const $chatBtn = $body.find(
-        '[aria-label*="chat" i], [aria-label*="Chat" i], [class*="chat"]',
-      );
-      if ($chatBtn.length > 0) {
-        cy.wrap($chatBtn.first()).click();
-        // After click, a modal or panel should appear
-        cy.get('body', { timeout: 5000 }).should(($afterClick) => {
-          const text = $afterClick.text();
-          expect(
-            text.match(/message|chat|send/i) !== null ||
-              $afterClick.find('textarea, input[placeholder*="message" i]').length > 0,
-          ).to.be.true;
-        });
-      } else {
-        cy.log('Chat button not found with current selector — skipping click test');
-      }
-    });
+    cy.get('button[aria-label*="chat" i], button[aria-label*="support" i]', { timeout: 8000 })
+      .first()
+      .click();
+    // After clicking, the chat panel should become visible with messaging UI
+    cy.get('div[class*="shadow-2xl"][class*="rounded-2xl"]', { timeout: 5000 }).should('be.visible');
+    cy.get('textarea, input[placeholder*="message" i]', { timeout: 5000 }).should('exist');
   });
 
   it('chat modal has a message input', () => {
     if (!Cypress.env('USER_EMAIL')) return;
     cy.visit('/');
-    cy.get('body', { timeout: 8000 }).then(($body) => {
-      const $chatBtn = $body.find(
-        '[aria-label*="chat" i], [aria-label*="Chat" i], [class*="chat"]',
-      );
-      if ($chatBtn.length > 0) {
-        cy.wrap($chatBtn.first()).click();
-        cy.get('body', { timeout: 5000 }).then(($afterOpen) => {
-          const hasInput =
-            $afterOpen.find('textarea').length > 0 ||
-            $afterOpen.find('input[type="text"]').length > 0;
-          if (hasInput) {
-            cy.get('textarea, input[type="text"]').first().should('exist');
-          } else {
-            cy.log('Message input not found — chat may still be loading');
-          }
-        });
-      } else {
-        cy.log('Chat button not found — skipping input test');
-      }
-    });
+    cy.get('button[aria-label*="chat" i], button[aria-label*="support" i]', { timeout: 8000 })
+      .first()
+      .click();
+    // The message input should be visible in the chat panel
+    cy.get('textarea[placeholder*="message" i], textarea[placeholder*="type" i]', {
+      timeout: 5000,
+    }).should('exist');
   });
 
   it('can type a message in the chat input', () => {
     if (!Cypress.env('USER_EMAIL')) return;
     cy.visit('/');
-    cy.get('body', { timeout: 8000 }).then(($body) => {
-      const $chatBtn = $body.find(
-        '[aria-label*="chat" i], [aria-label*="Chat" i], [class*="chat"]',
-      );
-      if ($chatBtn.length > 0) {
-        cy.wrap($chatBtn.first()).click();
-        cy.get('body', { timeout: 5000 }).then(($afterOpen) => {
-          const $input = $afterOpen.find('textarea, input[type="text"]').first();
-          if ($input.length > 0) {
-            cy.wrap($input).type('Hello support team');
-            cy.wrap($input).should('have.value', 'Hello support team');
-          } else {
-            cy.log('Chat input not yet available — chat may be loading');
-          }
-        });
-      } else {
-        cy.log('Chat button not found — skipping type test');
-      }
-    });
+    cy.get('button[aria-label*="chat" i], button[aria-label*="support" i]', { timeout: 8000 })
+      .first()
+      .click();
+    // Find the message input and type in it
+    cy.get('textarea[placeholder*="message" i], textarea[placeholder*="type" i]', {
+      timeout: 5000,
+    })
+      .first()
+      .type('Hello support team')
+      .should('have.value', 'Hello support team');
   });
 });

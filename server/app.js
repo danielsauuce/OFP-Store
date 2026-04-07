@@ -4,6 +4,9 @@ import errorHandler from './middleware/errorHandler.js';
 import helmet from 'helmet';
 import cors from 'cors';
 import corsOptions from './config/corsOptions.js';
+import { securityHeaders } from './middleware/securityHeaders.js';
+import { validateInput } from './middleware/inputValidation.js';
+import { httpsRedirect } from './middleware/httpsRedirect.js';
 import authRoutes from './routes/authRoutes.js';
 import rateLimiterMiddleware from './middleware/rateLimiter.js';
 import productRoutes from './routes/productRoutes.js';
@@ -25,13 +28,41 @@ import { httpRequestDuration, httpRequestsTotal, register } from './config/prome
 const app = express();
 
 // Middleware
-app.use(helmet());
+app.use(httpsRedirect);
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'"],
+      fontSrc: ["'self'"],
+      objectSrc: ["'none'"],
+      mediaSrc: ["'self'"],
+      frameSrc: ["'none'"],
+    },
+  },
+  hsts: {
+    maxAge: 31536000,
+    includeSubDomains: true,
+    preload: true,
+  },
+  referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+  xContentTypeOptions: true,
+  xFrameOptions: { action: 'deny' },
+  xPoweredBy: false,
+}));
+app.use(securityHeaders);
 app.use(cors(corsOptions));
 
 app.use('/api/payments/webhook', express.raw({ type: 'application/json' }));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Validate input to prevent injection attacks
+app.use(validateInput);
 
 // Sublyzer proxy
 app.use('/sublyzer', sublyzerProxy);
@@ -77,8 +108,17 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/chat', chatRoutes);
 
-// Prometheus metrics endpoint
-app.get('/metrics', async (req, res) => {
+// Prometheus metrics endpoint - protect from public access
+app.get('/metrics', (request, res, next) => {
+  const metricsToken = process.env.METRICS_AUTH_TOKEN;
+  if (metricsToken) {
+    const authHeader = request.headers.authorization || '';
+    if (authHeader !== `Bearer ${metricsToken}`) {
+      return res.status(401).json({ success: false, message: 'Unauthorized' });
+    }
+  }
+  next();
+}, async (req, res) => {
   try {
     res.set('Content-Type', register.contentType);
     res.end(await register.metrics());

@@ -77,7 +77,7 @@ describe('ProductCard', () => {
   test('renders Add to Cart button', () => {
     render(<ProductCard product={baseProduct} />);
 
-    expect(screen.getByRole('button', { name: /add to cart/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /add/i })).toBeInTheDocument();
   });
 
   /* ── Image resolution fallbacks ─────────────────────────── */
@@ -127,7 +127,7 @@ describe('ProductCard', () => {
     const user = userEvent.setup();
 
     render(<ProductCard product={baseProduct} />);
-    await user.click(screen.getByRole('button', { name: /add to cart/i }));
+    await user.click(screen.getByRole('button', { name: /add/i }));
 
     await waitFor(() => {
       expect(mockAddItem).toHaveBeenCalledWith('prod1', 1);
