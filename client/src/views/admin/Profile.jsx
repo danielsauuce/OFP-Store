@@ -123,7 +123,6 @@ const AdminProfile = () => {
           <Avatar
             src={auth?.user?.profilePicture?.secureUrl || auth?.user?.profilePicture?.url}
             name={auth?.user?.fullName}
-            size="lg"
           />
           <label className="absolute -bottom-1 -right-1 h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center cursor-pointer hover:bg-primary/90 transition-colors">
             <Camera className="h-4 w-4" />
