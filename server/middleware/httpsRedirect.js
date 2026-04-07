@@ -2,8 +2,11 @@
  * Middleware to enforce HTTPS in production
  */
 export const httpsRedirect = (req, res, next) => {
-  // Skip HTTPS redirect for local development
-  if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
+  // Skip HTTPS redirect for local development or when NODE_ENV is not explicitly set to production
+  const isProduction = process.env.NODE_ENV === 'production';
+  const isLocalhost = req.hostname === 'localhost' || req.hostname === '127.0.0.1';
+
+  if (!isProduction || isLocalhost) {
     return next();
   }
 

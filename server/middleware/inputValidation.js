@@ -39,8 +39,8 @@ function validateObject(obj, depth = 0) {
   }
 
   for (const [key, value] of Object.entries(obj)) {
-    // Prevent dangerous keys
-    if (key.includes('__proto__') || key.includes('constructor') || key.includes('prototype')) {
+    // Prevent dangerous keys (prototype pollution)
+    if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
       throw new Error('Dangerous property detected');
     }
 
@@ -49,13 +49,19 @@ function validateObject(obj, depth = 0) {
     }
 
     if (typeof value === 'string') {
-      // Check for command injection patterns
+      // Only check for very obvious command execution patterns
+      // Allow alphanumeric, common special chars, and URLs
       if (
-        /[;&|`$()\[\]\{\}<>]|\/bin\/|\/usr\/|cmd\.exe|powershell|bash|sh|exec|spawn|eval|require|import/.test(
+        /(^|\s)(eval|exec|spawn|chmod|rm|rmdir|dd|mkfs|mount|sh|bash|cmd|powershell)\s*\(/.test(
           value
         )
       ) {
-        throw new Error('Suspicious pattern detected in string value');
+        throw new Error('Suspicious command pattern detected');
+      }
+
+      // Check for shell metacharacters used in dangerous context (e.g., "; command")
+      if (/;\s*(\/bin\/|\/usr\/|cmd\.exe|powershell)/.test(value)) {
+        throw new Error('Suspicious shell command detected');
       }
     } else if (typeof value === 'object' && value !== null) {
       validateObject(value, depth + 1);
