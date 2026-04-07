@@ -9,4 +9,4 @@ COPY . .
 
 EXPOSE 5173
 
-CMD ["sh", "-c", "npm install && npm run dev -- --host"]
+CMD ["sh", "-c", "find node_modules -mindepth 1 -delete 2>/dev/null; npm install && npm run dev -- --host"]
