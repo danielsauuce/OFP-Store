@@ -11,4 +11,4 @@ ENV NODE_ENV=development
 
 EXPOSE 3000
 
-CMD ["sh", "-c", "npm install && npm run dev"]
+CMD ["sh", "-c", "[ -f node_modules/.package-lock.json ] || (rm -rf node_modules && npm install) && npm run dev"]

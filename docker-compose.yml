@@ -23,6 +23,7 @@ services:
       - "3000:3000"
     volumes:
       - ./server:/app
+      - server_node_modules:/app/node_modules
     depends_on:
       - mongo
     healthcheck:
@@ -43,6 +44,7 @@ services:
       - "5173:5173"
     volumes:
       - ./client:/app
+      - client_node_modules:/app/node_modules
     depends_on:
       - server
 
@@ -119,7 +121,7 @@ services:
       - "--no-collector.ipvs"
     ports:
       - "9100:9100"
-      
+
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:v0.49.1
     container_name: ofp-cadvisor
@@ -148,3 +150,5 @@ volumes:
   caddy_config:
   prometheus_data:
   grafana_data:
+  server_node_modules:
+  client_node_modules:
