@@ -32,8 +32,16 @@ export const cacheMiddleware = (duration = 3600) => {
         if (res.statusCode === 200 && data?.success !== false) {
           cacheHelpers
             .set(cacheKey, data, duration)
-            .then(() => logger.info('Response cached', { key: cacheKey, duration }))
-            .catch((error) => logger.error('Failed to cache response:', { error: error.message }));
+            .then((wasCached) => {
+              if (wasCached) {
+                logger.info('Response cached', { key: cacheKey, duration });
+              } else {
+                logger.warn('Cache write skipped/failed', { key: cacheKey, duration });
+              }
+            })
+            .catch((error) =>
+              logger.error('Failed to cache response:', { error: error.message, key: cacheKey }),
+            );
         }
         return originalJson(data);
       };
