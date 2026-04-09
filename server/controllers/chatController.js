@@ -7,7 +7,7 @@ export const getConversations = async (req, res) => {
     const conversations = await Conversation.find()
       .populate({
         path: 'userId',
-        select: 'fullName profilePicture',
+        select: 'fullName email profilePicture',
         populate: { path: 'profilePicture', select: 'secureUrl publicId url' },
       })
       .populate('adminId', 'fullName')
