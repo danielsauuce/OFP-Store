@@ -3,6 +3,7 @@ import { Suspense, lazy } from 'react';
 import { Loader } from 'lucide-react';
 import { Toaster } from 'react-hot-toast';
 import RouteGuard from './components/RouteGuard';
+import ScrollToTop from './components/ScrollToTop';
 import { useAuth } from './context/authContext';
 import { SocketProvider } from './context/socketContext';
 import { NotificationProvider } from './context/notificationContext';
@@ -79,6 +80,7 @@ function App() {
           }}
         />
 
+        <ScrollToTop />
         <Suspense fallback={<PageLoader />}>
           <Routes>
             {/* Auth */}
