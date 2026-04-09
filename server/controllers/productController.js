@@ -79,7 +79,9 @@ const resolveProductRefs = async (products) => {
           .then((docs) => {
             for (const doc of docs) mediaMap.set(doc._id.toString(), doc);
           })
-          .catch((err) => console.error('resolveProductRefs media fetch warning:', err.message))
+          .catch((err) =>
+            logger.warn('resolveProductRefs media fetch warning', { error: err.message }),
+          )
       : Promise.resolve();
 
   const categoryQueries = [];
@@ -100,7 +102,9 @@ const resolveProductRefs = async (products) => {
               categoryMap.set(doc.name, doc);
             }
           })
-          .catch((err) => console.error('resolveProductRefs category fetch warning:', err.message))
+          .catch((err) =>
+            logger.warn('resolveProductRefs category fetch warning', { error: err.message }),
+          )
       : Promise.resolve();
 
   await Promise.all([mediaPromise, categoryPromise]);
