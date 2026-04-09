@@ -67,23 +67,21 @@ const resolveProductRefs = async (products) => {
     }
   }
 
-  // Batch-fetch Media docs
+  // Batch-fetch Media and Category docs in parallel
   const mediaMap = new Map();
-  if (mediaIdSet.size > 0) {
-    try {
-      const mediaDocs = await Media.find({ _id: { $in: Array.from(mediaIdSet) } })
-        .select('secureUrl publicId url')
-        .lean();
-      for (const doc of mediaDocs) {
-        mediaMap.set(doc._id.toString(), doc);
-      }
-    } catch (err) {
-      console.error('resolveProductRefs media fetch warning:', err.message);
-    }
-  }
+  const categoryMap = new Map();
 
-  // Batch-fetch Category docs (by ID and by name)
-  const categoryMap = new Map(); // key = ObjectId string or lowercase name → category doc
+  const mediaPromise =
+    mediaIdSet.size > 0
+      ? Media.find({ _id: { $in: Array.from(mediaIdSet) } })
+          .select('secureUrl publicId url')
+          .lean()
+          .then((docs) => {
+            for (const doc of docs) mediaMap.set(doc._id.toString(), doc);
+          })
+          .catch((err) => console.error('resolveProductRefs media fetch warning:', err.message))
+      : Promise.resolve();
+
   const categoryQueries = [];
   if (categoryIdSet.size > 0) {
     categoryQueries.push({ _id: { $in: Array.from(categoryIdSet) } });
@@ -91,21 +89,21 @@ const resolveProductRefs = async (products) => {
   if (categoryNameSet.size > 0) {
     categoryQueries.push({ name: { $in: Array.from(categoryNameSet) } });
   }
-  if (categoryQueries.length > 0) {
-    try {
-      const catDocs = await Category.find(
-        categoryQueries.length === 1 ? categoryQueries[0] : { $or: categoryQueries },
-      )
-        .select('name slug description')
-        .lean();
-      for (const doc of catDocs) {
-        categoryMap.set(doc._id.toString(), doc);
-        categoryMap.set(doc.name, doc); // also map by name for legacy lookups
-      }
-    } catch (err) {
-      console.error('resolveProductRefs category fetch warning:', err.message);
-    }
-  }
+  const categoryPromise =
+    categoryQueries.length > 0
+      ? Category.find(categoryQueries.length === 1 ? categoryQueries[0] : { $or: categoryQueries })
+          .select('name slug description')
+          .lean()
+          .then((docs) => {
+            for (const doc of docs) {
+              categoryMap.set(doc._id.toString(), doc);
+              categoryMap.set(doc.name, doc);
+            }
+          })
+          .catch((err) => console.error('resolveProductRefs category fetch warning:', err.message))
+      : Promise.resolve();
+
+  await Promise.all([mediaPromise, categoryPromise]);
 
   // Patch each product in-place
   for (const product of products) {

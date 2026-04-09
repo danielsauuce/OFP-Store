@@ -27,16 +27,13 @@ export const cacheMiddleware = (duration = 3600) => {
       // Override res.json to cache successful responses
       const originalJson = res.json.bind(res);
 
-      res.json = async (data) => {
+      res.json = (data) => {
+        // Fire-and-forget: cache in the background so the response is not delayed
         if (res.statusCode === 200 && data?.success !== false) {
-          try {
-            // @upstash/redis automatically serializes objects on set(),
-            // so pass data directly — no JSON.stringify() needed.
-            await cacheHelpers.set(cacheKey, data, duration);
-            logger.info('Response cached', { key: cacheKey, duration });
-          } catch (error) {
-            logger.error('Failed to cache response:', { error: error.message });
-          }
+          cacheHelpers
+            .set(cacheKey, data, duration)
+            .then(() => logger.info('Response cached', { key: cacheKey, duration }))
+            .catch((error) => logger.error('Failed to cache response:', { error: error.message }));
         }
         return originalJson(data);
       };
