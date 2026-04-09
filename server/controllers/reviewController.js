@@ -99,6 +99,8 @@ export const createReview = async (req, res) => {
       user: userId,
       rating,
       content,
+      isVerifiedPurchase: false,
+      isApproved: false,
     });
 
     const populated = await review.populate('user', 'fullName profilePicture');
@@ -242,7 +244,7 @@ export const approveReview = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: `Review ${isApproved ? 'restored' : 'hidden'} successfully`,
+      message: `Review ${isApproved ? 'approved' : 'hidden'} successfully`,
       review,
     });
   } catch (error) {
