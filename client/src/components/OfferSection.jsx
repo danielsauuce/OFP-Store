@@ -15,7 +15,7 @@ const OFFERS = [
   {
     icon: Truck,
     title: 'Free Delivery',
-    description: `Free delivery for order worth £${SHIPPING_THRESHOLD}`,
+    description: `Free delivery for orders worth ₦${SHIPPING_THRESHOLD.toLocaleString('en-NG')}`,
   },
   {
     icon: RefreshCw,

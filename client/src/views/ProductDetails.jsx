@@ -385,7 +385,7 @@ const ProductDetails = () => {
             {/* Trust strip under image */}
             <div className="grid grid-cols-3 gap-2">
               {[
-                { icon: Truck, label: 'Free delivery', sub: 'Orders £500+' },
+                { icon: Truck, label: 'Free delivery', sub: 'Orders ₦50,000+' },
                 { icon: RotateCcw, label: '30-day returns', sub: 'Hassle-free' },
                 { icon: ShieldCheck, label: '2-year warranty', sub: 'Included' },
               ].map(({ icon: Icon, label, sub }) => (
@@ -425,7 +425,7 @@ const ProductDetails = () => {
 
             {/* Price */}
             <div className="flex items-baseline gap-3">
-              <span className="text-4xl font-bold text-primary">£{product.price?.toFixed(2)}</span>
+              <span className="text-4xl font-bold text-primary">₦{product.price?.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               <span className="text-sm text-muted-foreground line-through opacity-0 select-none">
                 placeholder
               </span>
@@ -526,7 +526,7 @@ const ProductDetails = () => {
             {/* Perks list */}
             <div className="rounded-xl bg-muted/40 border border-border p-4 space-y-2.5">
               {[
-                { icon: Truck, text: 'Free delivery on orders £500 or more' },
+                { icon: Truck, text: 'Free delivery on orders ₦50,000 or more' },
                 { icon: RotateCcw, text: '30-day hassle-free returns' },
                 { icon: ShieldCheck, text: '2-year manufacturer warranty included' },
                 { icon: CheckCircle2, text: 'Authenticity guaranteed' },
@@ -854,7 +854,7 @@ const ProductDetails = () => {
                         {rp.name}
                       </p>
                       <p className="text-sm font-bold text-primary mt-0.5">
-                        £{rp.price?.toFixed(2)}
+                        ₦{rp.price?.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </p>
                     </div>
                   </Link>

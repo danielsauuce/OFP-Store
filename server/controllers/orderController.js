@@ -94,9 +94,9 @@ export const createOrder = async (req, res) => {
       subtotal += itemPrice * cartItem.quantity;
     }
 
-    // Calculate shipping server-side — free above £500, £15 otherwise
-    const FREE_SHIPPING_THRESHOLD = 500;
-    const STANDARD_SHIPPING_COST = 15;
+    // Calculate shipping server-side — free above ₦50,000, ₦2,500 otherwise
+    const FREE_SHIPPING_THRESHOLD = 50000;
+    const STANDARD_SHIPPING_COST = 2500;
     const shippingCost = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : STANDARD_SHIPPING_COST;
     const total = subtotal + shippingCost;
 

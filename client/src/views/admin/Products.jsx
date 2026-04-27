@@ -490,7 +490,7 @@ const Products = () => {
           />
         </div>
         <div>
-          <FieldLabel>Price (£) *</FieldLabel>
+          <FieldLabel>Price (₦) *</FieldLabel>
           <Input
             name="price"
             type="number"
@@ -861,7 +861,7 @@ const Products = () => {
                       {product.name}
                     </h3>
                     <p className="font-bold text-primary text-sm shrink-0">
-                      £{Number(product.price).toFixed(2)}
+                      ₦{Number(product.price).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </p>
                   </div>
 
@@ -1062,7 +1062,7 @@ const Products = () => {
                       Price
                     </p>
                     <p className="text-sm font-bold text-primary">
-                      £{Number(selectedProduct.price).toFixed(2)}
+                      ₦{Number(selectedProduct.price).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </p>
                   </div>
                   <div className="bg-muted/40 rounded-lg p-3">

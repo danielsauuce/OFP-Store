@@ -2,9 +2,7 @@ import { useLayoutEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { CheckCircle2, Package, Truck, ShieldCheck, MapPin, CreditCard } from 'lucide-react';
 import gsap from 'gsap';
-
-const SHIPPING_THRESHOLD = 500;
-const SHIPPING_COST = 15;
+import { SHIPPING_THRESHOLD, SHIPPING_COST } from '../lib/shippingConstants';
 
 function OrderConfirmation({
   orderNumber,
@@ -229,7 +227,7 @@ function OrderConfirmation({
                         <p className="text-xs text-muted-foreground mt-0.5">Qty: {item.quantity}</p>
                       </div>
                       <p className="font-semibold text-foreground text-sm tabular-nums shrink-0">
-                        £{(price * item.quantity).toFixed(2)}
+                        ₦{(price * item.quantity).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </p>
                     </div>
                   );
@@ -240,7 +238,7 @@ function OrderConfirmation({
               <div className="px-6 py-4 border-t border-border space-y-2 bg-muted/20">
                 <div className="flex justify-between text-sm text-muted-foreground">
                   <span>Sub Total</span>
-                  <span className="tabular-nums">£{subtotal.toFixed(2)}</span>
+                  <span className="tabular-nums">₦{subtotal.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
                 <div className="flex justify-between text-sm text-muted-foreground">
                   <span>Shipping</span>
@@ -248,13 +246,13 @@ function OrderConfirmation({
                     {finalShipping === 0 ? (
                       <span className="text-emerald-600 dark:text-emerald-400">Free</span>
                     ) : (
-                      `£${finalShipping.toFixed(2)}`
+                      `₦${finalShipping.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                     )}
                   </span>
                 </div>
                 <div className="flex justify-between font-bold text-foreground pt-2 border-t border-border">
                   <span>Order Total</span>
-                  <span className="tabular-nums text-primary">£{total.toFixed(2)}</span>
+                  <span className="tabular-nums text-primary">₦{total.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
               </div>
             </div>

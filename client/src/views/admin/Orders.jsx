@@ -240,7 +240,7 @@ const Orders = () => {
                         })}
                       </td>
                       <td className="px-4 py-3.5 text-right font-semibold text-foreground">
-                        £{order.total?.toFixed(2) || '0.00'}
+                        ₦{order.total != null ? order.total.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
                       </td>
                       <td className="px-4 py-3.5">
                         <div className="flex items-center justify-end gap-1.5">
@@ -367,7 +367,7 @@ const Orders = () => {
                       <p className="text-xs text-muted-foreground">Qty: {item.quantity}</p>
                     </div>
                     <p className="text-sm font-semibold text-foreground shrink-0">
-                      £{(item.priceSnapshot * item.quantity).toFixed(2)}
+                      ₦{(item.priceSnapshot * item.quantity).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </p>
                   </div>
                 ))}
@@ -377,7 +377,7 @@ const Orders = () => {
             <div className="flex justify-between items-center pt-2 border-t border-border">
               <span className="font-semibold text-foreground">Total</span>
               <span className="text-xl font-bold text-primary">
-                £{selectedOrder.total?.toFixed(2)}
+                ₦{selectedOrder.total?.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
             </div>
           </div>
