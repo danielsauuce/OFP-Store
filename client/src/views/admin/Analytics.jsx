@@ -32,7 +32,10 @@ const CustomTooltip = ({ active, payload, label }) => {
       <p className="font-medium text-foreground mb-1">{label}</p>
       {payload.map((p) => (
         <p key={p.dataKey} style={{ color: p.fill || p.color }}>
-          {p.name}: {p.dataKey === 'revenue' ? `£${Number(p.value).toFixed(2)}` : p.value}
+          {p.name}:{' '}
+          {p.dataKey === 'revenue'
+            ? `₦${Number(p.value).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+            : p.value}
         </p>
       ))}
     </div>
@@ -129,7 +132,7 @@ function Analytics() {
   const summaryCards = [
     {
       label: 'Revenue (30d)',
-      value: `£${totalRevenue30d.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      value: `₦${totalRevenue30d.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
       icon: TrendingUp,
       color: 'text-violet-600',
       bg: 'bg-violet-50',
@@ -209,7 +212,7 @@ function Analytics() {
               tick={{ fontSize: 10 }}
               tickLine={false}
               axisLine={false}
-              tickFormatter={(v) => `£${v}`}
+              tickFormatter={(v) => `₦${Number(v).toLocaleString('en-NG')}`}
             />
             <Tooltip content={<CustomTooltip />} />
             <Line
@@ -299,7 +302,7 @@ function Analytics() {
               tick={{ fontSize: 11 }}
               tickLine={false}
               axisLine={false}
-              tickFormatter={(v) => `£${v}`}
+              tickFormatter={(v) => `₦${Number(v).toLocaleString('en-NG')}`}
             />
             <Tooltip content={<CustomTooltip />} />
             <Bar dataKey="revenue" name="Revenue" fill="#10b981" radius={[4, 4, 0, 0]} />

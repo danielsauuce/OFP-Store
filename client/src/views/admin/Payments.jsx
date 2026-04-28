@@ -89,7 +89,9 @@ const CustomTooltip = ({ active, payload, label }) => {
       <p className="font-medium text-foreground mb-1">{label}</p>
       {payload.map((p) => (
         <p key={p.name} style={{ color: p.color }}>
-          {p.name === 'revenue' ? `£${Number(p.value).toFixed(2)}` : p.value}{' '}
+          {p.name === 'revenue'
+            ? `₦${Number(p.value).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+            : p.value}{' '}
           {p.name === 'count' ? 'payments' : ''}
         </p>
       ))}
@@ -206,7 +208,7 @@ function Payments() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           title="Total Revenue"
-          value={`£${stats.totalRevenue.toFixed(2)}`}
+          value={`₦${stats.totalRevenue.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
           sub={`${succeededCount} successful`}
           icon={TrendingUp}
           colorClass="text-primary"
@@ -260,7 +262,7 @@ function Payments() {
                   tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
                   tickLine={false}
                   axisLine={false}
-                  tickFormatter={(v) => `£${v}`}
+                  tickFormatter={(v) => `₦${Number(v).toLocaleString('en-NG')}`}
                 />
                 <Tooltip content={<CustomTooltip />} />
                 <Area
@@ -337,7 +339,11 @@ function Payments() {
                   <div className="flex items-center gap-4">
                     <span className="text-xs text-muted-foreground">{d.count} payments</span>
                     <span className="text-sm font-semibold text-foreground tabular-nums">
-                      £{d.total.toFixed(2)}
+                      ₦
+                      {d.total.toLocaleString('en-NG', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
                     </span>
                   </div>
                 </div>
@@ -367,7 +373,11 @@ function Payments() {
                   <div className="flex items-center gap-4">
                     <span className="text-xs text-muted-foreground">{d.count} payments</span>
                     <span className="text-sm font-semibold text-foreground tabular-nums">
-                      £{d.total.toFixed(2)}
+                      ₦
+                      {d.total.toLocaleString('en-NG', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
                     </span>
                   </div>
                 </div>
@@ -430,7 +440,11 @@ function Payments() {
                         </span>
                       </td>
                       <td className="px-4 py-3.5 font-semibold text-foreground tabular-nums">
-                        £{payment.amount.toFixed(2)}
+                        ₦
+                        {payment.amount.toLocaleString('en-NG', {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
                       </td>
                       <td className="px-4 py-3.5">
                         <span

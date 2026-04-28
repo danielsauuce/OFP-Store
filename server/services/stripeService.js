@@ -4,7 +4,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 export const createPaymentIntent = async (
   amount,
-  currency = 'gbp',
+  currency = 'ngn',
   metadata = {},
   idempotencyKey = null,
 ) => {

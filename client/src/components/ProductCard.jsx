@@ -102,7 +102,13 @@ const ProductCard = memo(function ProductCard({ product }) {
         </h3>
 
         <div className="flex items-center justify-between mt-3">
-          <p className="text-primary text-xl font-bold">£{(product.price || 0).toFixed(2)}</p>
+          <p className="text-primary text-xl font-bold">
+            ₦
+            {(product.price || 0).toLocaleString('en-NG', {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}
+          </p>
 
           <button
             onClick={handleAddToCart}

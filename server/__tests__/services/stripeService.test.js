@@ -33,12 +33,12 @@ describe('createPaymentIntent', () => {
     const fakeIntent = { id: 'pi_123', client_secret: 'pi_123_secret_abc' };
     stripeInstance.paymentIntents.create.mockResolvedValue(fakeIntent);
 
-    const result = await createPaymentIntent(5000, 'gbp', { orderId: 'ord1' });
+    const result = await createPaymentIntent(5000, 'ngn', { orderId: 'ord1' });
 
     expect(stripeInstance.paymentIntents.create).toHaveBeenCalledWith(
       {
         amount: 5000,
-        currency: 'gbp',
+        currency: 'ngn',
         metadata: { orderId: 'ord1' },
         automatic_payment_methods: { enabled: true },
       },
@@ -47,7 +47,7 @@ describe('createPaymentIntent', () => {
     expect(result).toEqual(fakeIntent);
   });
 
-  test('defaults to gbp currency when not specified', async () => {
+  test('defaults to ngn currency when not specified', async () => {
     stripeInstance.paymentIntents.create.mockResolvedValue({
       id: 'pi_456',
       client_secret: 'secret',
@@ -56,7 +56,7 @@ describe('createPaymentIntent', () => {
     await createPaymentIntent(1000);
 
     expect(stripeInstance.paymentIntents.create).toHaveBeenCalledWith(
-      expect.objectContaining({ currency: 'gbp' }),
+      expect.objectContaining({ currency: 'ngn' }),
       expect.anything(),
     );
   });
@@ -67,7 +67,7 @@ describe('createPaymentIntent', () => {
       client_secret: 'secret',
     });
 
-    await createPaymentIntent(2000, 'gbp');
+    await createPaymentIntent(2000, 'ngn');
 
     expect(stripeInstance.paymentIntents.create).toHaveBeenCalledWith(
       expect.objectContaining({ metadata: {} }),
@@ -81,7 +81,7 @@ describe('createPaymentIntent', () => {
       client_secret: 'secret',
     });
 
-    await createPaymentIntent(1000, 'gbp', {}, 'order:abc123');
+    await createPaymentIntent(1000, 'ngn', {}, 'order:abc123');
 
     expect(stripeInstance.paymentIntents.create).toHaveBeenCalledWith(expect.anything(), {
       idempotencyKey: 'order:abc123',
@@ -91,7 +91,7 @@ describe('createPaymentIntent', () => {
   test('propagates stripe errors', async () => {
     stripeInstance.paymentIntents.create.mockRejectedValue(new Error('Invalid API Key'));
 
-    await expect(createPaymentIntent(1000, 'gbp', {})).rejects.toThrow('Invalid API Key');
+    await expect(createPaymentIntent(1000, 'ngn', {})).rejects.toThrow('Invalid API Key');
   });
 });
 

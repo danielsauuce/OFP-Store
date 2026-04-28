@@ -26,7 +26,7 @@ export const createPaymentIntentController = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Order is already paid' });
     }
 
-    const amountInPence = Math.round(order.total * 100);
+    const amountInKobo = Math.round(order.total * 100);
 
     // Reuse an existing pending payment intent for this order to avoid duplicates
     const existingPayment = await Payment.findOne({ order: { $eq: order._id }, status: 'pending' });
@@ -42,8 +42,8 @@ export const createPaymentIntentController = async (req, res) => {
     }
 
     const intent = await createPaymentIntent(
-      amountInPence,
-      'gbp',
+      amountInKobo,
+      'ngn',
       { orderId: order._id.toString(), orderNumber: order.orderNumber, userId: req.user.id },
       `order:${order._id.toString()}`,
     );
@@ -55,7 +55,7 @@ export const createPaymentIntentController = async (req, res) => {
         user: req.user.id,
         stripePaymentIntentId: intent.id,
         amount: order.total,
-        currency: 'gbp',
+        currency: 'ngn',
         status: 'pending',
         paymentMethod: 'card',
       },
@@ -129,7 +129,7 @@ export const stripeWebhook = async (req, res) => {
             user: userId,
             type: 'order_placed',
             title: 'Payment Confirmed',
-            message: `Your payment of £${(intent.amount / 100).toFixed(2)} was successful.`,
+            message: `Your payment of ₦${(intent.amount / 100).toFixed(2)} was successful.`,
             metadata: { orderId, intentId: intent.id },
           });
           emitNotification(userId, notification);

@@ -6,7 +6,7 @@ const paymentSchema = new mongoose.Schema(
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     stripePaymentIntentId: { type: String },
     amount: { type: Number, required: true, min: 0 },
-    currency: { type: String, default: 'gbp' },
+    currency: { type: String, default: 'ngn' },
     status: {
       type: String,
       enum: ['pending', 'succeeded', 'failed', 'refunded'],
