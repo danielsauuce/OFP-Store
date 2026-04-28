@@ -547,7 +547,11 @@ const Checkout = () => {
                             <p className="text-sm text-muted-foreground">Qty: {item.quantity}</p>
                           </div>
                           <p className="font-medium text-foreground">
-                            ₦{(price * item.quantity).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            ₦
+                            {(price * item.quantity).toLocaleString('en-NG', {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}
                           </p>
                         </div>
                       );
@@ -568,7 +572,11 @@ const Checkout = () => {
                   ) : (
                     <>
                       <ShieldCheck className="h-4 w-4" />
-                      Place Order — ₦{total.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      Place Order — ₦
+                      {total.toLocaleString('en-NG', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
                     </>
                   )}
                 </button>

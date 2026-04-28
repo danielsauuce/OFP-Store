@@ -62,7 +62,10 @@ const CustomTooltip = ({ active, payload, label }) => {
       <p className="font-medium text-foreground mb-1">{label}</p>
       {payload.map((p) => (
         <p key={p.dataKey} style={{ color: p.color }}>
-          {p.name}: {p.dataKey === 'revenue' ? `₦${Number(p.value).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : p.value}
+          {p.name}:{' '}
+          {p.dataKey === 'revenue'
+            ? `₦${Number(p.value).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+            : p.value}
         </p>
       ))}
     </div>
@@ -371,7 +374,13 @@ function Dashboard() {
                   <StatusBadge status={order.orderStatus} statusStyles={STATUS_STYLES} />
                   <div className="text-right">
                     <p className="text-sm font-bold text-foreground">
-                      ₦{order.total != null ? order.total.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
+                      ₦
+                      {order.total != null
+                        ? order.total.toLocaleString('en-NG', {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })
+                        : '0.00'}
                     </p>
                     <p className="text-[10px] text-muted-foreground">
                       {new Date(order.createdAt).toLocaleDateString('en-GB')}

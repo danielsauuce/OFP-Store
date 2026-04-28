@@ -227,7 +227,11 @@ function OrderConfirmation({
                         <p className="text-xs text-muted-foreground mt-0.5">Qty: {item.quantity}</p>
                       </div>
                       <p className="font-semibold text-foreground text-sm tabular-nums shrink-0">
-                        ₦{(price * item.quantity).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        ₦
+                        {(price * item.quantity).toLocaleString('en-NG', {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
                       </p>
                     </div>
                   );
@@ -238,7 +242,13 @@ function OrderConfirmation({
               <div className="px-6 py-4 border-t border-border space-y-2 bg-muted/20">
                 <div className="flex justify-between text-sm text-muted-foreground">
                   <span>Sub Total</span>
-                  <span className="tabular-nums">₦{subtotal.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                  <span className="tabular-nums">
+                    ₦
+                    {subtotal.toLocaleString('en-NG', {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </span>
                 </div>
                 <div className="flex justify-between text-sm text-muted-foreground">
                   <span>Shipping</span>
@@ -252,7 +262,13 @@ function OrderConfirmation({
                 </div>
                 <div className="flex justify-between font-bold text-foreground pt-2 border-t border-border">
                   <span>Order Total</span>
-                  <span className="tabular-nums text-primary">₦{total.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                  <span className="tabular-nums text-primary">
+                    ₦
+                    {total.toLocaleString('en-NG', {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </span>
                 </div>
               </div>
             </div>

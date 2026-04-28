@@ -19,7 +19,11 @@ const OrderSummaryCard = ({ items, subtotal }) => {
               {item.nameSnapshot || item.name} × {item.quantity}
             </span>
             <span className="font-medium text-foreground whitespace-nowrap">
-              ₦{((item.priceSnapshot || item.price) * item.quantity).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              ₦
+              {((item.priceSnapshot || item.price) * item.quantity).toLocaleString('en-NG', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}
             </span>
           </div>
         ))}
@@ -31,7 +35,13 @@ const OrderSummaryCard = ({ items, subtotal }) => {
       <div className="space-y-2 text-sm">
         <div className="flex justify-between text-muted-foreground">
           <span>Subtotal</span>
-          <span>₦{subtotal.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+          <span>
+            ₦
+            {subtotal.toLocaleString('en-NG', {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}
+          </span>
         </div>
         <div className="flex justify-between text-muted-foreground">
           <span>Shipping</span>
@@ -50,7 +60,9 @@ const OrderSummaryCard = ({ items, subtotal }) => {
 
         <div className="flex justify-between text-lg font-bold text-foreground pt-1">
           <span>Total</span>
-          <span>₦{total.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+          <span>
+            ₦{total.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </span>
         </div>
       </div>
 

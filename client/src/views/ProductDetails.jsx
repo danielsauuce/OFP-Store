@@ -425,7 +425,13 @@ const ProductDetails = () => {
 
             {/* Price */}
             <div className="flex items-baseline gap-3">
-              <span className="text-4xl font-bold text-primary">₦{product.price?.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              <span className="text-4xl font-bold text-primary">
+                ₦
+                {product.price?.toLocaleString('en-NG', {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
+              </span>
               <span className="text-sm text-muted-foreground line-through opacity-0 select-none">
                 placeholder
               </span>
@@ -854,7 +860,11 @@ const ProductDetails = () => {
                         {rp.name}
                       </p>
                       <p className="text-sm font-bold text-primary mt-0.5">
-                        ₦{rp.price?.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        ₦
+                        {rp.price?.toLocaleString('en-NG', {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
                       </p>
                     </div>
                   </Link>

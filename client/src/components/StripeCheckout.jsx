@@ -106,7 +106,12 @@ function PaymentForm({ onSuccess, total, billingCountry, billingPostalCode }) {
         ) : (
           <>
             <Lock className="h-4 w-4" />
-            Pay ₦{total?.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} securely
+            Pay ₦
+            {total?.toLocaleString('en-NG', {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}{' '}
+            securely
           </>
         )}
       </button>

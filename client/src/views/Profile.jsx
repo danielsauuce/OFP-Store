@@ -583,7 +583,11 @@ const Profile = () => {
                             />
                           </div>
                           <span className="text-xl font-bold text-primary">
-                            ₦{order.total?.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            ₦
+                            {order.total?.toLocaleString('en-NG', {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}
                           </span>
                         </div>
 
@@ -788,7 +792,11 @@ const Profile = () => {
                             {product.name}
                           </Link>
                           <p className="text-primary font-bold mt-1.5">
-                            ₦{Number(product.price).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            ₦
+                            {Number(product.price).toLocaleString('en-NG', {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}
                           </p>
                           <div className="flex items-center justify-between mt-auto pt-3 border-t border-border">
                             <Link

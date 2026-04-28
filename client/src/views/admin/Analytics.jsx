@@ -32,7 +32,10 @@ const CustomTooltip = ({ active, payload, label }) => {
       <p className="font-medium text-foreground mb-1">{label}</p>
       {payload.map((p) => (
         <p key={p.dataKey} style={{ color: p.fill || p.color }}>
-          {p.name}: {p.dataKey === 'revenue' ? `₦${Number(p.value).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : p.value}
+          {p.name}:{' '}
+          {p.dataKey === 'revenue'
+            ? `₦${Number(p.value).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+            : p.value}
         </p>
       ))}
     </div>

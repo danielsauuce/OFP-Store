@@ -163,7 +163,11 @@ const Cart = () => {
                         {/* Price + Remove */}
                         <div className="flex items-center gap-4">
                           <p className="font-bold text-lg text-foreground">
-                            ₦{(item.priceSnapshot * item.quantity).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            ₦
+                            {(item.priceSnapshot * item.quantity).toLocaleString('en-NG', {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}
                           </p>
                           <button
                             onClick={() => removeItem(productId)}
@@ -190,18 +194,34 @@ const Cart = () => {
               <div className="space-y-3">
                 <div className="flex justify-between text-muted-foreground">
                   <span>Subtotal</span>
-                  <span>₦{subtotal.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                  <span>
+                    ₦
+                    {subtotal.toLocaleString('en-NG', {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Shipping</span>
-                  <span>{shipping === 0 ? 'Free' : `₦${shipping.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}</span>
+                  <span>
+                    {shipping === 0
+                      ? 'Free'
+                      : `₦${shipping.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                  </span>
                 </div>
 
                 <div className="border-t border-border" />
 
                 <div className="flex justify-between text-xl font-bold text-foreground">
                   <span>Total</span>
-                  <span>₦{total.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                  <span>
+                    ₦
+                    {total.toLocaleString('en-NG', {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </span>
                 </div>
               </div>
 
