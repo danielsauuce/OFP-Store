@@ -67,7 +67,7 @@ describe('Shop Filters', () => {
   });
 
   it('adjusting price range updates visible products', () => {
-    cy.get('input[type="range"]').first().invoke('val', 1000).trigger('input').trigger('change');
+    cy.get('input[type="range"]').first().invoke('val', 250000).trigger('input').trigger('change');
     cy.get('.shop-product-card, article', { timeout: 8000 });
     // just verify no JS error crashes the page
     cy.get('body').should('not.be.empty');
